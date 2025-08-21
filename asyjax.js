@@ -1,17 +1,31 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+String.prototype.first = function () {
+    return this.substring(0, 1);
+};
+String.prototype.last = function () {
+    return this.substring(this.length - 1);
+};
 String.prototype.reverse = function () {
     return [...this].reverse().join('');
 };
+String.prototype.forkAt = function (index) {
+    return [this.slice(0, index), this.slice(index + 1)];
+};
+String.prototype.indicesOf = function (char) {
+    return [...this].map((c, i) => c === char ? i : -1).filter((n) => n >= 0);
+};
+// trim multiple characters at once
 String.prototype.treem = function (...edges) {
     return this.ltreem(...edges).rtreem(...edges);
 };
 String.prototype.ltreem = function (...edges) {
-    return edges.includes(this.charAt(0)) ? this.slice(1).ltreem(...edges) : this.toString();
+    return edges.includes(this.first()) ? this.slice(1).ltreem(...edges) : this.toString();
 };
 String.prototype.rtreem = function (...edges) {
-    return edges.includes(this.charAt(this.length - 1)) ? this.slice(0, -1).rtreem(...edges) : this.toString();
+    return edges.includes(this.last()) ? this.slice(0, -1).rtreem(...edges) : this.toString();
 };
+// split but keep unsplits
 String.prototype.spleet = function (separator, limit = 1) {
     return (!limit || limit < 1)
         ? [this.toString()]
@@ -26,9 +40,6 @@ String.prototype.rspleet = function (separator, limit = 1) {
             .rspleet(separator, limit - 1)
             .concat([this.slice(this.lastIndexOf(separator) + 1)]);
 };
-function AsyNumber(value) {
-    return Number(SF * value);
-}
 const PT = 72; // 72 pt = 1 in
 const SF = 0.5 * PT; // linewidth() = 0.5
 const ORIENTATION = -1; // (0,1) is up in asy, but down in svg
@@ -36,6 +47,17 @@ const ULX = -200;
 const ULY = -200;
 const W = 400;
 const H = 400;
+var Infices;
+(function (Infices) {
+    Infices["Plus"] = "+";
+    Infices["Minus"] = "-";
+    Infices["Times"] = "*";
+    Infices["Divide"] = "/";
+    Infices["Quotient"] = "#";
+    Infices["Mod"] = "%";
+    Infices["Caret"] = "^";
+    Infices["Timestimes"] = "**";
+})(Infices || (Infices = {}));
 window.onload = function () {
     work();
 };
@@ -61,76 +83,171 @@ function read(asyLine) {
     return transpile(pretranspile(asyLine));
 }
 function pretranspile(asy) {
-    return asy.replace('unitcircle', 'circle((0,0), 1)')
-        .replace('unitsquare', 'box(origin, N+E)')
-        .replace('origin', '(0,0)')
-        .replace('N', '(0,1)')
-        .replace('E', '(1,0)')
-        .replace('S', '(0,-1)')
-        .replace('W', '(-1,0)');
+    return asy.replaceAll('unitcircle', 'circle((0,0), 1)')
+        .replaceAll('unitsquare', 'box(origin, N+E)')
+        .replaceAll('origin', '(0,0)')
+        .replaceAll('N', '(0,1)')
+        .replaceAll('E', '(1,0)')
+        .replaceAll('S', '(0,-1)')
+        .replaceAll('W', '(-1,0)');
 }
 function transpile(asy) {
-    if (asy[0] === '(') {
-        return brackets(asy.slice(1, asy.lastIndexOf(')')));
+    log(0, 'transpile', asy);
+    if (isCommentShaped(asy)) {
+        return '';
     }
-    else if (asy.slice(0, 5) === 'draw(' && asy.slice(-1) === ')') {
-        return draw(asy.slice(5, -1));
+    else if (isRoutineShaped(asy, 'draw')) {
+        return draw(getRoutineInterior(asy, 'draw'));
     }
-    else if (asy.slice(0, 5) === 'fill(' && asy.slice(-1) === ')') {
-        return fill(asy.slice(5, -1));
+    else if (isRoutineShaped(asy, 'fill')) {
+        return fill(getRoutineInterior(asy, 'fill'));
     }
-    else if (asy.slice(0, 9) === 'filldraw(' && asy.slice(-1) === ')') {
-        return filldraw(asy.slice(9, -1));
+    else if (isRoutineShaped(asy, 'filldraw')) {
+        return filldraw(getRoutineInterior(asy, 'filldraw'));
+        //  } else if (asy.slice(0,5) === 'label(' && asy.slice(-1) === ')') {
+        //    return label(asy.slice(5,-1));
     }
     else {
-        console.log(asy);
         throw Error;
     }
 }
-function _dhregh(asy, options) {
+function _parse(asy, depth) {
+    log(depth, '_parse', asy);
     if (!asy)
-        throw TypeError;
-    if (asy.slice(0, 7) === 'circle(' && asy.slice(-1) === ')') {
-        return circle(asy.slice(7, -1), options);
+        throw Error;
+    if (isPairShaped(asy) >= 0) {
+        return _pair(asy, depth);
     }
-    else { // assume it to be a path lol
-        return path(asy, options);
+    else if (isExpressionShaped(asy) >= 0) {
+        return _evaluate(asy, depth);
+    }
+    else if (asy.first() === '(' && asy.last() === ')') {
+        return _brackets(asy.slice(1, -1), depth);
+    }
+    else { // assume to be numerical
+        return __number(asy);
     }
 }
-// this one checks if there's also a color argument
+function _brackets(asy, depth) {
+    log(depth, '_brackets', asy);
+    if (!asy)
+        throw Error;
+    return _parse(asy, depth + 1);
+}
 function draw(asy) {
-    return ((ss) => CSS.supports('color', ss[1] ?? ''.trim())
-        ? _dhregh(ss[0], { stroke: ss[1] })
-        : _dhregh(ss.join(','), { stroke: 'black' }))(asy.rspleet(',', 1));
+    log(0, 'draw', asy);
+    return (([pa, pe]) => CSS.supports('color', pe ?? ''.trim())
+        ? _dhregh(pa, { stroke: pe }, 0)
+        : _dhregh([pa, pe].join(','), { stroke: 'black' }, 0))(asy.rspleet(',', 1));
 }
 function fill(asy) {
-    return ((ss) => _dhregh(ss[0], { fill: ss[1] }))(asy.rspleet(',', 1));
+    log(0, 'fill', asy);
+    return (([pa, pe]) => _dhregh(pa, { fill: pe }, 0))(asy.rspleet(',', 1));
 }
 function filldraw(asy) {
-    return ((ss) => _dhregh(ss[0], { fill: ss[1], stroke: ss[2] }))(asy.rspleet(',', 2));
+    log(0, 'filldraw', asy);
+    return (([pa, fi, st]) => _dhregh(pa, { fill: fi, stroke: st }, 0))(asy.rspleet(',', 2));
 }
-function brackets(asy) {
-    return transpile(asy);
-}
-function path(asy, options) {
-    return ((pp) => `<path d="${pp.points.map((p, i) => `${i == 0 ? 'M' : 'L'} ${p.x} ${p.y} `).join('')}${pp.cyclic ? 'Z' : ''}" fill="${options.fill ?? 'none'}" stroke="${options.stroke ?? 'none'}" />`)(_path(asy));
-}
-function circle(asy, options) {
-    return ((a) => (`<ellipse rx="${a.radius}" ry="${a.radius}" cx="${a.center.x}" cy="${a.center.y}" fill="${options.fill ?? 'none'}" stroke="${options.stroke ?? 'none'}" />`))(_circle(asy));
-}
-function _pair(asy) {
+function _dhregh(asy, pen, depth) {
+    log(depth, '_dhregh', asy, pen);
     if (!asy)
-        throw TypeError;
-    return ((ss) => ({ x: AsyNumber(ss[0]), y: ORIENTATION * AsyNumber(ss[1]) }))(asy.treem('(', ')').split(','));
+        throw Error;
+    if (asy.slice(0, 7) === 'circle(' && asy.slice(-1) === ')') {
+        return _circle(asy.slice(7, -1), pen, depth);
+    }
+    else { // assume it to be a path lol
+        return _path(asy, pen, depth);
+    }
 }
-function _path(asy) {
-    if (!asy)
-        throw TypeError;
-    return { points: asy.replace('--cyclic', '').split('--').map((s) => _pair(s)), cyclic: asy.endsWith('--cyclic') };
+function _path(asy, pen, depth) {
+    log(depth, '_path', asy, pen);
+    return ((pp) => `<path d="${pp.points.map((p, i) => `${i == 0 ? 'M' : 'L'} ${SF * p.x} ${SF * ORIENTATION * p.y} `).join('')}${pp.cyclic ? 'Z' : ''}" fill="${pen.fill ?? 'none'}" stroke="${pen.stroke ?? 'none'}" />`)({ points: asy.replace('--cyclic', '').split('--').map((s) => _parse(s, depth)), cyclic: asy.endsWith('--cyclic') });
 }
-function _circle(asy) {
+function _circle(asy, pen, depth) {
+    log(depth, '_circle', asy, pen);
+    return ((a) => (`<ellipse rx="${SF * a.radius}" ry="${SF * a.radius}" cx="${SF * a.center.x}" cy="${SF * ORIENTATION * a.center.y}" fill="${pen.fill ?? 'none'}" stroke="${pen.stroke ?? 'none'}" />`))((([c, r]) => ({ center: _parse(c, depth), radius: _parse(r, depth), from: 0, to: 360 }))(asy.rspleet(',', 1)));
+}
+//deepest layer is depthless
+function __number(asy) {
+    log(Infinity, '__number', asy);
     if (!asy)
-        throw TypeError;
-    return ((ss) => ({ center: _pair(ss[0]), radius: AsyNumber(ss[1]), from: 0, to: 360 }))(asy.rspleet(',', 1));
+        throw Error;
+    return Number(asy);
+}
+function _pair(asy, depth) {
+    log(depth, '_pair', asy);
+    if (!asy)
+        throw Error;
+    return (([le, ri]) => ({ x: _parse(le, depth), y: _parse(ri, depth) }))(asy.treem('(', ')').split(','));
+}
+function _evaluate(asy, depth) {
+    log(depth, '_evaluate', asy);
+    if (!asy)
+        throw Error;
+    return (([x, y]) => _sum(x, y, depth))(asy.forkAt(isInfixShaped(asy, '+')));
+}
+function _sum(asy1, asy2, depth) {
+    log(depth, '_sum', asy1, asy2);
+    return ((le, ri) => {
+        switch (type(le)) {
+            case "pair":
+                return { x: le.x + ri.x, y: le.y + ri.y };
+            case "number":
+                return le + ri;
+            default:
+                return Error;
+        }
+    })(_parse(asy1, depth), _parse(asy2, depth));
+}
+function isBracketsMatched(asy) {
+    if (!asy)
+        throw Error;
+    return [...asy].filter((c) => c === '(').length === [...asy].filter((c) => c === ')').length;
+}
+function isExpressionShaped(asy) {
+    if (!asy)
+        throw Error;
+    //  console.log(Object.keys(Infices).map((k,v) => [k,v]));
+    //  return Object.keys(Infices).map((e) => isInfixShaped(asy, e)).sort()[0] || -1;
+    return isInfixShaped(asy, '+');
+}
+function isPairShaped(asy) {
+    if (!asy)
+        throw Error;
+    return isInfixShaped(asy, ',');
+}
+function isInfixShaped(asy, delimiter) {
+    if (!asy)
+        throw Error;
+    return asy.indicesOf(delimiter).filter((n) => asy.forkAt(n).every(isBracketsMatched))[0] ?? -1;
+}
+function isRoutineShaped(asy, routine) {
+    if (!asy)
+        throw Error;
+    return asy.startsWith(`${routine}(`) && asy.endsWith(')');
+}
+function getRoutineInterior(asy, routine) {
+    if (!asy)
+        throw Error;
+    return asy.slice(routine.length + 1, -1);
+}
+function isCommentShaped(asy) {
+    if (!asy)
+        throw Error;
+    return asy.startsWith('//');
+}
+function type(thing) {
+    if (typeof thing !== "object") {
+        return typeof thing;
+    }
+    else if ('x' in thing && 'y' in thing) {
+        return "pair";
+    }
+    else {
+        throw Error;
+    }
+}
+function log(depth, name, ...args) {
+    console.log(`${' '.repeat(Math.min(12, 2 * (depth + 1)))} at depth ${depth}, calling ${name} on ${args.join(',')}`);
 }
 //# sourceMappingURL=asyjax.js.map
