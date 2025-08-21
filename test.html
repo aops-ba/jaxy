@@ -15,11 +15,13 @@
     Hello!
   </p>
   <script type="text/asy">
-    draw(unitsquare);
-    draw(unitcircle);
-    draw(circle((0,0), 0.5));
-    draw(circle((0,0), 0.75));
-    draw(circle((0,0), 1));
+    filldraw(unitcircle, red, blue);
+    (fill(circle(N, 1), green));
+    ((((draw(circle(E, 2), blue)))));
+    draw(circle((S), 3), fuchsia);
+    draw(circle(W, 4), red);
+    draw((N--E--S--W--cyclic), yellow);
+    draw(N--(2,3)--(-4,-3)--E--(5,1));
   </script>
 </body>
 

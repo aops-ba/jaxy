@@ -8,5 +8,18 @@ declare global {
         rspleet(separator: string, limit?: number): Array<string>;
     }
 }
-export {};
-//# sourceMappingURL=asyjax.d.ts.map
+export type pair = {
+    x: number;
+    y: number;
+};
+export type path = {
+    points: Array<pair>;
+    cyclic: boolean;
+};
+export type arc = {
+    center: pair;
+    radius: number;
+    from: number;
+    to: number;
+};
+//# sourceMappingURL=asytypes.d.ts.map
