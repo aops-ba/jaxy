@@ -29,16 +29,16 @@ String.prototype.spleet = function(separator, limit=1) {
   return (!limit || limit < 1)
     ? [this.toString()]
     : [this.slice(0,this.indexOf(separator))]
-        .concat(this.slice(this.indexOf(separator)+1)
-        .spleet(separator, limit-1));
+      .concat(this.slice(this.indexOf(separator)+1)
+      .spleet(separator, limit-1));
 }
 
 String.prototype.rspleet = function(separator, limit=1) {
   return (!limit || limit < 1)
     ? [this.toString()]
     : this.slice(0,this.lastIndexOf(separator))
-        .rspleet(separator, limit-1)
-        .concat([this.slice(this.lastIndexOf(separator)+1)]);
+      .rspleet(separator, limit-1)
+      .concat([this.slice(this.lastIndexOf(separator)+1)]);
 }
 
 type pair = {
