@@ -69,15 +69,18 @@ String.prototype.rspleet = function (separator, limit = 1) {
 const PT = 72; // 72 pt = 1 in
 const SF = 0.5 * PT; // linewidth() = 0.5
 const ORIENTATION = -1; // (0,1) is up in asy, but down in svg
+// todo: compute these based on bounding box (which also needs computed)
 const ULX = -200;
 const ULY = -200;
 const W = 400;
 const H = 400;
+// todo: why does vscode give me an error
 let functions = new Map([
     ['draw', draw],
     ['fill', fill],
     ['filldraw', filldraw],
     ['', _pairOrId],
+    ['path', _path],
     ['circle', _circle],
 ]);
 window.onload = function () {
@@ -126,7 +129,7 @@ function _pairOrId(thing) {
         return _pair(thing);
     }
     else {
-        return thing;
+        return _parse(thing);
     }
 }
 // tfw apply is applicative
@@ -136,7 +139,6 @@ function _apply(asy) {
 }
 function _exterior(asy) {
     log('_exterior', asy);
-    assert(functions.has(asy.until('(')));
     return functions.get(asy.until('('));
 }
 function interior(asy) {
@@ -168,9 +170,10 @@ function fill(asy) {
     return (([path, fill]) => (_dhregh(path))({ fill: fill }))(_parse(asy));
 }
 function filldraw(asy) {
-    log('fill', asy);
+    log('filldraw', asy);
     return (([path, fill, stroke]) => (_dhregh(path))({ fill: fill, stroke: stroke }))(_parse(asy));
 }
+// sends `asy` to its svg representation with the fill and stroke missing
 function _dhregh(asy) {
     log('_dhregh', asy);
     if (!asy)
@@ -186,12 +189,9 @@ function _circle(asy) {
     log('_circle', asy);
     if (!asy)
         throw Error;
-    return ((larc) => ((lpen) => `<ellipse rx="${SF * larc.radius}"
-              ry="${SF * larc.radius}"
-              cx="${SF * larc.center.x}"
-              cy="${SF * ORIENTATION * larc.center.y}"
-              fill="${lpen.fill ?? 'none'}"
-              stroke="${lpen.stroke ?? 'none'}" />`))((([center, radius]) => ({ center: _parse(center), radius: _parse(radius), from: 0, to: 360 }))(_parse(asy)));
+    return ((larc) => ((lpen) => `<ellipse rx="${SF * larc.radius}" ry="${SF * larc.radius}"
+                 cx="${SF * larc.center.x}" cy="${SF * ORIENTATION * larc.center.y}"
+                 fill="${lpen.fill ?? 'none'}" stroke="${lpen.stroke ?? 'none'}" />`))((([center, radius]) => ({ center: _parse(center), radius: _parse(radius), from: 0, to: 360 }))(_parse(asy)));
 }
 function _path(asy, pen) {
     log('_path', asy, pen);
@@ -199,21 +199,10 @@ function _path(asy, pen) {
         throw Error;
     return ((lpath) => `<path d="${lpath.points.map((p, i) => `${i == 0 ? 'M' : 'L'} ${SF * p.x} ${SF * ORIENTATION * p.y} `).join('')}${lpath.cyclic ? 'Z' : ''}" fill="${lpath.pen.fill ?? 'none'}" stroke="${lpath.pen.stroke ?? 'none'}" />`)({ points: asy.replace('--cyclic', '').split('--').map((s) => _parse(s)), cyclic: asy.endsWith('--cyclic'), pen: pen });
 }
-//fix this
-//function _label(asy: string | undefined, pen: { fill?: string | undefined, stroke?: string | undefined}): string {
-//  log('_label', asy, pen);
-//  if (!asy) throw Error;
-//
-//  return ((llabel: label): string => (`<text x="${SF*llabel.position.x}" y="${SF*llabel.position.y}" fill="${llabel.pen.fill ?? 'none'}" stroke="${llabel.pen.stroke ?? 'none'}" />`))
-//    ((([text,pos]: Array<string>): label => ({ s: _parse(text), position: _parse(pos), pen: pen }))
-//    (_delimited(asy)));
-//}
-//deepest layer is depthless
 function __number(asy) {
     log('__number', asy);
     return Number(asy);
 }
-//deepest layer is depthless
 function __text(asy) {
     log('__text', asy);
     return String(asy);
@@ -222,28 +211,38 @@ function _pair(asy) {
     log('_pair', asy);
     if (!asy)
         throw Error;
-    return (([left, right]) => ({ x: _parse(left), y: _parse(right) }))(asy.treem('(', ')').split(','));
+    return (([left, right]) => ({ x: _parse(left), y: _parse(right) }))(_delimited(asy));
 }
 function _evaluate(asy) {
     log('_evaluate', asy);
     if (!asy)
         throw Error;
-    return 5; //(([x,y]: Array<string>): any => _sum(x, y, depth))(asy.forkAt(isInfixShaped(asy, '+')));
+    if (_delimited(asy, '+').length > 1) {
+        return _sum(..._delimited(asy, '+'));
+    }
+    else {
+        return __number(asy);
+    }
 }
-function _sum(asy1, asy2) {
-    log('_sum', asy1, asy2);
-    if (!asy1 || !asy2)
+function _sum(...asys) {
+    log('_sum', ...asys);
+    if (!asys.at(-1))
         throw Error;
-    return ((le, ri) => {
-        switch (type(le)) {
-            case "pair":
-                return { x: le.x + ri.x, y: le.y + ri.y };
-            case "number":
-                return le + ri;
-            default:
-                return Error;
-        }
-    })(_parse(asy1), _parse(asy2));
+    if (asys.length === 1) {
+        return _parse(asys[0]);
+    }
+    else {
+        return ((left, right) => {
+            switch (type(left)) {
+                case "pair":
+                    return { x: left.x + right.x, y: left.y + right.y };
+                case "number":
+                    return left + right;
+                default:
+                    return Error;
+            }
+        })(_sum(...asys.slice(0, -1)), _parse(asys.at(-1)));
+    }
 }
 function type(thing) {
     if (typeof thing !== "object") {
@@ -256,30 +255,26 @@ function type(thing) {
         throw Error;
     }
 }
-function log(name, ...args) {
-    console.log(`calling ${name} on ${args.join(',')}`);
-}
 function kind(asy) {
     if (!asy)
         throw Error;
     if (asy.startsWith('//')) {
         return Kind.Comment;
     }
-    else if (asy.until('(').match(/([a-zA-Z0-9]|_)*/) && asy.last() === ')') {
+    else if (/^([a-zA-Z0-9]|_)*$/.test(asy.until('(')) && asy.last() === ')') {
         return Kind.Apply;
     }
-    else if (asy.indicesOf(',').filter((n) => asy.forkAt(n).every(isBracketsMatched))[0] ?? -1) {
+    else if (_delimited(asy).length > 1) {
         return Kind.Tuple;
     }
     else {
         return Kind.Value;
     }
 }
-// helpers.ts
-function loudly(speech) {
-    console.log(speech);
-    return speech;
+function log(name, ...args) {
+    console.log(`calling ${name} on ${args.join(',')}`);
 }
+// helpers.ts
 function _delimited(s, delimiter = ',') {
     if (!s)
         throw Error;
@@ -293,8 +288,14 @@ function isBracketsMatched(asy) {
 function delimiters(s, delimiter = ',') {
     return s.indicesOf(delimiter).filter((n) => s.forkAt(n).every(isBracketsMatched));
 }
+// sends [a, b, c, d, …] to [[a, b], [b, c], [c, d], …]
 function chain(list) {
     return list.slice(0, -1).map((v, i) => [v, list[i + 1]]);
+}
+// for debugging
+function loudly(speech) {
+    console.log(speech);
+    return speech;
 }
 function assert(condition) {
     if (!condition) {

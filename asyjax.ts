@@ -103,16 +103,19 @@ const PT = 72; // 72 pt = 1 in
 const SF = 0.5*PT; // linewidth() = 0.5
 const ORIENTATION = -1; // (0,1) is up in asy, but down in svg
 
+// todo: compute these based on bounding box (which also needs computed)
 const ULX = -200;
 const ULY = -200;
 const W = 400;
 const H = 400;
 
+// todo: why does vscode give me an error
 let functions: Map<string, Function> = new Map([
   ['draw', draw],
   ['fill', fill],
   ['filldraw', filldraw],
   ['', _pairOrId],
+  ['path', _path],
   ['circle', _circle],
 ])
 
@@ -168,7 +171,7 @@ function _pairOrId(thing: string): pair | string {
   if (_delimited(thing).length === 2) {
     return _pair(thing);
   } else {
-    return thing;
+    return _parse(thing);
   }
 }
 
@@ -180,7 +183,6 @@ function _apply(asy: string): any {
 
 function _exterior(asy: string): Function {
   log('_exterior', asy);
-  assert(functions.has(asy.until('(')));
   return functions.get(asy.until('('))!;
 }
 
@@ -219,11 +221,12 @@ function fill(asy: string): string {
 }
 
 function filldraw(asy: string): string {
-  log('fill', asy);
+  log('filldraw', asy);
   return (([path,fill,stroke]) => (_dhregh(path))({ fill: fill, stroke: stroke }))
     (_parse(asy));
 }
 
+// sends `asy` to its svg representation with the fill and stroke missing
 function _dhregh(asy: string | undefined): (pen: pen) => string {
   log('_dhregh', asy);
   if (!asy) throw Error;
@@ -240,13 +243,10 @@ function _circle(asy: string | undefined): (pen: pen) => string {
   log('_circle', asy);
   if (!asy) throw Error;
 
-  return ((larc: arc): (($pen: pen) => string) => ((lpen: pen): string =>
-    `<ellipse rx="${SF*larc.radius}"
-              ry="${SF*larc.radius}"
-              cx="${SF*larc.center.x}"
-              cy="${SF*ORIENTATION*larc.center.y}"
-              fill="${lpen.fill ?? 'none'}"
-              stroke="${lpen.stroke ?? 'none'}" />`))
+  return ((larc: arc): (($pen: pen) => string) =>
+    ((lpen) => `<ellipse rx="${SF*larc.radius}" ry="${SF*larc.radius}"
+                 cx="${SF*larc.center.x}" cy="${SF*ORIENTATION*larc.center.y}"
+                 fill="${lpen.fill ?? 'none'}" stroke="${lpen.stroke ?? 'none'}" />`))
     ((([center,radius]: Array<string>): arc => ({ center: _parse(center), radius: _parse(radius), from: 0, to: 360 }))
     (_parse(asy)));
 }
@@ -259,23 +259,11 @@ function _path(asy: string | undefined, pen: { fill?: string | undefined, stroke
     ({ points: asy.replace('--cyclic', '').split('--').map((s: string): pair => _parse(s)), cyclic: asy.endsWith('--cyclic'), pen: pen });
 }
 
-//fix this
-//function _label(asy: string | undefined, pen: { fill?: string | undefined, stroke?: string | undefined}): string {
-//  log('_label', asy, pen);
-//  if (!asy) throw Error;
-//
-//  return ((llabel: label): string => (`<text x="${SF*llabel.position.x}" y="${SF*llabel.position.y}" fill="${llabel.pen.fill ?? 'none'}" stroke="${llabel.pen.stroke ?? 'none'}" />`))
-//    ((([text,pos]: Array<string>): label => ({ s: _parse(text), position: _parse(pos), pen: pen }))
-//    (_delimited(asy)));
-//}
-
-//deepest layer is depthless
 function __number(asy: string): number {
   log('__number', asy);
   return Number(asy);
 }
 
-//deepest layer is depthless
 function __text(asy: string): string {
   log('__text', asy);
   return String(asy);
@@ -286,30 +274,38 @@ function _pair(asy: string | undefined): pair {
   if (!asy) throw Error;
 
   return (([left,right]: Array<string>): pair => ({ x: _parse(left), y: _parse(right) }))
-    (asy.treem('(', ')').split(','));
+    (_delimited(asy))
 }
 
 function _evaluate(asy: string | undefined): any {
   log('_evaluate', asy);
   if (!asy) throw Error;
 
-  return 5;//(([x,y]: Array<string>): any => _sum(x, y, depth))(asy.forkAt(isInfixShaped(asy, '+')));
+  if (_delimited(asy, '+').length > 1) {
+    return _sum(..._delimited(asy, '+'));
+  } else {
+    return __number(asy);
+  }
 }
 
-function _sum(asy1: string | undefined, asy2: string | undefined): any {
-  log('_sum', asy1, asy2);
-  if (!asy1 || !asy2) throw Error;
+function _sum(...asys: (string | undefined)[]): any {
+  log('_sum', ...asys);
+  if (!asys.at(-1)) throw Error;
 
-  return ((le,ri): any => {
-    switch (type(le)) {
-      case "pair":
-        return { x: le.x+ri.x, y: le.y+ri.y };
-      case "number":
-        return le+ri;
-      default:
-        return Error;
-    }
-  })(_parse(asy1), _parse(asy2));
+  if (asys.length === 1) {
+    return _parse(asys[0]);
+  } else {
+    return ((left,right): any => {
+      switch (type(left)) {
+        case "pair":
+          return { x: left.x+right.x, y: left.y+right.y };
+        case "number":
+          return left+right;
+        default:
+          return Error;
+      }
+    })(_sum(...asys.slice(0,-1)), _parse(asys.at(-1)));
+  }
 }
 
 function type(thing: any): string {
@@ -322,30 +318,25 @@ function type(thing: any): string {
   }
 }
 
-function log(name: string, ...args: any[]): void {
-  console.log(`calling ${name} on ${args.join(',')}`);
-}
-
 function kind(asy: string | undefined): Kind {
   if (!asy) throw Error;
 
   if (asy.startsWith('//')) {
     return Kind.Comment;
-  } else if (asy.until('(').match(/([a-zA-Z0-9]|_)*/) && asy.last() === ')') {
+  } else if (/^([a-zA-Z0-9]|_)*$/.test(asy.until('(')) && asy.last() === ')') {
     return Kind.Apply;
-  } else if (asy.indicesOf(',').filter((n) => asy.forkAt(n).every(isBracketsMatched))[0] ?? -1) {
+  } else if (_delimited(asy).length > 1) {
     return Kind.Tuple;
   } else {
     return Kind.Value;
   }
 }
 
-// helpers.ts
-
-function loudly<T>(speech: T): T {
-  console.log(speech);
-  return speech;
+function log(name: string, ...args: any[]): void {
+  console.log(`calling ${name} on ${args.join(',')}`);
 }
+
+// helpers.ts
 
 function _delimited(s: string | undefined, delimiter=','): Array<string> {
   if (!s) throw Error;
@@ -362,8 +353,16 @@ function delimiters(s: string, delimiter=','): Array<number> {
   return s.indicesOf(delimiter).filter((n) => s.forkAt(n).every(isBracketsMatched));
 }
 
+// sends [a, b, c, d, …] to [[a, b], [b, c], [c, d], …]
 function chain<T>(list: Array<T>): Array<[T, T]> {
   return list.slice(0,-1).map((v,i) => [v, list[i+1] as T]);
+}
+
+// for debugging
+
+function loudly<T>(speech: T): T {
+  console.log(speech);
+  return speech;
 }
 
 function assert(condition: boolean): void {
