@@ -7,7 +7,7 @@
   <link rel="shortcut icon" href="#" />
   <title>AsyJax</title>
   <script>var exports = {};</script>
-  <script src="asyjax.js"></script>
+  <script type="module" src="asyjax.js"></script>
 </head>
 
 <body>
@@ -15,7 +15,11 @@
     Hello!
   </p>
   <script type="text/asy">
-    draw(circle(N+(1,1), 1+1), blue);
+//    filldraw(circle(E+S, 3), violet, pink);
+    draw(unitcircle, black);
+//    draw(circle(1,1), 2, blue);
+//    fill((1,1+3)--(1,2)--(2,1)--cycle, green);
+//    label("Hi", (1,1));
   </script>
 </body>
 

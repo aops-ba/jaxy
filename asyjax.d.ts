@@ -3,6 +3,8 @@ declare global {
         first(): string;
         last(): string;
         reverse(): string;
+        from(char: string): string;
+        until(char: string): string;
         forkAt(index: number): [string, string];
         indicesOf(char: string): Array<number>;
         treem(...edges: string[]): string;

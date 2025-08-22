@@ -1,5 +1,25 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+// todo: how the heck do i import this too
+var Infix;
+(function (Infix) {
+    Infix["Plus"] = "+";
+    Infix["Minus"] = "-";
+    Infix["Times"] = "*";
+    Infix["Divide"] = "/";
+    Infix["Quotient"] = "#";
+    Infix["Mod"] = "%";
+    Infix["Caret"] = "^";
+    Infix["Timestimes"] = "**";
+})(Infix || (Infix = {}));
+var Kind;
+(function (Kind) {
+    Kind[Kind["Text"] = 0] = "Text";
+    Kind[Kind["Value"] = 1] = "Value";
+    Kind[Kind["Apply"] = 2] = "Apply";
+    Kind[Kind["Tuple"] = 3] = "Tuple";
+    Kind[Kind["Comment"] = 4] = "Comment";
+})(Kind || (Kind = {}));
 String.prototype.first = function () {
     return this.substring(0, 1);
 };
@@ -8,6 +28,12 @@ String.prototype.last = function () {
 };
 String.prototype.reverse = function () {
     return [...this].reverse().join('');
+};
+String.prototype.until = function (char) {
+    return this.slice(0, this.indexOf(char));
+};
+String.prototype.from = function (char) {
+    return this.slice(this.lastIndexOf(char) + 1);
 };
 String.prototype.forkAt = function (index) {
     return [this.slice(0, index), this.slice(index + 1)];
@@ -47,17 +73,13 @@ const ULX = -200;
 const ULY = -200;
 const W = 400;
 const H = 400;
-var Infices;
-(function (Infices) {
-    Infices["Plus"] = "+";
-    Infices["Minus"] = "-";
-    Infices["Times"] = "*";
-    Infices["Divide"] = "/";
-    Infices["Quotient"] = "#";
-    Infices["Mod"] = "%";
-    Infices["Caret"] = "^";
-    Infices["Timestimes"] = "**";
-})(Infices || (Infices = {}));
+let functions = new Map([
+    ['draw', draw],
+    ['fill', fill],
+    ['filldraw', filldraw],
+    ['', _pairOrId],
+    ['circle', _circle],
+]);
 window.onload = function () {
     work();
 };
@@ -69,18 +91,12 @@ function work() {
 function asyToSvg(script) {
     script.outerHTML = `
   <svg width="${W}" height="${H}" viewbox="${ULX} ${ULY} ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
-    ${parseLines(script.innerHTML).map((line) => read(line)).join('')}
+    ${linearise(script.innerHTML).map((line) => transpile(pretranspile(line))).join('')}
   </svg>
   `;
 }
-function parseLines(asyBlock) {
+function linearise(asyBlock) {
     return asyBlock.trim().replace(/[\n\r\s]+/gm, '').split(';');
-}
-function read(asyLine) {
-    if (asyLine.length <= 0) {
-        return '';
-    }
-    return transpile(pretranspile(asyLine));
 }
 function pretranspile(asy) {
     return asy.replaceAll('unitcircle', 'circle((0,0), 1)')
@@ -89,105 +105,135 @@ function pretranspile(asy) {
         .replaceAll('N', '(0,1)')
         .replaceAll('E', '(1,0)')
         .replaceAll('S', '(0,-1)')
-        .replaceAll('W', '(-1,0)');
+        .replaceAll('W', '(-1,0)')
+        .replaceAll(' ', '');
 }
 function transpile(asy) {
-    log(0, 'transpile', asy);
-    if (isCommentShaped(asy)) {
+    log('transpile', asy);
+    if (asy.length <= 0)
         return '';
+    switch (kind(asy)) {
+        case Kind.Comment:
+            return '';
+        case Kind.Apply:
+            return _apply(asy);
+        default:
+            throw new TypeError(`${asy} is high and misshapen`);
     }
-    else if (isRoutineShaped(asy, 'draw')) {
-        return draw(getRoutineInterior(asy, 'draw'));
-    }
-    else if (isRoutineShaped(asy, 'fill')) {
-        return fill(getRoutineInterior(asy, 'fill'));
-    }
-    else if (isRoutineShaped(asy, 'filldraw')) {
-        return filldraw(getRoutineInterior(asy, 'filldraw'));
-        //  } else if (asy.slice(0,5) === 'label(' && asy.slice(-1) === ')') {
-        //    return label(asy.slice(5,-1));
+}
+function _pairOrId(thing) {
+    if (_delimited(thing).length === 2) {
+        return _pair(thing);
     }
     else {
-        throw Error;
+        return thing;
     }
 }
-function _parse(asy, depth) {
-    log(depth, '_parse', asy);
-    if (!asy)
-        throw Error;
-    if (isPairShaped(asy) >= 0) {
-        return _pair(asy, depth);
-    }
-    else if (isExpressionShaped(asy) >= 0) {
-        return _evaluate(asy, depth);
-    }
-    else if (asy.first() === '(' && asy.last() === ')') {
-        return _brackets(asy.slice(1, -1), depth);
-    }
-    else { // assume to be numerical
-        return __number(asy);
-    }
+// tfw apply is applicative
+function _apply(asy) {
+    log('_apply', asy);
+    return (_exterior(asy))(interior(asy));
 }
-function _brackets(asy, depth) {
-    log(depth, '_brackets', asy);
+function _exterior(asy) {
+    log('_exterior', asy);
+    assert(functions.has(asy.until('(')));
+    return functions.get(asy.until('('));
+}
+function interior(asy) {
+    return asy.slice(asy.indexOf('(') + 1, asy.lastIndexOf(')'));
+}
+function _parse(asy) {
+    log('_parse', asy);
     if (!asy)
         throw Error;
-    return _parse(asy, depth + 1);
+    switch (kind(asy)) {
+        case Kind.Apply:
+            return _apply(asy);
+        case Kind.Tuple:
+            return _delimited(asy);
+        case Kind.Text:
+            return __text(asy);
+        case Kind.Value:
+            return _evaluate(asy);
+        default:
+            throw new TypeError(`${asy} is low and misshapen`);
+    }
 }
 function draw(asy) {
-    log(0, 'draw', asy);
-    return (([pa, pe]) => CSS.supports('color', pe ?? ''.trim())
-        ? _dhregh(pa, { stroke: pe }, 0)
-        : _dhregh([pa, pe].join(','), { stroke: 'black' }, 0))(asy.rspleet(',', 1));
+    log('draw', asy);
+    return (([path, stroke]) => (_dhregh(path))({ stroke: stroke }))(_parse(asy));
 }
 function fill(asy) {
-    log(0, 'fill', asy);
-    return (([pa, pe]) => _dhregh(pa, { fill: pe }, 0))(asy.rspleet(',', 1));
+    log('fill', asy);
+    return (([path, fill]) => (_dhregh(path))({ fill: fill }))(_parse(asy));
 }
 function filldraw(asy) {
-    log(0, 'filldraw', asy);
-    return (([pa, fi, st]) => _dhregh(pa, { fill: fi, stroke: st }, 0))(asy.rspleet(',', 2));
+    log('fill', asy);
+    return (([path, fill, stroke]) => (_dhregh(path))({ fill: fill, stroke: stroke }))(_parse(asy));
 }
-function _dhregh(asy, pen, depth) {
-    log(depth, '_dhregh', asy, pen);
+function _dhregh(asy) {
+    log('_dhregh', asy);
     if (!asy)
         throw Error;
-    if (asy.slice(0, 7) === 'circle(' && asy.slice(-1) === ')') {
-        return _circle(asy.slice(7, -1), pen, depth);
+    switch (kind(asy)) {
+        case Kind.Apply:
+            return _apply(asy);
+        default:
+            throw Error;
     }
-    else { // assume it to be a path lol
-        return _path(asy, pen, depth);
-    }
 }
-function _path(asy, pen, depth) {
-    log(depth, '_path', asy, pen);
-    return ((pp) => `<path d="${pp.points.map((p, i) => `${i == 0 ? 'M' : 'L'} ${SF * p.x} ${SF * ORIENTATION * p.y} `).join('')}${pp.cyclic ? 'Z' : ''}" fill="${pen.fill ?? 'none'}" stroke="${pen.stroke ?? 'none'}" />`)({ points: asy.replace('--cyclic', '').split('--').map((s) => _parse(s, depth)), cyclic: asy.endsWith('--cyclic') });
+function _circle(asy) {
+    log('_circle', asy);
+    if (!asy)
+        throw Error;
+    return ((larc) => ((lpen) => `<ellipse rx="${SF * larc.radius}"
+              ry="${SF * larc.radius}"
+              cx="${SF * larc.center.x}"
+              cy="${SF * ORIENTATION * larc.center.y}"
+              fill="${lpen.fill ?? 'none'}"
+              stroke="${lpen.stroke ?? 'none'}" />`))((([center, radius]) => ({ center: _parse(center), radius: _parse(radius), from: 0, to: 360 }))(_parse(asy)));
 }
-function _circle(asy, pen, depth) {
-    log(depth, '_circle', asy, pen);
-    return ((a) => (`<ellipse rx="${SF * a.radius}" ry="${SF * a.radius}" cx="${SF * a.center.x}" cy="${SF * ORIENTATION * a.center.y}" fill="${pen.fill ?? 'none'}" stroke="${pen.stroke ?? 'none'}" />`))((([c, r]) => ({ center: _parse(c, depth), radius: _parse(r, depth), from: 0, to: 360 }))(asy.rspleet(',', 1)));
+function _path(asy, pen) {
+    log('_path', asy, pen);
+    if (!asy)
+        throw Error;
+    return ((lpath) => `<path d="${lpath.points.map((p, i) => `${i == 0 ? 'M' : 'L'} ${SF * p.x} ${SF * ORIENTATION * p.y} `).join('')}${lpath.cyclic ? 'Z' : ''}" fill="${lpath.pen.fill ?? 'none'}" stroke="${lpath.pen.stroke ?? 'none'}" />`)({ points: asy.replace('--cyclic', '').split('--').map((s) => _parse(s)), cyclic: asy.endsWith('--cyclic'), pen: pen });
 }
+//fix this
+//function _label(asy: string | undefined, pen: { fill?: string | undefined, stroke?: string | undefined}): string {
+//  log('_label', asy, pen);
+//  if (!asy) throw Error;
+//
+//  return ((llabel: label): string => (`<text x="${SF*llabel.position.x}" y="${SF*llabel.position.y}" fill="${llabel.pen.fill ?? 'none'}" stroke="${llabel.pen.stroke ?? 'none'}" />`))
+//    ((([text,pos]: Array<string>): label => ({ s: _parse(text), position: _parse(pos), pen: pen }))
+//    (_delimited(asy)));
+//}
 //deepest layer is depthless
 function __number(asy) {
-    log(Infinity, '__number', asy);
-    if (!asy)
-        throw Error;
+    log('__number', asy);
     return Number(asy);
 }
-function _pair(asy, depth) {
-    log(depth, '_pair', asy);
+//deepest layer is depthless
+function __text(asy) {
+    log('__text', asy);
+    return String(asy);
+}
+function _pair(asy) {
+    log('_pair', asy);
     if (!asy)
         throw Error;
-    return (([le, ri]) => ({ x: _parse(le, depth), y: _parse(ri, depth) }))(asy.treem('(', ')').split(','));
+    return (([left, right]) => ({ x: _parse(left), y: _parse(right) }))(asy.treem('(', ')').split(','));
 }
-function _evaluate(asy, depth) {
-    log(depth, '_evaluate', asy);
+function _evaluate(asy) {
+    log('_evaluate', asy);
     if (!asy)
         throw Error;
-    return (([x, y]) => _sum(x, y, depth))(asy.forkAt(isInfixShaped(asy, '+')));
+    return 5; //(([x,y]: Array<string>): any => _sum(x, y, depth))(asy.forkAt(isInfixShaped(asy, '+')));
 }
-function _sum(asy1, asy2, depth) {
-    log(depth, '_sum', asy1, asy2);
+function _sum(asy1, asy2) {
+    log('_sum', asy1, asy2);
+    if (!asy1 || !asy2)
+        throw Error;
     return ((le, ri) => {
         switch (type(le)) {
             case "pair":
@@ -197,44 +243,7 @@ function _sum(asy1, asy2, depth) {
             default:
                 return Error;
         }
-    })(_parse(asy1, depth), _parse(asy2, depth));
-}
-function isBracketsMatched(asy) {
-    if (!asy)
-        throw Error;
-    return [...asy].filter((c) => c === '(').length === [...asy].filter((c) => c === ')').length;
-}
-function isExpressionShaped(asy) {
-    if (!asy)
-        throw Error;
-    //  console.log(Object.keys(Infices).map((k,v) => [k,v]));
-    //  return Object.keys(Infices).map((e) => isInfixShaped(asy, e)).sort()[0] || -1;
-    return isInfixShaped(asy, '+');
-}
-function isPairShaped(asy) {
-    if (!asy)
-        throw Error;
-    return isInfixShaped(asy, ',');
-}
-function isInfixShaped(asy, delimiter) {
-    if (!asy)
-        throw Error;
-    return asy.indicesOf(delimiter).filter((n) => asy.forkAt(n).every(isBracketsMatched))[0] ?? -1;
-}
-function isRoutineShaped(asy, routine) {
-    if (!asy)
-        throw Error;
-    return asy.startsWith(`${routine}(`) && asy.endsWith(')');
-}
-function getRoutineInterior(asy, routine) {
-    if (!asy)
-        throw Error;
-    return asy.slice(routine.length + 1, -1);
-}
-function isCommentShaped(asy) {
-    if (!asy)
-        throw Error;
-    return asy.startsWith('//');
+    })(_parse(asy1), _parse(asy2));
 }
 function type(thing) {
     if (typeof thing !== "object") {
@@ -247,7 +256,49 @@ function type(thing) {
         throw Error;
     }
 }
-function log(depth, name, ...args) {
-    console.log(`${' '.repeat(Math.min(12, 2 * (depth + 1)))} at depth ${depth}, calling ${name} on ${args.join(',')}`);
+function log(name, ...args) {
+    console.log(`calling ${name} on ${args.join(',')}`);
+}
+function kind(asy) {
+    if (!asy)
+        throw Error;
+    if (asy.startsWith('//')) {
+        return Kind.Comment;
+    }
+    else if (asy.until('(').match(/([a-zA-Z0-9]|_)*/) && asy.last() === ')') {
+        return Kind.Apply;
+    }
+    else if (asy.indicesOf(',').filter((n) => asy.forkAt(n).every(isBracketsMatched))[0] ?? -1) {
+        return Kind.Tuple;
+    }
+    else {
+        return Kind.Value;
+    }
+}
+// helpers.ts
+function loudly(speech) {
+    console.log(speech);
+    return speech;
+}
+function _delimited(s, delimiter = ',') {
+    if (!s)
+        throw Error;
+    return chain([-1].concat(delimiters(s, delimiter))
+        .concat([s.length]))
+        .map(([left, right]) => s.slice(left + delimiter.length, right));
+}
+function isBracketsMatched(asy) {
+    return [...asy].filter((c) => c === '(').length === [...asy].filter((c) => c === ')').length;
+}
+function delimiters(s, delimiter = ',') {
+    return s.indicesOf(delimiter).filter((n) => s.forkAt(n).every(isBracketsMatched));
+}
+function chain(list) {
+    return list.slice(0, -1).map((v, i) => [v, list[i + 1]]);
+}
+function assert(condition) {
+    if (!condition) {
+        throw Error;
+    }
 }
 //# sourceMappingURL=asyjax.js.map

@@ -1,9 +1,37 @@
+import type { pair } from "./types";
+import type { label } from "./types";
+import type { arc, path } from "./types";
+import type { pen } from "./types";
+
+// todo: how the heck do i import this too
+enum Infix {
+  Plus = '+',
+  Minus = '-',
+  Times = '*',
+  Divide = '/',
+  Quotient = '#',
+  Mod = '%',
+  Caret = '^',
+  Timestimes = '**',
+}
+
+enum Kind {
+  Text,
+  Value,
+  Apply,
+  Tuple,
+  Comment,
+}
+
+// todo: move this to a separate file and figure out how the heck to import it
 declare global {
   interface String {
     first(): string;
     last(): string;
     reverse(): string;
-    forkAt(index: number): [string, string]
+    from(char: string): string;
+    until(char: string): string;
+    forkAt(index: number): [string, string];
     indicesOf(char: string): Array<number>;
     treem(...edges: string[]): string;
     ltreem(...edges: string[]): string;
@@ -23,6 +51,14 @@ String.prototype.last = function() {
 
 String.prototype.reverse = function() {
   return [...this].reverse().join('');
+}
+
+String.prototype.until = function(char) {
+  return this.slice(0,this.indexOf(char));
+}
+
+String.prototype.from = function(char) {
+  return this.slice(this.lastIndexOf(char)+1);
 }
 
 String.prototype.forkAt = function(index) {
@@ -63,28 +99,6 @@ String.prototype.rspleet = function(separator, limit=1) {
       .concat([this.slice(this.lastIndexOf(separator)+1)]);
 }
 
-type pair = {
-  x: number;
-  y: number;
-}
-
-type path = {
-  points: Array<pair>;
-  cyclic: boolean;
-}
-
-type arc = {
-  center: pair;
-  radius: number;
-  from: number;
-  to: number;
-}
-
-type pen = {
-  fill?: string | undefined;
-  stroke?: string | undefined;
-}
-
 const PT = 72; // 72 pt = 1 in
 const SF = 0.5*PT; // linewidth() = 0.5
 const ORIENTATION = -1; // (0,1) is up in asy, but down in svg
@@ -94,16 +108,13 @@ const ULY = -200;
 const W = 400;
 const H = 400;
 
-enum Infices {
-  Plus = '+',
-  Minus = '-',
-  Times = '*',
-  Divide = '/',
-  Quotient = '#',
-  Mod = '%',
-  Caret = '^',
-  Timestimes = '**',
-}
+let functions: Map<string, Function> = new Map([
+  ['draw', draw],
+  ['fill', fill],
+  ['filldraw', filldraw],
+  ['', _pairOrId],
+  ['circle', _circle],
+])
 
 window.onload = function() {
   work();
@@ -118,23 +129,15 @@ function work(): void {
 function asyToSvg(script: HTMLScriptElement): void {
   script.outerHTML = `
   <svg width="${W}" height="${H}" viewbox="${ULX} ${ULY} ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
-    ${parseLines(script.innerHTML).map((line: string): string => read(line)).join('')}
+    ${linearise(script.innerHTML).map((line: string): string => transpile(pretranspile(line))).join('')}
   </svg>
   `;
 }
 
-function parseLines(asyBlock: string): string[] {
+function linearise(asyBlock: string): string[] {
   return asyBlock.trim().replace(/[\n\r\s]+/gm, '').split(';');
 }
   
-function read(asyLine: string): string {
-  if (asyLine.length <= 0) {
-    return '';
-  }
-
-  return transpile(pretranspile(asyLine));
-}
-
 function pretranspile(asy: string): string {
   return asy.replaceAll('unitcircle', 'circle((0,0), 1)')
     .replaceAll('unitsquare', 'box(origin, N+E)')
@@ -143,115 +146,160 @@ function pretranspile(asy: string): string {
     .replaceAll('E', '(1,0)')
     .replaceAll('S', '(0,-1)')
     .replaceAll('W', '(-1,0)')
+    .replaceAll(' ', '')
     ;
 }
 
-function transpile(asy: string): any {
-  log(0, 'transpile', asy);
+function transpile(asy: string): string {
+  log('transpile', asy);
+  if (asy.length <= 0) return '';
 
-  if (isCommentShaped(asy)) {
-    return '';
-  } else if (isRoutineShaped(asy, 'draw')) {
-    return draw(getRoutineInterior(asy, 'draw'));
-  } else if (isRoutineShaped(asy, 'fill')) {
-    return fill(getRoutineInterior(asy, 'fill'));
-  } else if (isRoutineShaped(asy, 'filldraw')) {
-    return filldraw(getRoutineInterior(asy, 'filldraw'));
-//  } else if (asy.slice(0,5) === 'label(' && asy.slice(-1) === ')') {
-//    return label(asy.slice(5,-1));
+  switch (kind(asy)) {
+    case Kind.Comment:
+      return '';
+    case Kind.Apply:
+      return _apply(asy);
+    default:
+      throw new TypeError(`${asy} is high and misshapen`);
+  }
+}
+
+function _pairOrId(thing: string): pair | string {
+  if (_delimited(thing).length === 2) {
+    return _pair(thing);
   } else {
-    throw Error;
+    return thing;
   }
 }
 
-function _parse(asy: string | undefined, depth: number): any {
-  log(depth, '_parse', asy);
-  if (!asy) throw Error;
-
-  if (isPairShaped(asy) >= 0) {
-    return _pair(asy, depth);
-  } else if (isExpressionShaped(asy) >= 0) {
-    return _evaluate(asy, depth);
-  } else if (asy.first() === '(' && asy.last() === ')') {
-    return _brackets(asy.slice(1,-1), depth);
-  } else { // assume to be numerical
-    return __number(asy);
-  }
+// tfw apply is applicative
+function _apply(asy: string): any {
+  log('_apply', asy);
+  return (_exterior(asy))(interior(asy));
 }
 
-function _brackets(asy: string | undefined, depth: number): any {
-  log(depth, '_brackets', asy);
+function _exterior(asy: string): Function {
+  log('_exterior', asy);
+  assert(functions.has(asy.until('(')));
+  return functions.get(asy.until('('))!;
+}
+
+function interior(asy: string): string {
+  return asy.slice(asy.indexOf('(')+1,asy.lastIndexOf(')'));
+}
+
+function _parse(asy: string | undefined): any {
+  log('_parse', asy);
   if (!asy) throw Error;
 
-  return _parse(asy, depth+1);
+  switch(kind(asy)) {
+    case Kind.Apply:
+      return _apply(asy);
+    case Kind.Tuple:
+      return _delimited(asy);
+    case Kind.Text:
+      return __text(asy);
+    case Kind.Value:
+      return _evaluate(asy);
+    default:
+      throw new TypeError(`${asy} is low and misshapen`);
+  }
 }
 
 function draw(asy: string): string {
-  log(0, 'draw', asy);
-  return (([pa,pe]: Array<string>): string => CSS.supports('color', pe ?? ''.trim())
-    ? _dhregh(pa, { stroke: pe }, 0)
-    : _dhregh([pa, pe].join(','), { stroke: 'black' }, 0))(asy.rspleet(',', 1));
+  log('draw', asy);
+  return (([path,stroke]) => (_dhregh(path))({ stroke: stroke }))
+    (_parse(asy));
 }
 
 function fill(asy: string): string {
-  log(0, 'fill', asy);
-  return (([pa,pe]: Array<string>): string => _dhregh(pa, { fill: pe }, 0))
-    (asy.rspleet(',', 1));
+  log('fill', asy);
+  return (([path,fill]) => (_dhregh(path))({ fill: fill }))
+    (_parse(asy));
 }
 
 function filldraw(asy: string): string {
-  log(0, 'filldraw', asy);
-  return (([pa,fi,st]: Array<string>): string => _dhregh(pa, { fill: fi, stroke: st }, 0))
-    (asy.rspleet(',', 2));
+  log('fill', asy);
+  return (([path,fill,stroke]) => (_dhregh(path))({ fill: fill, stroke: stroke }))
+    (_parse(asy));
 }
 
-function _dhregh(asy: string | undefined, pen: pen, depth: number): string {
-  log(depth, '_dhregh', asy, pen);
+function _dhregh(asy: string | undefined): (pen: pen) => string {
+  log('_dhregh', asy);
   if (!asy) throw Error;
 
-  if (asy.slice(0,7) === 'circle(' && asy.slice(-1) === ')') {
-    return _circle(asy.slice(7,-1), pen, depth);
-  } else { // assume it to be a path lol
-    return _path(asy, pen, depth);
+  switch (kind(asy)) {
+    case Kind.Apply:
+      return _apply(asy);
+    default:
+      throw Error;
   }
 }
 
-function _path(asy: string, pen: { fill?: string | undefined, stroke?: string | undefined}, depth: number): string {
-  log(depth, '_path', asy, pen);
-  return ((pp: path): string => `<path d="${pp.points.map((p: pair, i: number): string => `${i==0 ? 'M' : 'L'} ${SF*p.x} ${SF*ORIENTATION*p.y} `).join('')}${pp.cyclic ? 'Z' : ''}" fill="${pen.fill ?? 'none'}" stroke="${pen.stroke ?? 'none'}" />`)
-    ({ points: asy.replace('--cyclic', '').split('--').map((s: string): pair => _parse(s, depth)), cyclic: asy.endsWith('--cyclic') });
+function _circle(asy: string | undefined): (pen: pen) => string {
+  log('_circle', asy);
+  if (!asy) throw Error;
+
+  return ((larc: arc): (($pen: pen) => string) => ((lpen: pen): string =>
+    `<ellipse rx="${SF*larc.radius}"
+              ry="${SF*larc.radius}"
+              cx="${SF*larc.center.x}"
+              cy="${SF*ORIENTATION*larc.center.y}"
+              fill="${lpen.fill ?? 'none'}"
+              stroke="${lpen.stroke ?? 'none'}" />`))
+    ((([center,radius]: Array<string>): arc => ({ center: _parse(center), radius: _parse(radius), from: 0, to: 360 }))
+    (_parse(asy)));
 }
 
-function _circle(asy: string, pen: { fill?: string | undefined, stroke?: string | undefined}, depth: number): string {
-  log(depth, '_circle', asy, pen);
-  return ((a: arc): string => (`<ellipse rx="${SF*a.radius}" ry="${SF*a.radius}" cx="${SF*a.center.x}" cy="${SF*ORIENTATION*a.center.y}" fill="${pen.fill ?? 'none'}" stroke="${pen.stroke ?? 'none'}" />`))
-    ((([c,r]: Array<string>): arc => ({ center: _parse(c, depth), radius: _parse(r, depth), from: 0, to: 360 }))
-    (asy.rspleet(',', 1)));
+function _path(asy: string | undefined, pen: { fill?: string | undefined, stroke?: string | undefined}): string {
+  log('_path', asy, pen);
+  if (!asy) throw Error;
+
+  return ((lpath: path): string => `<path d="${lpath.points.map((p: pair, i: number): string => `${i==0 ? 'M' : 'L'} ${SF*p.x} ${SF*ORIENTATION*p.y} `).join('')}${lpath.cyclic ? 'Z' : ''}" fill="${lpath.pen.fill ?? 'none'}" stroke="${lpath.pen.stroke ?? 'none'}" />`)
+    ({ points: asy.replace('--cyclic', '').split('--').map((s: string): pair => _parse(s)), cyclic: asy.endsWith('--cyclic'), pen: pen });
 }
+
+//fix this
+//function _label(asy: string | undefined, pen: { fill?: string | undefined, stroke?: string | undefined}): string {
+//  log('_label', asy, pen);
+//  if (!asy) throw Error;
+//
+//  return ((llabel: label): string => (`<text x="${SF*llabel.position.x}" y="${SF*llabel.position.y}" fill="${llabel.pen.fill ?? 'none'}" stroke="${llabel.pen.stroke ?? 'none'}" />`))
+//    ((([text,pos]: Array<string>): label => ({ s: _parse(text), position: _parse(pos), pen: pen }))
+//    (_delimited(asy)));
+//}
 
 //deepest layer is depthless
-function __number(asy: string | undefined): number {
-  log(Infinity, '__number', asy);
-  if (!asy) throw Error;
+function __number(asy: string): number {
+  log('__number', asy);
   return Number(asy);
 }
 
-function _pair(asy: string | undefined, depth: number): pair {
-  log(depth, '_pair', asy);
+//deepest layer is depthless
+function __text(asy: string): string {
+  log('__text', asy);
+  return String(asy);
+}
+
+function _pair(asy: string | undefined): pair {
+  log('_pair', asy);
   if (!asy) throw Error;
-  return (([le,ri]: Array<string>): pair => ({ x: _parse(le, depth), y: _parse(ri, depth) }))
+
+  return (([left,right]: Array<string>): pair => ({ x: _parse(left), y: _parse(right) }))
     (asy.treem('(', ')').split(','));
 }
 
-function _evaluate(asy: string | undefined, depth: number): any {
-  log(depth, '_evaluate', asy);
+function _evaluate(asy: string | undefined): any {
+  log('_evaluate', asy);
   if (!asy) throw Error;
 
-  return (([x,y]: Array<string>): any => _sum(x, y, depth))(asy.forkAt(isInfixShaped(asy, '+')));
+  return 5;//(([x,y]: Array<string>): any => _sum(x, y, depth))(asy.forkAt(isInfixShaped(asy, '+')));
 }
 
-function _sum(asy1: string | undefined, asy2: string | undefined, depth: number): any {
-  log(depth, '_sum', asy1, asy2);
+function _sum(asy1: string | undefined, asy2: string | undefined): any {
+  log('_sum', asy1, asy2);
+  if (!asy1 || !asy2) throw Error;
+
   return ((le,ri): any => {
     switch (type(le)) {
       case "pair":
@@ -261,44 +309,7 @@ function _sum(asy1: string | undefined, asy2: string | undefined, depth: number)
       default:
         return Error;
     }
-  })(_parse(asy1, depth), _parse(asy2, depth));
-}
-
-function isBracketsMatched(asy: string | undefined): boolean {
-  if (!asy) throw Error;
-  return [...asy].filter((c) => c === '(').length === [...asy].filter((c) => c === ')').length;
-}
-
-function isExpressionShaped(asy: string | undefined): number {
-  if (!asy) throw Error;
-//  console.log(Object.keys(Infices).map((k,v) => [k,v]));
-//  return Object.keys(Infices).map((e) => isInfixShaped(asy, e)).sort()[0] || -1;
-  return isInfixShaped(asy, '+');
-}
-
-function isPairShaped(asy: string | undefined): number {
-  if (!asy) throw Error;
-  return isInfixShaped(asy, ',');
-}
-
-function isInfixShaped(asy: string | undefined, delimiter: string): number {
-  if (!asy) throw Error;
-  return asy.indicesOf(delimiter).filter((n) => asy.forkAt(n).every(isBracketsMatched))[0] ?? -1;
-}
-
-function isRoutineShaped(asy: string | undefined, routine: string): boolean {
-  if (!asy) throw Error;
-  return asy.startsWith(`${routine}(`) && asy.endsWith(')');
-}
-
-function getRoutineInterior(asy: string | undefined, routine: string): string {
-  if (!asy) throw Error;
-  return asy.slice(routine.length+1,-1);
-}
-
-function isCommentShaped(asy: string | undefined): boolean {
-  if (!asy) throw Error;
-  return asy.startsWith('//');
+  })(_parse(asy1), _parse(asy2));
 }
 
 function type(thing: any): string {
@@ -311,6 +322,52 @@ function type(thing: any): string {
   }
 }
 
-function log(depth: number, name: string, ...args: any[]): void {
-  console.log(`${' '.repeat(Math.min(12, 2*(depth+1)))} at depth ${depth}, calling ${name} on ${args.join(',')}`);
+function log(name: string, ...args: any[]): void {
+  console.log(`calling ${name} on ${args.join(',')}`);
+}
+
+function kind(asy: string | undefined): Kind {
+  if (!asy) throw Error;
+
+  if (asy.startsWith('//')) {
+    return Kind.Comment;
+  } else if (asy.until('(').match(/([a-zA-Z0-9]|_)*/) && asy.last() === ')') {
+    return Kind.Apply;
+  } else if (asy.indicesOf(',').filter((n) => asy.forkAt(n).every(isBracketsMatched))[0] ?? -1) {
+    return Kind.Tuple;
+  } else {
+    return Kind.Value;
+  }
+}
+
+// helpers.ts
+
+function loudly<T>(speech: T): T {
+  console.log(speech);
+  return speech;
+}
+
+function _delimited(s: string | undefined, delimiter=','): Array<string> {
+  if (!s) throw Error;
+  return chain([-1].concat(delimiters(s, delimiter))
+                  .concat([s.length]))
+         .map(([left,right]) => s.slice(left+delimiter.length,right));
+}
+
+function isBracketsMatched(asy: string): boolean {
+  return [...asy].filter((c) => c === '(').length === [...asy].filter((c) => c === ')').length;
+}
+
+function delimiters(s: string, delimiter=','): Array<number> {
+  return s.indicesOf(delimiter).filter((n) => s.forkAt(n).every(isBracketsMatched));
+}
+
+function chain<T>(list: Array<T>): Array<[T, T]> {
+  return list.slice(0,-1).map((v,i) => [v, list[i+1] as T]);
+}
+
+function assert(condition: boolean): void {
+  if (!condition) {
+    throw Error;
+  }
 }
