@@ -1,25 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-// todo: how the heck do i import this too
-var Infix;
-(function (Infix) {
-    Infix["Plus"] = "+";
-    Infix["Minus"] = "-";
-    Infix["Times"] = "*";
-    Infix["Divide"] = "/";
-    Infix["Quotient"] = "#";
-    Infix["Mod"] = "%";
-    Infix["Caret"] = "^";
-    Infix["Timestimes"] = "**";
-})(Infix || (Infix = {}));
-var Kind;
-(function (Kind) {
-    Kind[Kind["Text"] = 0] = "Text";
-    Kind[Kind["Value"] = 1] = "Value";
-    Kind[Kind["Apply"] = 2] = "Apply";
-    Kind[Kind["Tuple"] = 3] = "Tuple";
-    Kind[Kind["Comment"] = 4] = "Comment";
-})(Kind || (Kind = {}));
+const enums_1 = require("./enums");
 String.prototype.first = function () {
     return this.substring(0, 1);
 };
@@ -116,9 +97,9 @@ function transpile(asy) {
     if (asy.length <= 0)
         return '';
     switch (kind(asy)) {
-        case Kind.Comment:
+        case enums_1.Kind.Comment:
             return '';
-        case Kind.Apply:
+        case enums_1.Kind.Apply:
             return _apply(asy);
         default:
             throw new TypeError(`${asy} is high and misshapen`);
@@ -149,13 +130,13 @@ function _parse(asy) {
     if (!asy)
         throw Error;
     switch (kind(asy)) {
-        case Kind.Apply:
+        case enums_1.Kind.Apply:
             return _apply(asy);
-        case Kind.Tuple:
+        case enums_1.Kind.Tuple:
             return _delimited(asy);
-        case Kind.Text:
+        case enums_1.Kind.Text:
             return __text(asy);
-        case Kind.Value:
+        case enums_1.Kind.Value:
             return _evaluate(asy);
         default:
             throw new TypeError(`${asy} is low and misshapen`);
@@ -179,7 +160,7 @@ function _dhregh(asy) {
     if (!asy)
         throw Error;
     switch (kind(asy)) {
-        case Kind.Apply:
+        case enums_1.Kind.Apply:
             return _apply(asy);
         default:
             throw Error;
@@ -259,16 +240,16 @@ function kind(asy) {
     if (!asy)
         throw Error;
     if (asy.startsWith('//')) {
-        return Kind.Comment;
+        return enums_1.Kind.Comment;
     }
     else if (/^([a-zA-Z0-9]|_)*$/.test(asy.until('(')) && asy.last() === ')') {
-        return Kind.Apply;
+        return enums_1.Kind.Apply;
     }
     else if (_delimited(asy).length > 1) {
-        return Kind.Tuple;
+        return enums_1.Kind.Tuple;
     }
     else {
-        return Kind.Value;
+        return enums_1.Kind.Value;
     }
 }
 function log(name, ...args) {

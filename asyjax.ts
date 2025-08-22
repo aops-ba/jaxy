@@ -2,26 +2,27 @@ import type { pair } from "./types";
 import type { label } from "./types";
 import type { arc, path } from "./types";
 import type { pen } from "./types";
+import { Infix, Kind } from "./enums";
 
 // todo: how the heck do i import this too
-enum Infix {
-  Plus = '+',
-  Minus = '-',
-  Times = '*',
-  Divide = '/',
-  Quotient = '#',
-  Mod = '%',
-  Caret = '^',
-  Timestimes = '**',
-}
-
-enum Kind {
-  Text,
-  Value,
-  Apply,
-  Tuple,
-  Comment,
-}
+//enum Infix {
+//  Plus = '+',
+//  Minus = '-',
+//  Times = '*',
+//  Divide = '/',
+//  Quotient = '#',
+//  Mod = '%',
+//  Caret = '^',
+//  Timestimes = '**',
+//}
+//
+//enum Kind {
+//  Text,
+//  Value,
+//  Apply,
+//  Tuple,
+//  Comment,
+//}
 
 // todo: move this to a separate file and figure out how the heck to import it
 declare global {
