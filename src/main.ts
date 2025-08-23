@@ -1,104 +1,15 @@
+// lets go
+import "./global.d";
+
 import type { pair } from "./types";
 import type { label } from "./types";
 import type { arc, path } from "./types";
 import type { pen } from "./types";
 import { Infix, Kind } from "./enums";
 
-// todo: how the heck do i import this too
-//enum Infix {
-//  Plus = '+',
-//  Minus = '-',
-//  Times = '*',
-//  Divide = '/',
-//  Quotient = '#',
-//  Mod = '%',
-//  Caret = '^',
-//  Timestimes = '**',
-//}
-//
-//enum Kind {
-//  Text,
-//  Value,
-//  Apply,
-//  Tuple,
-//  Comment,
-//}
+import { chain, loudly, assert } from "./helpers";
 
-// todo: move this to a separate file and figure out how the heck to import it
-declare global {
-  interface String {
-    first(): string;
-    last(): string;
-    reverse(): string;
-    from(char: string): string;
-    until(char: string): string;
-    forkAt(index: number): [string, string];
-    indicesOf(char: string): Array<number>;
-    treem(...edges: string[]): string;
-    ltreem(...edges: string[]): string;
-    rtreem(...edges: string[]): string;
-    spleet(separator: string, limit?: number): Array<string>;
-    rspleet(separator: string, limit?: number): Array<string>;
-  }
-}
-
-String.prototype.first = function() {
-  return this.substring(0,1);
-}
-
-String.prototype.last = function() {
-  return this.substring(this.length-1);
-}
-
-String.prototype.reverse = function() {
-  return [...this].reverse().join('');
-}
-
-String.prototype.until = function(char) {
-  return this.slice(0,this.indexOf(char));
-}
-
-String.prototype.from = function(char) {
-  return this.slice(this.lastIndexOf(char)+1);
-}
-
-String.prototype.forkAt = function(index) {
-  return [this.slice(0,index), this.slice(index+1)];
-}
-
-String.prototype.indicesOf = function(char) {
-  return [...this].map((c: string, i: number) => c === char ? i : -1).filter((n: number) => n>=0);
-}
-
-// trim multiple characters at once
-String.prototype.treem = function(...edges) {
-  return this.ltreem(...edges).rtreem(...edges);
-}
-
-String.prototype.ltreem = function(...edges) {
-  return edges.includes(this.first()) ? this.slice(1).ltreem(...edges) : this.toString();
-}
-
-String.prototype.rtreem = function(...edges) {
-  return edges.includes(this.last()) ? this.slice(0,-1).rtreem(...edges) : this.toString();
-}
-
-// split but keep unsplits
-String.prototype.spleet = function(separator, limit=1) {
-  return (!limit || limit < 1)
-    ? [this.toString()]
-    : [this.slice(0,this.indexOf(separator))]
-      .concat(this.slice(this.indexOf(separator)+1)
-      .spleet(separator, limit-1));
-}
-
-String.prototype.rspleet = function(separator, limit=1) {
-  return (!limit || limit < 1)
-    ? [this.toString()]
-    : this.slice(0,this.lastIndexOf(separator))
-      .rspleet(separator, limit-1)
-      .concat([this.slice(this.lastIndexOf(separator)+1)]);
-}
+import { lex } from "./lexer";
 
 const PT = 72; // 72 pt = 1 in
 const SF = 0.5*PT; // linewidth() = 0.5
@@ -112,12 +23,12 @@ const H = 400;
 
 // todo: why does vscode give me an error
 let functions: Map<string, Function> = new Map([
+  ['path', _path as Function],
+  ['circle', _circle],
   ['draw', draw],
   ['fill', fill],
   ['filldraw', filldraw],
   ['', _pairOrId],
-  ['path', _path],
-  ['circle', _circle],
 ])
 
 window.onload = function() {
@@ -133,12 +44,12 @@ function work(): void {
 function asyToSvg(script: HTMLScriptElement): void {
   script.outerHTML = `
   <svg width="${W}" height="${H}" viewbox="${ULX} ${ULY} ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
-    ${linearise(script.innerHTML).map((line: string): string => transpile(pretranspile(line))).join('')}
+    ${linearize(script.innerHTML).map((line: string): string => transpile(pretranspile(line))).join('')}
   </svg>
   `;
 }
 
-function linearise(asyBlock: string): string[] {
+function linearize(asyBlock: string): string[] {
   return asyBlock.trim().replace(/[\n\r\s]+/gm, '').split(';');
 }
   
@@ -352,22 +263,4 @@ function isBracketsMatched(asy: string): boolean {
 
 function delimiters(s: string, delimiter=','): Array<number> {
   return s.indicesOf(delimiter).filter((n) => s.forkAt(n).every(isBracketsMatched));
-}
-
-// sends [a, b, c, d, …] to [[a, b], [b, c], [c, d], …]
-function chain<T>(list: Array<T>): Array<[T, T]> {
-  return list.slice(0,-1).map((v,i) => [v, list[i+1] as T]);
-}
-
-// for debugging
-
-function loudly<T>(speech: T): T {
-  console.log(speech);
-  return speech;
-}
-
-function assert(condition: boolean): void {
-  if (!condition) {
-    throw Error;
-  }
 }

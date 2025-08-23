@@ -1,4 +1,3 @@
-// todo: how the heck do i import this too
 export enum Infix {
   Plus = '+',
   Minus = '-',
