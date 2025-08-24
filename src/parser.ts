@@ -43,25 +43,24 @@ function bparse(tokens: Token[], mother: Operator=God): Phrase {
 
 function hparse(tokens: Token[]): Phrase {
   const meal: Token = eat(tokens);
-  if (meal.kind === TokenEnum.RoundL) {
-    const right = bparse(tokens, God);
-    assert(eat(tokens).kind === TokenEnum.RoundR);
-    return right;
-  } else if (meal.kind === TokenEnum.Number) {
-    return { token: meal } as UnP;
-  } else if (meal.kind === TokenEnum.Identifier) {
-    if (taste(tokens).kind === TokenEnum.RoundL) {
-      eat(tokens);
+  switch (meal.kind) {
+    case TokenEnum.RoundL:
       const right = bparse(tokens, God);
       assert(eat(tokens).kind === TokenEnum.RoundR);
-      return { operator: { token: meal }, right: right } as PrefixP;
-    } else {
+      return right;
+    case TokenEnum.Number:
       return { token: meal } as UnP;
-    }
-  } else {
-    const operator: Operator = { token: meal };
-    const right: Phrase = bparse(tokens, operator);
-    return { operator: operator, right: right} as PrefixP;
+    case TokenEnum.Identifier:
+      if (taste(tokens).kind === TokenEnum.RoundL) {
+        eat(tokens);
+        const right = bparse(tokens, God);
+        assert(eat(tokens).kind === TokenEnum.RoundR);
+        return { operator: { token: meal }, right: right } as PrefixP;
+      } else {
+        return { token: meal } as UnP;
+      }
+    default:
+      return ((lo) => ((lr) => ({ operator: lo, right: lr} as PrefixP))(bparse(tokens, lo)))({ token: meal });
   }
 }
 
@@ -76,16 +75,15 @@ function tparse(tokens: Token[], mother: Operator, left: Phrase): Phrase {
 
     eat(tokens);
     if (operator.token.kind === TokenEnum.RoundL) {
-      const middle = bparse(tokens, God);
+      const right = bparse(tokens, God);
       eat(tokens);
-      left = { left: left, right: middle } as ApplyP;
+      left = { left: left, right: right } as ApplyP;
     } else {
-      const right: Phrase = bparse(tokens, operator);
-      left = { left: left, operator: operator, right: right } as InfixP;
+      left = { left: left, operator: operator, right: bparse(tokens, operator) } as InfixP;
     }
   }
 
-  return (left);
+  return left;
 }
 
 function eat(tokens: Token[]): Token {
@@ -96,20 +94,21 @@ function eat(tokens: Token[]): Token {
 }
 
 function taste(tokens: Token[]): Token {
-  const appetite: Token = tokens[0];
-  console.log(`Tasting ${appetite.kind}${((lv) => lv ? ': '+lv : '')(appetite.value)}…`);
-  return tokens[0];
+  return ((lt: Token) => {
+    console.log(`Tasting ${lt.kind}${((lv) => lv ? ': '+lv : '')(lt.value)}…`);
+    return tokens[0];
+  })(tokens[0]);
 }
 
 function edible(tokens: Token[]): boolean {
   return tokens.length > 0;
 }
 
-const isLassoc: (token: Token) => boolean = function(token) {
+function isLassoc(token: Token): boolean {
   return [TokenEnum.Plus, TokenEnum.Minus, TokenEnum.Times, TokenEnum.Divide, TokenEnum.Comma, TokenEnum.Semicolon].includes(token.kind);
 }
 
-const strength: ($operator: Operator) => number = function(operator): number {
+function strength(operator: Operator): number {
   switch (operator.token.kind) {
     case TokenEnum.GodEnum: 
       return -Infinity;
