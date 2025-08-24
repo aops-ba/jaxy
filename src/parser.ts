@@ -1,58 +1,136 @@
-import type { TokenType } from "./lexer";
-import { TokenEnum } from "./lexer";
-import { unempty } from "./helper";
+import type { Token } from "./lexer";
+import { TokenEnum, GodToken } from "./lexer";
+import { assert, loudly, unempty } from "./helper";
 
-export type Tree = {
-  token: TokenType,
-  left?: Tree,
-  right?: Tree,
+type Phrase = {
+  operator?: Operator,
+  left?: Phrase,
+  right?: Phrase,
+  token?: Token,
 }
 
-export default function parse(tokens: TokenType[]): Tree {
-  console.log(`Parsing ${tokens.map((lt) => lt.name).join('')}`);
-  return _parse(tokens);
+// todo: should these be interfaces
+type UnP = Phrase & Required<Pick<Phrase, 'token'>>;
+type PrefixP = Phrase & Required<Pick<Phrase, 'operator' | 'right'>>;
+type InfixP = Phrase & Required<Pick<Phrase, 'left' | 'operator' | 'right'>>;
+type ApplyP = Phrase & Required<Pick<Phrase, 'left' | 'right'>>;
+
+type Operator = {
+  token: Token,
+  lassoc?: boolean,
 }
 
-// todo: renovate or demolish
-export function oldmill(tree: Tree | undefined): string  {
-  if (!tree) return '';
-  else if (!('left' in tree) && !('right' in tree)) return tree.token.value?.toString() || '';
-  else return `(${tree.token.value ?? tree.token.name} ${((lm) => `${lm ?? ''}`)([tree.left, tree.right].map(oldmill).filter(unempty).join(' '))})`.replace('))', ') )');
+const God: Operator = { token: GodToken };
+
+function utter(ph: Phrase | undefined): string {
+  if (!ph) return '';
+  else return `${((lu) => lu ? `(${lu.trim()}` : '')(utter(ph.left))} ${ph.operator?.token.value ?? ph.operator?.token.kind ?? ph.token?.value ?? ph.token?.kind} ${((lu) => lu ? `${lu.trim()})` : '')(utter(ph.right))}`;
 }
 
-// todo: test this lol
-// todo: implement precedence
-// todo: make sure this doesnt also overflow at an absurdly low depth
-// todo: rewrite it less recursively if it does lol
-function _parse(tokens: TokenType[], stuff: { holding?: Tree, collar?: TokenEnum } = {}): Tree {
-  if (tokens.length === 0 || tokens[0].name === stuff.collar) {
-    return stuff.holding!;
+function utteringly(ph: Phrase): Phrase {
+  console.log(utter(ph));
+  return ph;
+}
+
+export default function parse(tokens: Token[]): Phrase {
+  return utteringly(bparse(tokens));
+}
+
+function bparse(tokens: Token[], mother: Operator=God): Phrase {
+  const left: Phrase = hparse(tokens);
+  return tparse(tokens, mother, left);
+}
+
+function hparse(tokens: Token[]): Phrase {
+  const meal: Token = eat(tokens);
+  if (meal.kind === TokenEnum.RoundL) {
+    const right = bparse(tokens, God);
+    assert(eat(tokens).kind === TokenEnum.RoundR);
+    return right;
+  } else if (meal.kind === TokenEnum.Number) {
+    return { token: meal } as UnP;
+  } else if (meal.kind === TokenEnum.Identifier) {
+    if (taste(tokens).kind === TokenEnum.RoundL) {
+      eat(tokens);
+      const right = bparse(tokens, God);
+      assert(eat(tokens).kind === TokenEnum.RoundR);
+      return { operator: { token: meal }, right: right } as PrefixP;
+    } else {
+      return { token: meal } as UnP;
+    }
+  } else {
+    const operator: Operator = { token: meal };
+    const right: Phrase = bparse(tokens, operator);
+    return { operator: operator, right: right} as PrefixP;
+  }
+}
+
+function tparse(tokens: Token[], mother: Operator, left: Phrase): Phrase {
+  while (edible(tokens)) {
+    const appetite: Token = taste(tokens);
+    if (appetite.kind === TokenEnum.RoundR) break;
+
+    const operator: Operator = { token: appetite, lassoc: isLassoc(appetite) } as Operator;
+    if (strength(operator) < strength(mother)) break;
+    if (strength(operator) === strength(mother) && operator.lassoc) break;
+
+    eat(tokens);
+    if (operator.token.kind === TokenEnum.RoundL) {
+      const middle = bparse(tokens, God);
+      eat(tokens);
+      left = { left: left, right: middle } as ApplyP;
+    } else {
+      const right: Phrase = bparse(tokens, operator);
+      left = { left: left, operator: operator, right: right } as InfixP;
+    }
   }
 
-  switch (tokens[0].name) {
-    case TokenEnum.Number:
-      return _parse(tokens.slice(1), { holding: leaf(tokens[0]), collar: stuff.collar });
-    case TokenEnum.Plus:
-    case TokenEnum.Comma:
-    case TokenEnum.Semicolon:
-      return ((lprune) => _parse(tokens.slice(2*size(lprune)+1), { holding: { token: tokens[0], left: stuff.holding, right: lprune }, collar: stuff.collar }))
-        (_parse(tokens.slice(1), { holding: stuff.holding, collar: stuff.collar }));
+  return (left);
+}
+
+function eat(tokens: Token[]): Token {
+  const meal: Token = tokens[0];
+  console.log(`Eating ${meal.kind}${((lv) => lv ? ': '+lv : '')(meal.value)}…`);
+  tokens.shift();
+  return meal;
+}
+
+function taste(tokens: Token[]): Token {
+  const appetite: Token = tokens[0];
+  console.log(`Tasting ${appetite.kind}${((lv) => lv ? ': '+lv : '')(appetite.value)}…`);
+  return tokens[0];
+}
+
+function edible(tokens: Token[]): boolean {
+  return tokens.length > 0;
+}
+
+const isLassoc: (token: Token) => boolean = function(token) {
+  return [TokenEnum.Plus, TokenEnum.Minus, TokenEnum.Times, TokenEnum.Divide, TokenEnum.Comma, TokenEnum.Semicolon].includes(token.kind);
+}
+
+const strength: ($operator: Operator) => number = function(operator): number {
+  switch (operator.token.kind) {
+    case TokenEnum.GodEnum: 
+      return -Infinity;
+    case TokenEnum.Identifier: 
+      return Infinity;
+    case TokenEnum.Times: 
+    case TokenEnum.Divide: 
+      return 4;
+    case TokenEnum.Plus: 
+    case TokenEnum.Minus: 
+      return 3;
+    case TokenEnum.SquareL:
+    case TokenEnum.SquareR:
     case TokenEnum.RoundL:
-      return ((lprune) => _parse(tokens.slice(2*size(lprune)), { holding: lprune, collar: stuff.collar }))
-        (_parse(tokens.slice(1), { holding: stuff.holding, collar: TokenEnum.RoundR }));
-    case TokenEnum.Identifier:
-      return (tokens.at(1)?.name === TokenEnum.RoundL
-        ? { token: tokens[0], left: _parse(tokens.slice(1), { holding: stuff.holding, collar: TokenEnum.RoundR }) }
-        : _parse(tokens.slice(1), { holding: leaf(tokens[0]), collar: stuff.collar }));
+    case TokenEnum.RoundR:
+      return 2;
+    case TokenEnum.Comma:
+      return 1;
+    case TokenEnum.Semicolon:
+      return 0;
     default:
-      throw new Error(`What the heck is this: ${tokens[0].name}`);
+      throw new Error(operator.token.kind);
   }
-}
-
-function leaf(value: TokenType): Tree {
-  return { token: value };
-}
-
-function size(tree: Tree | undefined): number {
-  return !tree ? 0 : 1+size(tree.left)+size(tree.right);
 }

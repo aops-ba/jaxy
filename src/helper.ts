@@ -22,9 +22,9 @@ export function loudly<T>(speech: T): T {
   return speech;
 }
 
-export function timely<T>(work: T): T {
+export function timely<T>(work: T, iterations: number=1): T {
   const t = new Date().getTime();
-  Array(10**9).forEach((x) => work);
+  Array(iterations).forEach((x) => work);
   console.log(new Date().getTime()-t);
   return work;
 }

@@ -33,18 +33,19 @@ const H = 400;
 
 window.onload = function() {
   Array.from(document.getElementsByTagName("script"))
-    .filter((e) => e.getAttribute("type") === "text/asy")
-    .forEach((s) => s.outerHTML = transpile(s.innerHTML.trim()));
+    .filter((lscript) => lscript.getAttribute("type") === "text/asy")
+    .forEach((lscript) => lscript.outerHTML = transpile(lscript.innerHTML.trim()));
 }
 
-function transpile(s: string): string {
-  console.log(oldmill(parse(lex(s))));
-  return `<svg width="${W}" height="${H}" viewbox="${ULX} ${ULY} ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
-    ${mill(parse(lex(s)))}
-  </svg>`;
+function transpile(innards: string): string {
+  return ((lparsed) => { return 'hi';
+//    console.log(oldmill(lparsed));
+//    return `<svg width="${W}" height="${H}" viewbox="${ULX} ${ULY} ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+//      ${mill(lparsed)}
+//    </svg>`;
+  })(loudly(parse(lex(innards))));
 }
 
-// the mill that turns trees into drawings
 function mill(tree: Tree): any {
   console.log(tree);
   switch (tree.token.name) {
