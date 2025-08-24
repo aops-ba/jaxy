@@ -9,12 +9,12 @@ declare global {
     from(char: string): string;
     until(char: string): string;
     forkAt(index: number): [string, string];
-    indicesOf(char: string): Array<number>;
+    indicesOf(char: string): number[];
     treem(...edges: string[]): string;
     ltreem(...edges: string[]): string;
     rtreem(...edges: string[]): string;
-    spleet(separator: string, limit?: number): Array<string>;
-    rspleet(separator: string, limit?: number): Array<string>;
+    spleet(separator: string, limit?: number): string[];
+    rspleet(separator: string, limit?: number): string[];
   }
 }
 
