@@ -1,3 +1,5 @@
+import "./global.d";
+
 export function id<T>(thing: T): T {
   return thing;
 }
@@ -29,11 +31,13 @@ export function timely<T>(work: T, iterations: number=1): T {
   return work;
 }
 
+const assertive: boolean = false;
 // for debugging
-export function assert(condition: boolean): void {
+export function assert(condition: boolean, angry?: string, happy?: string): void {
+  if (!assertive) return;
   if (!condition) {
-    throw new Error(`I do not assert.`);
+    throw new Error(angry ?? `I do not assert.`);
   } else {
-    console.log(`I assert.`);
+    console.log(happy ?? `I assert.`);
   }
 }
