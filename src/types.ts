@@ -1,50 +1,94 @@
+export class AsyNumber {
+  value: number;
+  constructor(value: number) {
+    this.value = value;
+  }
+
+  valueOf(): number {
+    return this.value;
+  }
+
+  plus(n: number | AsyNumber): AsyNumber {
+    return new AsyNumber(this.value+n.valueOf());
+  }
+
+  minus(n: number | AsyNumber): AsyNumber {
+    return new AsyNumber(this.value-n.valueOf());
+  }
+
+  times(n: number | AsyNumber): AsyNumber {
+    return new AsyNumber(this.value*n.valueOf());
+  }
+
+  divide(n: number | AsyNumber): AsyNumber {
+    return new AsyNumber(this.value/n.valueOf());
+  }
+}
+
 export class Pair {
   x: number;
   y: number;
 
-  // todo: probably use a 🏭 instead lol
-  // todo: omg this is so ugly
-  constructor(first: [number, number]);
-  constructor(first: number, second: number);
-  constructor(first: number | [number, number], second?: number) {
-    if (Array.isArray(first) && !second) {
-      this.x = first[0];
-      this.y = first[1];
-    } else if (typeof first === "number" && typeof second === "number") {
-      this.x = first;
-      this.y = first;
-    } else throw new Error(first.toString()+second?.toString());
+  constructor(x: number, y: number) {
+      this.x = x;
+      this.y = y;
+  }
+
+  toString(): string {
+    return `(${this.x}, ${this.y})`;
+  }
+
+  length(): number {
+    return Math.sqrt(this.x**2+this.y**2);
+  }
+
+  plus(p: Pair): Pair {
+    return new Pair(this.x+p.x, this.y+p.y);
   }
 }
 export const origin: Pair = new Pair(0,0);
 
 export class Path {
-  points: Pair[];
+  private _points: Pair[];
   cyclic: boolean;
 
   constructor(points?: Pair[], cyclic?: boolean) {
-    this.points = points ?? [];
+    this._points = points ?? [];
     this.cyclic = cyclic ?? false;
   }
 
+  get points(): Pair[] {
+    return this._points;
+  }
+
+  length(): number {
+    return this._points.length+(+!!!this.cyclic);
+  }
+
   add(p: Pair): Path {
-    this.points.push(p);
+    this._points.push(p);
     return this;
   }
 }
 
-export interface Arc {
-  center: Pair,
-  radius: number,
-  from: number,
-  to: number,
+export class Arc {
+  center: Pair;
+  radius: number;
+  from: number;
+  to: number;
+
+  constructor(center: Pair, radius: number, from: number, to: number) {
+    this.center = center;
+    this.radius = radius;
+    this.from = from;
+    this.to = to;
+  }
 }
 
-export interface Circle extends Arc {
-  center: Pair,
-  radius: number,
-  from: 0,
-  to: 360,
+export class Circle extends Arc {
+  constructor(center: Pair, radius: number) {
+    super(center, radius, 0, 360);
+  }
 }
 
 export const unitcircle: Circle = { center: origin, radius: 1, from: 0, to: 360 };

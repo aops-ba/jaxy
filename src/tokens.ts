@@ -14,11 +14,10 @@ enum Keyword {
   New = 'new',
   If = 'if',
   Else = 'else',
+  Cycle = 'cycle',
 }
 
 enum Separator {
-  SlashSlash = '//',
-
   Dot = '.',
   Comma = ',',
   Colon = ':',
@@ -89,3 +88,21 @@ enum Whitespace {
 }
 
 export const Lexeme = Object.assign({}, Other, Literal, Keyword, Operator, Separator, Whitespace);
+
+export class Token {
+  kind: typeof Lexeme;
+  value?: string | number;
+  span?: [number, number];
+
+  constructor(kind: typeof Lexeme, options?: {value?: string | number, span?: [number, number]}) {
+    this.kind = kind;
+    this.value = options?.value;
+    this.span = options?.span;
+  }
+
+  name(): string {
+    return this.value ?? this.kind;
+  }
+}
+
+export const GodToken = new Token(Lexeme.God, {span: [-Infinity, Infinity]});
