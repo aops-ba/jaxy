@@ -1,6 +1,6 @@
-function loudly<T>(speech: T): T {
-  console.log(speech);
-  return speech;
+function loudly(...speeches: any[]): any[] {
+  console.log(speeches);
+  return speeches;
 }
 
 function timely<T>(work: T, iterations: number=1): T {

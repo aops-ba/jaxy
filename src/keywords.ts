@@ -39,41 +39,37 @@ export default function lookup(name: typeof Lexeme): any {
   return table.get(name);
 }
 
-function draw(args: [Path, Pen]): string {
-  return gyenh1([args[0], undefined, args[1] ?? defaultpen]);
+function draw(path: Path | Arc, ps: Pen): string {
+  return gyenh1({path: path, stroke: ps ?? defaultpen});
 }
 
-function fill(args: [Path, Pen]): string {
-  return gyenh1([args[0], args[1] ?? defaultpen, undefined]);
+function fill(path: Path | Arc, pf: Pen): string {
+  return gyenh1({path: path, fill: pf ?? defaultpen});
 }
 
-function filldraw(args: [Path, Pen, Pen?]): string {
-  return fill([args[0], args[1]])+draw([args[0], args[2] ?? args[1]]);
+function filldraw(path: Path | Arc, pf: Pen, ps: Pen): string {
+  return fill(path, pf)+draw(path, ps ?? pf);
 }
 
-// todo: this lol
-function dot(args: [Pair, Pen?]): string {
-  const blargs: any[] = args.length === 1 ? [args] : args;
-  return gyenh1([new Circle(blargs[0], blargs[1]?.width/6), (blargs[1] ?? defaultpen), undefined]);
+function dot(z: Pair, p?: Pen): string {
+  return ((lp) => gyenh1({path: new Circle(z, lp.dotsize()), fill: lp}))
+         (p ?? defaultpen);
 }
 
 // todo: make other shapes drawable
-function gyenh1(args: [Path | Arc, Pen | undefined, Pen | undefined]): string {
-  const path = args[0];
-  const fill = args[1];
-  const stroke = args[2];
-  if (path instanceof Path) {
-    return `<path d="${path.points.map((v: Pair,k: number): string => `${k==0 ? 'M' : 'L'} ${SF*v.x} ${SF*ORIENTATION*v.y} `).join('')}
-                     ${path.cyclic ? 'Z' : ''}" fill="${fill?.color ?? 'none'}" stroke="${stroke?.color ?? 'none'}" stroke-width="${2*(stroke?.width ?? 0.5)}" />`;
-  } else if (path instanceof Circle) { // tis a circle then lol
-    return `<ellipse rx="${SF*path.radius}" ry="${SF*path.radius}"
-                     cx="${SF*path.center.x}" cy="${SF*ORIENTATION*path.center.y}"
-                     fill="${fill?.color ?? 'none'}" stroke="${stroke?.color ?? 'none'}" stroke-width="${2*(stroke?.width ?? 0.5)}" />`;
+function gyenh1(options: {path: Path | Arc, fill?: Pen, stroke?: Pen}) {
+  if (options.path instanceof Path) {
+    return `<path d="${options.path.points.map((v: Pair,k: number): string => `${k==0 ? 'M' : 'L'} ${SF*v.x} ${SF*ORIENTATION*v.y} `).join('')}
+                     ${options.path.cyclic ? 'Z' : ''}" fill="${options.fill?.color ?? 'none'}" stroke="${options.stroke?.color ?? 'none'}" stroke-width="${2*(options.stroke?.width ?? 0.5)}" />`;
+  } else if (options.path instanceof Circle) { // tis a circle then lol
+    return `<ellipse rx="${SF*options.path.radius}" ry="${SF*options.path.radius}"
+                     cx="${SF*options.path.center.x}" cy="${SF*ORIENTATION*options.path.center.y}"
+                     fill="${options.fill?.color ?? 'none'}" stroke="${options.stroke?.color ?? 'none'}" stroke-width="${2*(options.stroke?.width ?? 0.5)}" />`;
   } else return '';
 }
 
-function circle(args: [Pair, number]): Arc {
-  return new Circle(args[0], args[1]);
+function circle(c: Pair, r: number): Arc {
+  return new Circle(c, r);
 }
 
 function dir(p: Path | number, q?: Path): Pair {

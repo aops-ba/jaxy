@@ -30,6 +30,7 @@ asyblock.addEventListener("input", update);
 
 function update(): void {
   svgblock.innerHTML = transpile(asyblock.value.trim());
+  console.log("we did it");
 }
 
 window.onload = function() {
@@ -46,7 +47,7 @@ function mill(phrase: Phrase): any {
   yell(`Milling '${phrase.name()}'`);
   switch (phrase.kind()) {
     case Lexeme.Name:
-      return (lookup(phrase.value()))(mill(phrase.right!));
+      return (lookup(phrase.value()))(...[mill(phrase.right!)].flat(Infinity));
     case Lexeme.Plus:
       return mill(phrase.left!).plus(mill(phrase.right!));
     case Lexeme.Minus:

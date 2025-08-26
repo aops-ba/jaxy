@@ -33,6 +33,9 @@ export class Color {
     ['green', new Color({rgb: [0, 255, 0]})],
     ['blue', new Color({rgb: [0, 0, 255]})],
     ['white', new Color({rgb: [255, 255, 255]})],
+    ['yellow', new Color({rgb: [255, 255, 0]})],
+    ['magenta', new Color({rgb: [255, 0, 255]})],
+    ['cyan', new Color({rgb: [0, 255, 255]})],
   ]);
 
   constructor(options: { color?: Color, name?: string, rgb?: [number, number, number] }) {
@@ -55,6 +58,8 @@ export class Color {
 }
 
 export class Pen {
+  static dotfactor = 6;
+
   color: Color;
   width: number;
 
@@ -69,6 +74,10 @@ export class Pen {
   static fromName(name: string) {
     return new Pen({name: name});
   };
+
+  dotsize(): number {
+    return this.width/Pen.dotfactor;
+  }
 
   private constructor(options: {name?: string, color?: Color, r?: number, g?: number, b?: number}) {
     this.width = 0.5;
