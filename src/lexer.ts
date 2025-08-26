@@ -3,7 +3,7 @@ import { loudly } from "./helper";
 import { Token } from "./tokens";
 import { Lexeme } from "./tokens";
 
-const yelling: boolean = true;
+const yelling: boolean = false;
 
 export default function lex(asy: string): Token[] {
   const t: number = new Date().getTime();

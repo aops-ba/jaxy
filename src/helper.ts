@@ -1,39 +1,18 @@
-import "./global.d";
-
-export function id<T>(thing: T): T {
-  return thing;
-}
-
-// [a, b, c, d, …] -> [[a, b], [b, c], [c, d], …]
-export function chain<T>(list: Array<T>): Array<[T, T]> {
-  return list.slice(0,-1).map((v,i) => [v, list[i+1] as T]);
-}
-
-// [a, b, c, d, …] -> a+b+c+d
-export function sum(list: number[]): number {
-  return list.reduce((x,y) => x+y, 0);
-}
-
-export function unempty(s: string): boolean {
-  return s !== '';
-}
-
-// for debugging
-export function loudly<T>(speech: T): T {
+function loudly<T>(speech: T): T {
   console.log(speech);
   return speech;
 }
 
-export function timely<T>(work: T, iterations: number=1): T {
+function timely<T>(work: T, iterations: number=1): T {
   const t = new Date().getTime();
-  Array(iterations).forEach((x) => work);
+  Array(iterations).forEach(() => work);
   console.log(new Date().getTime()-t);
   return work;
 }
 
 const assertive: boolean = false;
-// for debugging
-export function assert(condition: boolean, angry?: string, happy?: string): void {
+
+function assert(condition: boolean, angry?: string, happy?: string): void {
   if (!assertive) return;
   if (!condition) {
     throw new Error(angry ?? `I do not assert.`);
@@ -41,3 +20,5 @@ export function assert(condition: boolean, angry?: string, happy?: string): void
     console.log(happy ?? `I assert.`);
   }
 }
+
+export { loudly, timely, assert };

@@ -2,7 +2,7 @@ import { Token } from "./tokens";
 import { Lexeme, GodToken } from "./tokens";
 import { loudly, assert } from "./helper";
 
-const yelling: boolean = true;
+const yelling: boolean = false;
 
 export abstract class Phrase {
   token: Token;
@@ -36,13 +36,14 @@ export abstract class Phrase {
 
   //todo: beautify this
   protected _utter(): string {
-    if (this.left || this.right)
+    if (!this) return "";
+    else if (this.left || this.right)
       return `(${((ll: Phrase | undefined) => ll ? ll._utter() : "")(this.left)}${this.name()}${((lr: Phrase | undefined) => lr ? lr._utter() : "")(this.right)})`;
     else return this.name();
   }
 
   utter(): Phrase {
-    console.log(this._utter());
+    if (yelling) console.log(this._utter());
     return this;
   }
 
@@ -108,7 +109,7 @@ type Operator = Token;
 const GodOperator = GodToken;
 
 export default function parse(tokens: Token[]): Phrase {
-  return bparse(tokens).utter();
+  return bparse(tokens)?.utter();
 }
 
 function bparse(tokens: Token[], mother: Operator=GodOperator, depth: number=0): Phrase {
@@ -119,27 +120,32 @@ function bparse(tokens: Token[], mother: Operator=GodOperator, depth: number=0):
 
 function hparse(tokens: Token[], depth: number): Phrase {
   yell(`${'.'.repeat(depth)}Welcome to hparse.`);
-  const meal: Token = eat(tokens);
-  switch (meal.kind) {
-    case Lexeme.RoundL:
-      const right: Phrase = bparse(tokens, GodOperator, depth+1);
-      const dessert: Token = eat(tokens);
-      assert(dessert.kind === Lexeme.RoundR, "Yuck!", "Yum!");
-      return right.token.kind === Lexeme.Comma ? new PairP(right) : right;
-    case Lexeme.Number:
-      return new UnP(meal);
-    case Lexeme.Name:
-      if (taste(tokens).kind === Lexeme.RoundL) {
-        eat(tokens);
+  if (!edible(tokens)) {
+    return undefined as unknown as Phrase;
+  } else {
+    const meal: Token = eat(tokens);
+    switch (meal.kind) {
+      case Lexeme.RoundL:
         const right: Phrase = bparse(tokens, GodOperator, depth+1);
         const dessert: Token = eat(tokens);
         assert(dessert.kind === Lexeme.RoundR, "Yuck!", "Yum!");
-        return new PrefixP(meal, right);
-      } else {
+        return right.token.kind === Lexeme.Comma ? new PairP(right) : right;
+      case Lexeme.Cycle:
+      case Lexeme.Number:
         return new UnP(meal);
-      }
-    default: // assume it to be a prefix operator
-      return ((lo) => ((lr) => (new PrefixP(meal, lr)))(bparse(tokens, lo, depth+1)))(meal as Operator);
+      case Lexeme.Name:
+        if (taste(tokens).kind === Lexeme.RoundL) {
+          eat(tokens);
+          const right: Phrase = bparse(tokens, GodOperator, depth+1);
+          const dessert: Token = eat(tokens);
+          assert(dessert.kind === Lexeme.RoundR, "Yuck!", "Yum!");
+          return new PrefixP(meal, right);
+        } else {
+          return new UnP(meal);
+        }
+      default: // assume it to be a prefix operator
+        return ((lo) => ((lr) => (new PrefixP(meal, lr)))(bparse(tokens, lo, depth+1)))(meal as Operator);
+    }
   }
 }
 

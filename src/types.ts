@@ -1,75 +1,4 @@
-export class AsyNumber {
-  value: number;
-  constructor(value: number) {
-    this.value = value;
-  }
-
-  valueOf(): number {
-    return this.value;
-  }
-
-  plus(n: number | AsyNumber): AsyNumber {
-    return new AsyNumber(this.value+n.valueOf());
-  }
-
-  minus(n: number | AsyNumber): AsyNumber {
-    return new AsyNumber(this.value-n.valueOf());
-  }
-
-  times(n: number | AsyNumber): AsyNumber {
-    return new AsyNumber(this.value*n.valueOf());
-  }
-
-  divide(n: number | AsyNumber): AsyNumber {
-    return new AsyNumber(this.value/n.valueOf());
-  }
-}
-
-export class Pair {
-  x: number;
-  y: number;
-
-  constructor(x: number, y: number) {
-      this.x = x;
-      this.y = y;
-  }
-
-  toString(): string {
-    return `(${this.x}, ${this.y})`;
-  }
-
-  length(): number {
-    return Math.sqrt(this.x**2+this.y**2);
-  }
-
-  plus(p: Pair): Pair {
-    return new Pair(this.x+p.x, this.y+p.y);
-  }
-}
-export const origin: Pair = new Pair(0,0);
-
-export class Path {
-  private _points: Pair[];
-  cyclic: boolean;
-
-  constructor(points?: Pair[], cyclic?: boolean) {
-    this._points = points ?? [];
-    this.cyclic = cyclic ?? false;
-  }
-
-  get points(): Pair[] {
-    return this._points;
-  }
-
-  length(): number {
-    return this._points.length+(+!!!this.cyclic);
-  }
-
-  add(p: Pair): Path {
-    this._points.push(p);
-    return this;
-  }
-}
+import { Pair, origin } from "./field";
 
 export class Arc {
   center: Pair;
@@ -91,22 +20,72 @@ export class Circle extends Arc {
   }
 }
 
-export const unitcircle: Circle = { center: origin, radius: 1, from: 0, to: 360 };
+export const unitcircle: Circle = new Circle(origin, 1);
 
-export const defaultpen: Pen = { fill: 'black', stroke: 'black' };
-export const blue: Pen = { fill: 'blue', stroke: 'blue' };
-export const green: Pen = { fill: 'green', stroke: 'green' };
-export const red: Pen = { fill: 'red', stroke: 'red' };
+export class Color {
+  r: number;
+  g: number;
+  b: number;
 
-export type Pen = {
-  fill?: string,
-  stroke?: string,
+  static names: Map<string, Color> = new Map([
+    ['black', new Color({rgb: [0, 0, 0]})],
+    ['red', new Color({rgb: [255, 0, 0]})],
+    ['green', new Color({rgb: [0, 255, 0]})],
+    ['blue', new Color({rgb: [0, 0, 255]})],
+    ['white', new Color({rgb: [255, 255, 255]})],
+  ]);
+
+  constructor(options: { color?: Color, name?: string, rgb?: [number, number, number] }) {
+    if (options.color) {
+      this.r = options.color.r;
+      this.g = options.color.g;
+      this.b = options.color.b;
+    } else if (options.rgb) {
+      this.r = options.rgb[0];
+      this.g = options.rgb[1];
+      this.b = options.rgb[2];
+    } else {
+      throw new Error(`${options} isn't a color.`);
+    }
+  }
+
+  toString(): string {
+    return `rgb(${this.r}, ${this.g}, ${this.b})`;
+  }
 }
 
-export function unfill(pen: Pen): Pen {
-  return { stroke: pen.stroke };
+export class Pen {
+  color: Color;
+  width: number;
+
+  static fromRgb(r: number, g: number, b: number) {
+    return new Pen({r: r, g: g, b: b});
+  };
+
+  static fromColor(color: Color) {
+    return new Pen({color: color});
+  };
+
+  static fromName(name: string) {
+    return new Pen({name: name});
+  };
+
+  private constructor(options: {name?: string, color?: Color, r?: number, g?: number, b?: number}) {
+    this.width = 0.5;
+    if (options.name)
+      this.color = Color.names.get(options.name)!;
+    else if (options.color)
+      this.color = options.color;
+    else if (options.r && options.g && options.b)
+      this.color = new Color({rgb: [options.r, options.g, options.b]});
+    else throw new Error(`${options} bad!`);
+  }
+
+  linewidth(n: number): Pen {
+    this.width = n;
+    return this;
+  }
 }
 
-export function unstroke(pen: Pen): Pen {
-  return { fill: pen.stroke };
-}
+export const defaultpen = Pen.fromName("black");
+export const pentable: Map<string, Function> = new Map([...Color.names.entries()].map(([k,v]) => [k, () => Pen.fromColor(v)]));

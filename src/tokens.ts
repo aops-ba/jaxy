@@ -87,9 +87,9 @@ enum Whitespace {
   CR = '\r',
 }
 
-export const Lexeme = Object.assign({}, Other, Literal, Keyword, Operator, Separator, Whitespace);
+const Lexeme = Object.assign({}, Other, Literal, Keyword, Operator, Separator, Whitespace);
 
-export class Token {
+class Token {
   kind: typeof Lexeme;
   value?: string | number;
   span?: [number, number];
@@ -105,4 +105,6 @@ export class Token {
   }
 }
 
-export const GodToken = new Token(Lexeme.God, {span: [-Infinity, Infinity]});
+const GodToken = new Token(Lexeme.God, {span: [-Infinity, Infinity]});
+
+export { Lexeme, Token, GodToken };
