@@ -1,4 +1,4 @@
-import { Pair, origin } from "./field";
+import { Pair, origin } from "./number";
 
 export class Arc {
   center: Pair;

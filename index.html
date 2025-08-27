@@ -2,17 +2,22 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="shortcut icon" href="#" />
-  <title>Jaxy</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Andika:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inconsolata&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Andika&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="style.css" />
+
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js" defer></script>
   <script type="module" src="/src/main.ts"></script>
+
+  <title>Jaxy</title>
 </head>
 
 <body>
@@ -20,27 +25,31 @@
     <div id="helmet">
       <h1>Jaxy</h1>
       <div id="about">
+        <span id="ight"></span>
         <p>
         Hi! My name is <strong>Jaxy</strong>, said <span class="broad">ˈʤæksi</span>, like the word &ldquo;jack-see&rdquo;.
         My pronouns are <strong>he</strong>/<strong>it</strong>.
-        Perhaps you've met my sister <a href="https://github.com/kbaki-aops/lasy.git"><strong>Lasy</strong></a>.
+        Perhaps you've met my sister <a href="https://github.com/kbaki-aops/lasy.git" target="_blank"><strong>Lasy</strong></a>.
         </p>
         <p>
         I'm a TypeScript module that transpiles Asymptote code
         directly into SVG output, <em>without</em> the Asymptote compiler.
+        <br />
+        This means that I do all of my work client-side and in the browser!
         </p>
       </div>
     </div>
     <div id="shell">
       <div><textarea id="asy">
+let(P,5);
 draw(circle(origin, 4), red);
 filldraw(unitcircle, green, black);
 fill(1+N--2*E--3/S--4-W--cycle, blue);
-//label(5);
+label(5);
 draw(origin--(1+2*3/4-5)*dir(1+2*3/4-5), red);
 dot(origin);
 </textarea></div>
-      <div><div id="svg"></div></div>
+      <div><svg id="svg"></svg></div>
     </div>
   </div>
 </body>

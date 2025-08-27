@@ -1,9 +1,10 @@
-type Fieldable = number | Real | Pair;
+type Fielded = number | Real;
+type Closed = Fielded | Pair;
 
 class Real {
   x: number;
 
-  constructor(x: number | Real) {
+  constructor(x: Fielded) {
     this.x = x instanceof Real ? x.x : x;
   }
 
@@ -19,7 +20,7 @@ class Real {
     return new Real(1/this.x);
   }
 
-  plus(z: Fieldable): Fieldable {
+  plus(z: Closed): Closed {
     return z instanceof Pair
       ? z.plus(this)
       : z instanceof Real
@@ -27,7 +28,7 @@ class Real {
         : new Real(this.x+z);
   }
 
-  times(z: Fieldable): Fieldable {
+  times(z: Closed): Closed {
     return z instanceof Pair
       ? z.times(this)
       : z instanceof Real
@@ -35,7 +36,7 @@ class Real {
         : new Real(this.x*z);
   }
 
-  power(z: Fieldable): Fieldable {
+  power(z: Closed): Closed {
     return z instanceof Pair
       ? new Pair(this.x, 0).power(z)
       : z instanceof Real
@@ -47,13 +48,13 @@ class Real {
 class Pair extends Real {
   y: number;
 
-  constructor(x: number | Real | Pair, y?: number | Real) {
+  constructor(x: Fielded | Pair, y?: Fielded) {
     if (x instanceof Pair && !y) {
       super(x.x);
       this.y = x.y;
     } else {
-      super(typeof x === 'number' ? x : x.x);
-      this.y = typeof y === 'number' ? y : y?.x ?? 0;
+      super(new Real(x).x);
+      this.y = new Real(y ?? 0).x;
     }
   }
 
@@ -61,12 +62,12 @@ class Pair extends Real {
     return `(${this.x}, ${this.y})`;
   }
 
-  private _sqlength(): number {
+  private _length2(): number {
     return this.x**2+this.y**2;
   }
 
   length(): number {
-    return Math.sqrt(this._sqlength());
+    return Math.sqrt(this._length2());
   }
 
   // in radians
@@ -75,7 +76,7 @@ class Pair extends Real {
   }
 
   unit(): Pair {
-    return ((ll) => (ll === 0 ? origin : new Pair(this.x/ll, this.y/ll)))(this.length());
+    return ((lr) => (lr === 0 ? origin : new Pair(this.x/lr, this.y/lr)))(this.length());
   }
 
   degrees(): number {
@@ -87,31 +88,27 @@ class Pair extends Real {
   }
 
   invert(): Pair {
-    return new Pair(this.x/(this.length()**2), -this.y/(this.length()**2));
+    if (this.length() === 0) throw new RangeError();
+    return ((lr) => new Pair(this.x/lr, -this.y/lr))(this._length2());
   }
 
-  plus(z: Fieldable): Pair {
-    return z instanceof Pair
-      ? new Pair(this.x+z.x, this.y+z.y)
-      : z instanceof Real
-        ? new Pair(this.x+z.x, this.y)
-        : new Pair(this.x+z, this.y);
+  plus(z: Closed): Pair {
+    return new Pair(this.x+(typeof z === "number" ? z : z.x), this.y+(z instanceof Pair ? z.y : 0));
   }
 
-  times(z: Fieldable): Fieldable {
+  times(z: Closed): Closed {
     return z instanceof Pair
-      ? new Pair(this.x*z.x-this.y*z.y, this.x*z.y+this.y*z.x)
+      ? ((lz, lw) => new Pair(lz.dot(lw), lz.det(lw)))(this.conjugate(), z)
       : z instanceof Real
         ? new Pair(this.x*z.x, this.y*z.x)
         : new Pair(this.x*z, this.y*z);
   }
 
-  power(z: Fieldable): Fieldable {
-    return ((lz) => this.length() === 0
+  power(z: Closed): Closed {
+    return ((lz, lw) => this.length() === 0
       ? lz.length() === 0 ? E : origin
-      : ((lw) => ((((la) => Pair.expi(la))(lz.dot(lw))).times(Math.E**lz.det(lw))))
-        (new Pair(this.angle(), Math.log(this.length()))))
-        (new Pair(z));
+      : (((la) => Pair.expi(la))(lz.dot(lw))).times(Math.E**lz.det(lw)))
+        (new Pair(z), new Pair(this.angle(), Math.log(this.length())));
   }
 
   static expi(a: number): Pair {
@@ -145,6 +142,6 @@ function toRadians(r: number): number {
   return r/180*Math.PI;
 }
 
-export { Fieldable, Real, Pair };
+export { Real, Fielded, Pair, Closed };
 export { origin, N, S, E, W };
 export { toDegrees, toRadians };

@@ -1,29 +1,18 @@
-:root {
-  /* dark mode */
-  --bg: black;
-  --mg: dimgrey;
-  --fg: lightgrey;
-  /* light mode */
-  --bg: white;
-  --mg: lightgrey;
-  --fg: black;
-}
-
 * {
   margin: 0;
 }
 
 html, body {
   height: 100%;
+  text-align: center;
   font-family: 'Noto Sans', sans-serif;
   background: var(--bg);
   color: var(--fg);
 }
 
 h1 {
-  text-align: center;
   padding: 1em;
-  padding-bottom: 0.5em;
+  padding-bottom: 0;
 }
 
 #husk {
@@ -41,32 +30,33 @@ h1 {
   padding: 1em;
 }
 
-#shell div {
+#shell > div {
   display: flex;
   flex-basis: 50%;
-  text-align: center;
   padding: 0;
-  background: var(--mg);
+  border: 1px solid var(--fg);
 }
 
 #asy, #svg {
   flex: 1;
-  border: 1px solid var(--fg);
-  font-size: larger;
+  border: none;
   background: var(--mg);
   color: var(--fg);
+  font-family: 'Inconsolata', monospace;
+  font-size: larger;
 }
 
 #asy {
-  font-family: 'Inconsolata', monospace;
+  padding: 0.5em;
 }
 
-#about {
-  text-align: center;
+svg {
+  margin-left: auto;
+  margin-right: auto;
 }
 
 #about p {
-  margin: 1em;
+  margin: 0.5em 1em;
 }
 
 .broad {
@@ -75,4 +65,14 @@ h1 {
 
 .broad::before, .broad::after {
   content: '/';
+}
+
+#ight {
+  font-size: xx-large;
+}
+
+#ight:hover {
+  cursor: pointer;
+  color: var(--shadow);
+  filter: drop-shadow(0 0 5px var(--shadow));
 }

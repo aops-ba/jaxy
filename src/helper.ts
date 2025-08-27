@@ -1,6 +1,17 @@
-function loudly(...speeches: any[]): any[] {
-  console.log(speeches);
-  return speeches;
+const loud = false;
+
+function loudly(...speeches: any[]): any | any[] {
+  return ((lx) => {
+    if (loud) console.log(lx);
+    return lx;
+  })(speeches.length > 1 ? speeches : shed(speeches));
+}
+
+function proudly(...speeches: any[]): any | any[] {
+  return ((lx) => {
+    console.log(lx);
+    return lx;
+  })(speeches.length > 1 ? speeches : shed(speeches));
 }
 
 function timely<T>(work: T, iterations: number=1): T {
@@ -10,15 +21,9 @@ function timely<T>(work: T, iterations: number=1): T {
   return work;
 }
 
-const assertive: boolean = false;
-
-function assert(condition: boolean, angry?: string, happy?: string): void {
-  if (!assertive) return;
-  if (!condition) {
-    throw new Error(angry ?? `I do not assert.`);
-  } else {
-    console.log(happy ?? `I assert.`);
-  }
+function shed<T>(flesh: T[]): T {
+  if (flesh.length > 1) throw new Error(`${flesh} is too meatful to shed.`);
+  return flesh[0];
 }
 
-export { loudly, timely, assert };
+export { loudly, proudly, timely };

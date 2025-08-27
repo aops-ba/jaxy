@@ -1,4 +1,4 @@
-import { Pair } from "./field";
+import { Pair } from "./number";
 
 export default class Path {
   points: Pair[];
