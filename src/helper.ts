@@ -9,11 +9,14 @@ function loudly(...speeches: any[]): any | any[] {
 function proudly(...speeches: any[]): any | any[] {
   return _proudly(true, ...speeches);
 }
+
 function _proudly(condition: boolean=true, ...speeches: any[]): any | any[] {
-  return ((lx) => {
-    if (condition) console.log(lx);
-    return lx;
-  })(molt(speeches));
+  return ((l) => {
+    if (condition) {
+      console.log(l);
+    }
+    return l;
+  })(shed(speeches));
 }
 
 function timely<T,U>(work: ($T: T) => U=_.identity, iterations: number=1): ($T: T) => U {
@@ -23,14 +26,14 @@ function timely<T,U>(work: ($T: T) => U=_.identity, iterations: number=1): ($T: 
   return work;
 }
 
-// identity on unsingletons
-function molt(body: unknown[]): unknown {
-  return ((l) => l.length > 1 ? l : l[0])(_.flattenDeep(body));
+// [a] -> a on singletons, else id
+function shed(body: unknown[]): unknown {
+  return ((l) => l.length > 1 ? l : l[0])(_.flatten([body]));
 }
 
-// identity on arrays
+// inverse of `shed`
 function shell(body: unknown): unknown[] {
   return _.flatten([body]);
 }
 
-export { loudly, proudly, timely, molt, shell };
+export { loudly, proudly, timely, shed, shell };

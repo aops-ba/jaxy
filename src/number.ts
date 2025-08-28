@@ -1,3 +1,5 @@
+import Path from "./path";
+
 type Fielded = number | Real;
 type Closed = Fielded | Pair;
 
@@ -47,6 +49,22 @@ class Real {
 
 class Pair extends Real {
   y: number;
+
+  static fromArray([x,y]: number[]): Pair {
+    return new Pair(x,y);
+  }
+
+  static dir(p: Path | number, q?: Path): Pair {
+    if (p instanceof Path) {
+      if (q instanceof Path) {
+        return Pair.dir(p).plus(Pair.dir(q)).unit();
+      } else {
+        return Pair.dir(p, new Path([new Pair(p.length(), 0)]));
+      }
+    } else {
+      return ((lr) => new Pair(Math.cos(lr), Math.sin(lr)))(toRadians(p));
+    }
+  }
 
   constructor(x: Fielded | Pair, y?: Fielded) {
     if (x instanceof Pair && !y) {

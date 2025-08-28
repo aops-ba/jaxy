@@ -1,3 +1,9 @@
+:root {
+  --noto: 'Noto Sans', sans-serif;
+  --gentium: 'Gentium Plus', serif;
+  --inconsolata: 'Inconsolata', monospace;
+}
+
 * {
   margin: 0;
 }
@@ -5,35 +11,53 @@
 html, body {
   height: 100%;
   text-align: center;
-  font-family: 'Noto Sans', sans-serif;
+  font-family: var(--noto);
   background: var(--bg);
   color: var(--fg);
 }
 
 h1 {
   padding: 1em;
-  padding-bottom: 0;
+  padding-bottom: 0.5em;
 }
 
-#husk {
+#bonehouse {
   padding: 0;
-  min-height: 100%;
+  min-height: 92%;
   display: flex;
   flex-direction: column;
 }
 
-#shell {
+#eyes {
+  padding: 1px;
+  font-family: var(--inconsolata);
+  font-size: xx-large;
+}
+
+#ight:hover, #thgi:hover {
+  cursor: pointer;
+  color: var(--shadow);
+  filter: drop-shadow(0 0 5px var(--shadow));
+}
+
+#mouth div {
+  min-height: 10ex;
+}
+
+#about p {
+  margin: 0.5em 1em;
+}
+
+#backbone {
   flex: 1;
   display: flex;
   justify-content: space-around;
-  gap: 2em;
-  padding: 1em;
+  padding: 0.5em;
 }
 
-#shell > div {
+#backbone > div {
   display: flex;
-  flex-basis: 50%;
-  padding: 0;
+  flex-basis: 48%;
   border: 1px solid var(--fg);
 }
 
@@ -42,37 +66,32 @@ h1 {
   border: none;
   background: var(--mg);
   color: var(--fg);
-  font-family: 'Inconsolata', monospace;
   font-size: larger;
 }
 
 #asy {
   padding: 0.5em;
+  font-family: var(--inconsolata);
 }
 
-svg {
+#svg {
   margin-left: auto;
   margin-right: auto;
+  font-family: var(--gentium);
 }
 
-#about p {
-  margin: 0.5em 1em;
+.open {
+  display: none;
 }
 
-.broad {
-  font-family: 'Andika', sans-serif;
+.open .otherworldly::before {
+  content: '⟨';
 }
 
-.broad::before, .broad::after {
+.open .otherworldly::after {
+  content: '⟩';
+}
+
+.closed .otherworldly::before, .closed .otherworldly::after {
   content: '/';
-}
-
-#ight {
-  font-size: xx-large;
-}
-
-#ight:hover {
-  cursor: pointer;
-  color: var(--shadow);
-  filter: drop-shadow(0 0 5px var(--shadow));
 }

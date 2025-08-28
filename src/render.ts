@@ -1,21 +1,20 @@
 import { loudly, proudly } from "./helper";
 
-import { bemath, randy } from "./main";
+import { randy } from "./main";
 
 import { Grapheme } from "./grapheme";
 
-import { Closed, Pair, Real } from "./number";
+import { Pair, Real } from "./number";
 import { origin, N, S, E, W } from "./number";
-import { toDegrees, toRadians } from "./number";
 
 import Path from "./path";
 
-import { Arc, Circle } from "./types";
-import { unitcircle } from "./types";
+import { Arc, Circle } from "./arc";
+import { unitcircle } from "./arc";
 
-import type { Pen } from "./types";
-import { defaultpen, penboard } from "./types";
-import { Phrase } from "./phrase";
+import type { Pen, Pens } from "./pen";
+import { defaultpen, penboard } from "./pen";
+import Label from "./label";
 
 type BBox = {
   width: number,
@@ -24,16 +23,19 @@ type BBox = {
   miny: number
 };
 
+type scaling = { x: number, y: number };
+interface Seen {
+  show(): ($pens: Pens) => ($scaling: scaling) => string;
+}
+
 export default class Render {
   static PT = 4/3; // 3px = 4pt
   static INCH = Render.PT/72; // 1in = 72pt
-//  static SF = 0.5*Render.PT; // linewidth() = 0.5
-  static SF = 36;
-  static ORIENTATION = -1; // asy up = svg down
+  static UP = -1; // asy up = svg down
 
   svgblock: HTMLElement;
-  knowledge?: Phrase;
-  scale: { x: number, y: number };
+  wisdom: (($s: scaling) => string)[];
+  scaling: scaling;
 
   constructor(svgblock: HTMLElement) {
     this.svgblock = svgblock;
@@ -42,35 +44,26 @@ export default class Render {
       this.svgblock.setAttribute("height", `${l.height}`);
     })(this.bbox());
 
-    this.scale = { x: 1, y: 1 };
+    this.wisdom = [];
+    this.scaling = { x: 1, y: 1*Render.UP };
   }
 
-  size(x: number, y?: number): Render {
-    this.scale = { x: x, y: y ?? x };
-    console.log(this);
-    return this;
+  size(x: number, y?: number): void {
+    this.scaling.x = x;
+    this.scaling.y = (y ?? x)*Render.UP;
   }
 
-  update(knowledge: Phrase): Render {
-    this.knowledge = knowledge;
+  update(knowledge: (($s: scaling) => string)[]): Render {
+    this.wisdom = knowledge;
     return this;
   }
 
   render(): void {
-    ((l) => {
-      this.svgblock.innerHTML = `${this.knowledge}`;
+    ((l) => { // this should really be outpulling all the size setters and applying only the last one
+      this.svgblock.innerHTML = `${this.wisdom.map((ls: ($s: scaling) => string) => ls(this.scaling))}`;
       this.svgblock.setAttribute("viewBox", `${l.minx} ${l.miny} ${l.width} ${l.height}`);
       this.svgblock.setAttribute("preserveAspectRatio", "xMidYMid meet");
-    })(this.scaledbbox());
-  }
-
-  private scaledbbox(): BBox {
-    return ((l) => ({
-      width: l.width/this.scale.x,
-      height: l.height/this.scale.y,
-      minx: -l.width/2/this.scale.x,
-      miny: -l.height/2/this.scale.y,
-    }))(this.bbox());
+    })(this.bbox());
   }
 
   private bbox(): BBox {
@@ -83,11 +76,12 @@ export default class Render {
   }
 }
 
-export let variables: Map<string, any> = new Map();
+let variables: Map<string, any> = new Map();
 
 const table = new Map<string, Function>([
   ["let", letlet],
-  ["size", (x: number, y?: number) => randy.size(x,y)],
+  //todo: get rid of randy
+  ["size", ([x,y]: Real[]) => randy.size(x.x, (y ?? x).x)],
 
   ["draw", draw],
   ["fill", fill],
@@ -95,8 +89,8 @@ const table = new Map<string, Function>([
   ["label", label],
 
   ["dot", dot],
-  ["circle", circle],
-  ["dir", dir],
+  ["circle", ([c,r]: [Pair, number]) => new Circle(c, r)],
+  ["dir", (p: Path | number, q?: Path) => Pair.dir(p, q)],
   ["degrees", (lz: Pair) => new Real(lz.degrees())],
   ["conjugate", (lz: Pair) => lz.conjugate()],
   ["unitcircle", () => unitcircle],
@@ -108,61 +102,33 @@ const table = new Map<string, Function>([
   ...penboard,
 ]);
 
-export function lookup(name: typeof Grapheme): any {
+function lookup(name: typeof Grapheme): any {
   return table.has(name) ? table.get(name) : () => name;
 }
 
 function letlet(name: any, value: any): void {
-  console.log(name, value);
   variables.set(name.toString(), value);
 }
 
-function draw(path: Path | Arc, ps: Pen): string {
-  return gyenh1({path: path, stroke: ps ?? defaultpen});
+function draw([path, ps]: [Path | Arc, Pen]): ($scaling: scaling) => string {
+  return path.show()({ fill: undefined, stroke: ps ?? defaultpen });
 }
 
-function fill(path: Path | Arc, pf: Pen): string {
-  return gyenh1({path: path, fill: pf ?? defaultpen});
+function fill([path, pf]: [Path | Arc, Pen]): ($scaling: scaling) => string {
+  return path.show()({ fill: pf, stroke: undefined });
 }
 
-function filldraw(path: Path | Arc, pf: Pen, ps: Pen): string {
-  return fill(path, pf)+draw(path, ps ?? pf);
+function filldraw([path, pf, pens]: [Path | Arc, Pen, Pen]): (($scaling: scaling) => string)[] {
+  return [draw([path, pens]), fill([path, pf])];
 }
 
-function label(s: string | number, position?: Pair, p?: Pen): string {
-  return ((lpos, lpen) => `<g x="${Render.SF*lpos.x}" y="${Render.SF*Render.ORIENTATION*lpos.y}" fill="${lpen.color}" text-anchor="middle" dominant-baseline="middle">${bemath(s.toString())}</g>`)
-    (position ?? origin, p ?? defaultpen);
+function label([text, position, pf]: [string, Pair, Pen]): ($scaling: scaling) => string {
+  return new Label(text, position).show()({ fill: pf, stroke: undefined });
 }
 
-function dot(z: Pair, p?: Pen): string {
-  return ((lp) => gyenh1({path: new Circle(z, lp.dotsize()), fill: lp}))
-         (p ?? defaultpen);
+// todo: calibrate dot size
+function dot([pair, pf]: [Pair, Pen]): ($scaling: scaling) => string {
+  return fill([new Circle(pair, 2**-4), pf ?? defaultpen]);
 }
 
-// todo: make other shapes drawable
-function gyenh1(options: {path: Path | Arc, fill?: Pen, stroke?: Pen}) {
-  if (options.path instanceof Path) {
-    return `<path d="${options.path.points.map((v: Pair,k: number): string => `${k==0 ? 'M' : 'L'} ${Render.SF*v.x} ${Render.SF*Render.ORIENTATION*v.y} `).join('')}
-                     ${options.path.cyclic ? 'Z' : ''}" fill="${options.fill?.color ?? 'none'}" stroke="${options.stroke?.color ?? 'none'}" stroke-width="${2*(options.stroke?.width ?? 0.5)}" />`;
-  } else if (options.path instanceof Circle) { // tis a circle then lol
-    return `<ellipse rx="${Render.SF*options.path.radius}" ry="${Render.SF*options.path.radius}"
-                     cx="${Render.SF*options.path.center.x}" cy="${Render.SF*Render.ORIENTATION*options.path.center.y}"
-                     fill="${options.fill?.color ?? 'none'}" stroke="${options.stroke?.color ?? 'none'}" stroke-width="${2*(options.stroke?.width ?? 0.5)}" />`;
-  } else return '';
-}
-
-function circle(c: Pair, r: number): Arc {
-  return new Circle(c, r);
-}
-
-function dir(p: Path | number, q?: Path): Pair {
-  if (p instanceof Path) {
-    if (q instanceof Path) {
-      return dir(p).plus(dir(q)).unit();
-    } else {
-      return dir(p, new Path([new Pair(p.length(), 0)]));
-    }
-  } else {
-    return ((lr) => new Pair(Math.cos(lr), Math.sin(lr)))(toRadians(p));
-  }
-}
+export { scaling, Seen, variables, lookup };

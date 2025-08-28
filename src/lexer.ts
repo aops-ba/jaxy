@@ -1,10 +1,12 @@
+import _ from "lodash/fp";
+
 import { loudly, proudly } from "./helper";
 
 import { Grapheme } from "./grapheme";
 import { Morpheme } from "./morpheme";
 
 export default function lex(asy: string): Morpheme[] {
-  const t: number = new Date().getTime();
+  const t: number = _.now();
   let lexy: Morpheme[] = [];
   let line: number = 0;
   let index: number = 0;
@@ -31,7 +33,7 @@ export default function lex(asy: string): Morpheme[] {
       })(next(la));
     }
 
-    proudly(`Lexed ${ll} characters into ${lexy.length} tokens in ${new Date().getTime()-t} milliseconds! The lex is:\n
+    proudly(`Lexed ${ll} characters into ${lexy.length} tokens in ${_.now()-t} milliseconds! The lex is:\n
 ${((lg) => [(lt: Morpheme) => lt.value ?? lt.kind, (lt: Morpheme) => lt.kind].map(lg).join('\n=>\n'))
   ((lf: ($t: Morpheme) => string | number) => lexy.map(lf).join(''))}`);
   })(la.length))(asy+'\n');
@@ -42,13 +44,16 @@ ${((lg) => [(lt: Morpheme) => lt.value ?? lt.kind, (lt: Morpheme) => lt.kind].ma
 function next(asy: string): string {
   return (asy.slice(0,2) === '//')
     ? asy.slice(0, [...asy].findIndex((lc) => /[\n|\r]/.test(lc))+1)
-    : asy.slice(0, Math.max(1, ((li) => li === -1 ? asy.length : li)
+    : asy[0] === '"'
+      ? asy.slice(0, [...asy].slice(1).findIndex((lc) => lc === '"')+2)
+      : asy.slice(0, Math.max(1, ((li) => li === -1 ? asy.length : li)
                                ([...asy].findIndex((_,k) => !alphanumeric(asy.slice(0, k+1))
                                                          && !Object.values(Grapheme).includes(asy.slice(0, k+1)))
                                 ?? asy.length)));
 }
 
 function lookup(chars: string, index: number): Morpheme {
+  console.log(chars);
   if (/^['|"].*['|"]$/.test(chars)) {
     return morph(Grapheme.String, index, chars);
   } else if (numeric(chars)) {

@@ -3,7 +3,6 @@ import _ from "lodash/fp";
 import Render from "./render";
 
 import { Real, Pair } from "./number";
-import { unitcircle } from "./types";
 import Path from "./path";
 
 import { Phrase, PairP } from "./phrase";
@@ -12,29 +11,30 @@ import { Grapheme } from "./grapheme";
 import { lookup } from "./render";
 import { variables } from "./render";
 
-import { loudly, proudly, molt, shell } from "./helper";
+import { loudly, proudly, shed, shell } from "./helper";
 
 import lex from "./lexer";
 import parse from "./parser";
-import { flattenDeep } from "lodash";
+import Label from "./label";
 
 const asyblock = document.getElementById("asy")! as HTMLTextAreaElement;
 const svgblock = document.getElementById("svg")! as HTMLElement;
 const ight = document.getElementById("ight")! as HTMLSpanElement;
+const thgi = document.getElementById("thgi")! as HTMLSpanElement;
 
-export function bemath(s: string | number): string {
-  return s.toString();
-//  return MathJax.tex2svg(s).firstChild.outerHTML;
-}
-
+// Randy (they/them) the renderer.
+// cf. Lexy (she/they) the lexer and Percy (he/they) the parser.
 export const randy: Render = new Render(svgblock);
 
 window.onload = function() {
   asyblock.addEventListener("input", () => transpile());
   window.addEventListener("resize", () => randy.render());
   ight.addEventListener("click", () => twilight());
-  transpile();
+  thgi.addEventListener("click", () => truesight());
+
   twilight();
+  truesight();
+  transpile();
 }
 
 function twilight(): void {
@@ -55,49 +55,58 @@ function twilight(): void {
   ;
 }
 
-function transpile(): void {
-  randy.update(weyd(parse(lex(asyblock.value.trim())))).render();
+function truesight(): void {
+  ((lopen, lclosed) => ((lasleep: boolean) => [["open", "block", "none"], ["closed", "none", "block"]].map(([lwhich, ly, ln]) => {
+    _.each ((le: HTMLElement) => le.style.setProperty("display", lasleep ? ly : ln))
+           (document.getElementsByClassName(lwhich));
+    thgi.innerHTML = lasleep ? lopen : lclosed;
+  }))(thgi.innerHTML === lclosed)
+  )('ɮ', 'ɬ');
 }
 
-function weyd(phrase: Phrase): any {
-  console.log(phrase, typeof phrase);
+function transpile(): void {
+  try {
+    randy.update(understand(parse(lex(asyblock.value.trim())))).render();
+    console.log("we did it");
+  } catch (e) {
+    throw new Error(`we didn't do it: ${e}`);
+  }
+}
+
+function understand(phrase: Phrase | undefined): any {
+  loudly(`Milling '${phrase?.name()}'`);
   if (phrase === undefined) {
     return;
   }
-  loudly(`Milling '${phrase.name()}'`);
+
   switch (phrase.kind()) {
     // todo: these should be morphemes
     case Grapheme.Name:
-//      return ((l) => (lookup(l))(loudly(shell(phrase.right!))))(phrase.value());
-//      if (phrase.value() === "let") {
-//        return ((lx) => (lookup(lx))(phrase.right!.left!.value(), ...[weyd(phrase.right!.right!)].flat(Infinity)))(variables.has(phrase.value()) ? variables.get(phrase.value()) : phrase.value());
-//      } else {
-        return ((lx) => (lookup(lx))(...[weyd(phrase.right!)].flat(Infinity)))(variables.has(phrase.value()) ? variables.get(phrase.value()) : phrase.value());
-//      }
+      return lookup(phrase.value())(_.flatten([understand(phrase.right!)]));
     case Grapheme.Plus:
-      return weyd(phrase.left!).plus(weyd(phrase.right!));
+      return understand(phrase.left!).plus(understand(phrase.right!));
     case Grapheme.Minus:
-      return (phrase.left ? weyd(phrase.left) : new Real(0)).plus(weyd(phrase.right!).negate());
+      return (understand(phrase.left) ?? new Real(0)).plus(understand(phrase.right!).negate());
     case Grapheme.Star:
-      return weyd(phrase.left!).times(weyd(phrase.right!));
+      return understand(phrase.left!).times(understand(phrase.right!));
     case Grapheme.Slash:
-      console.log(phrase);
-      return weyd(phrase.left!).times(weyd(phrase.right!).invert());
+      return understand(phrase.left!).times(understand(phrase.right!).invert());
     case Grapheme.Comma:
       return phrase instanceof PairP
-        ? new Pair(...weyd(phrase.right) as [Real, Real])
-        : [weyd(phrase.left!), weyd(phrase.right!)].flat(Infinity);
+        ? Pair.fromArray(understand(phrase.right))
+        : _.flatten([understand(phrase.left!), understand(phrase.right!)]);
     case Grapheme.MinusMinus:
-      return weyd(phrase.left!) instanceof Pair
-        ? new Path([weyd(phrase.left!), weyd(phrase.right!)])
-        // todo: why does proudlying this make it print so many times
-        : weyd(phrase.left!).add(weyd(phrase.right!));
+      return ((lw) => lw instanceof Pair
+        ? new Path([lw, understand(phrase.right!)])
+        : lw.add(understand(phrase.right!)))(understand(phrase.left!));
     case Grapheme.Semicolon:
-      return ((lx) => typeof lx === "string" ? lx : '')(weyd(phrase.left!))+(phrase.right ? weyd(phrase.right) : '');
+      return _.compact(_.flattenDeep([understand(phrase.left), understand(phrase.right)]));
     case Grapheme.Cycle:
-      return phrase.head;
+      return "cycle";
     case Grapheme.Number:
       return new Real(phrase.head.value as number);
+    case Grapheme.String:
+      return phrase.head.value as string;
     default:
       throw new Error(`idk what this is: ${phrase.name()}`);
   }

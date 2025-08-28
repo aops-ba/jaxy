@@ -30,6 +30,7 @@ function hparse(morphemes: Morpheme[], depth: number): Phrase {
         return right.head.kind === Grapheme.Comma ? new PairP(right) : right;
       case Grapheme.Cycle:
       case Grapheme.Number:
+      case Grapheme.String:
         return new UnP(meal);
       case Grapheme.Name:
         if (taste(morphemes).kind === Grapheme.RoundL) {

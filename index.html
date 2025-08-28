@@ -10,46 +10,78 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Andika:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Gentium+Plus:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet" />
+
+  <!--<script src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js" defer></script>-->
+  <script type="module" src="/src/main.ts"></script>
 
   <link rel="stylesheet" href="style.css" />
-
-  <script src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js" defer></script>
 
   <title>Jaxy</title>
 </head>
 
 <body>
-  <div id="husk">
-    <div id="helmet">
-      <h1>Jaxy</h1>
+  <div id="bonehouse">
+    <div id="skull">
+      <h1 class="closed">Jaxy</h1>
+      <h1 class="open">ˈʤæksi</h1>
       <div id="about">
-        <span id="ight"></span>
-        <p>
-        Hi! My name is <strong>Jaxy</strong>, said <span class="broad">ˈʤæksi</span>, like the word &ldquo;jack-see&rdquo;.
-        My pronouns are <strong>he</strong>/<strong>it</strong>.
-        Perhaps you've met my sister <a href="https://github.com/kbaki-aops/lasy.git" target="_blank"><strong>Lasy</strong></a>.
-        </p>
-        <p>
-        I'm a TypeScript module that transpiles Asymptote code
-        directly into SVG output, <em>without</em> the Asymptote compiler.
-        <br />
-        This means that I do all of my work client-side and in the browser!
-        </p>
+        <div id="eyes">
+          <span id="ight"></span>.<span id="thgi">ɹ</span>
+        </div>
+        <div id="mouth">
+          <div class="closed">
+            <p>
+            Hi! My name is <strong>Jaxy</strong>, said <span class="otherworldly">ˈʤæksi</span>, like the word &ldquo;jack-see&rdquo;.
+            My pronouns are <strong>he</strong>/<strong>it</strong>.
+            Perhaps you&rsquo;ve met my sister <a href="https://github.com/kbaki-aops/lasy.git" target="_blank"><strong>Lasy</strong></a>.
+            </p>
+            <p>
+            I&rsquo;m a TypeScript module that transpiles Asymptote code
+            directly into SVG output, <em>without</em> the Asymptote compiler.
+            <br />
+            This means that I do all of my work client-side and in the browser!
+            </p>
+          </div>
+          <div class="open">
+            <p>
+            haj! maj nem ɪz <strong>ˈʤæksi</strong>, rɪtən <span class="otherworldly">Jaxy</span>.
+            maj pronawnz ɑr <strong>hi</strong>/<strong>ɪt</strong>.
+            pərˈhæps ju&rsquo;v mɛt maj sɪstər <a href="https://github.com/kbaki-aops/lasy.git" target="_blank"><strong>læsi</strong></a>.
+            </p>
+            <p>
+            aj&rsquo;m ə tajpskrɪpt mɒdjul ðæt trænsˈpajlz æsɪmptot kod
+            dajˈrɛktli ɪntu ˌɛsˌviˈʤi awtpʊt, <em>wɪˈðawt</em> ði æsɪmptot kəmˈpajlər.
+            <br />
+            ðɪs minz ðæt aj du ɔl əv maj wərk klajənt-sajd ænd ɪn ðə brawzər!
+            </p>
+          </div>
+        </div>
       </div>
     </div>
-    <div id="shell">
+    <div id="backbone">
       <div><textarea id="asy">
-draw(circle(origin, 4), red);
-filldraw(unitcircle, green, black);
-fill(1+N--2*E--3/S--4-W--cycle, blue);
-draw(origin--(1+2*3/4-5)*dir(1+2*3/4-5), red);
+size(50);
+
+filldraw(circle(origin, 2), white, black);
+fill(unitcircle, red);
+draw(circle(N, 1), blue);
+draw(circle(S, 1), blue);
+draw(circle(E, 3/2), green);
+draw(circle(W, 3/2), green);
+
 dot(origin);
+dot(3*E+N, magenta);
+dot(-E-E-E-S, cyan);
+
+label("hello friends", (0, 1+1+1), white);
+label("goodbye foes", (-N)+S-1+2*E+S-1-N, red);
+
+draw(dir(60)--2*dir(150)--3*dir(240)--4*dir(330)--cycle, yellow);
 </textarea></div>
       <div><svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg></div>
     </div>
   </div>
-  <script type="module" src="/src/main.ts"></script>
 </body>
 
 </html>

@@ -1,26 +1,5 @@
 import { Pair, origin } from "./number";
 
-export class Arc {
-  center: Pair;
-  radius: number;
-  from: number;
-  to: number;
-
-  constructor(center: Pair, radius: number, from: number, to: number) {
-    this.center = center;
-    this.radius = radius;
-    this.from = from;
-    this.to = to;
-  }
-}
-
-export class Circle extends Arc {
-  constructor(center: Pair, radius: number) {
-    super(center, radius, 0, 360);
-  }
-}
-
-export const unitcircle: Circle = new Circle(origin, 1);
 
 export class Color {
   r: number;
@@ -56,6 +35,7 @@ export class Color {
     return `rgb(${this.r}, ${this.g}, ${this.b})`;
   }
 }
+export type Pens = { fill?: Pen, stroke?: Pen };
 
 export class Pen {
   static dotfactor = 6;
@@ -80,7 +60,7 @@ export class Pen {
   }
 
   private constructor(options: {name?: string, color?: Color, r?: number, g?: number, b?: number}) {
-    this.width = 0.5;
+    this.width = 0.5*2;
     if (options.name)
       this.color = Color.names.get(options.name)!;
     else if (options.color)
