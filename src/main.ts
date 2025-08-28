@@ -1,4 +1,7 @@
-import "./helper";
+import _ from "lodash/fp";
+
+import Render from "./render";
+
 import { Real, Pair } from "./number";
 import { unitcircle } from "./types";
 import Path from "./path";
@@ -6,111 +9,96 @@ import Path from "./path";
 import { Phrase, PairP } from "./phrase";
 
 import { Grapheme } from "./grapheme";
-import lookup from "./keywords";
-import { variables } from "./keywords";
+import { lookup } from "./render";
+import { variables } from "./render";
 
-import { loudly, proudly } from "./helper";
+import { loudly, proudly, molt, shell } from "./helper";
 
 import lex from "./lexer";
 import parse from "./parser";
-
-const PT = 72; // 72 pt = 1 in
-const SF = 0.5*PT; // linewidth() = 0.5
-const ORIENTATION = -1; // (0,1) is up in asy, but down in svg
+import { flattenDeep } from "lodash";
 
 const asyblock = document.getElementById("asy")! as HTMLTextAreaElement;
 const svgblock = document.getElementById("svg")! as HTMLElement;
 const ight = document.getElementById("ight")! as HTMLSpanElement;
 
-const W = svgblock.getBoundingClientRect().width*7/8;
-const H = svgblock.getBoundingClientRect().height*7/8;
-const ULX = -W/2;
-const ULY = -H/2;
-
-asyblock.addEventListener("input", update);
-ight.addEventListener("click", twilight);
-
-function update(): void {
-  svgblock.innerHTML = transpile(asyblock.value.trim());
-//  console.log(svgblock.getBoundingClientRect());
-  console.log("we did it");
-}
-
 export function bemath(s: string | number): string {
-  return MathJax.tex2svg(s).firstChild.outerHTML;
+  return s.toString();
+//  return MathJax.tex2svg(s).firstChild.outerHTML;
 }
+
+export const randy: Render = new Render(svgblock);
 
 window.onload = function() {
-  update();
+  asyblock.addEventListener("input", () => transpile());
+  window.addEventListener("resize", () => randy.render());
+  ight.addEventListener("click", () => twilight());
+  transpile();
   twilight();
 }
 
 function twilight(): void {
-  ((ldate, lg) => ((lisday, light) => ((lsun, lmoon) => {
-    if (light === lsun || (light === "" && !lisday)) {
-      lg(lmoon, (lx) => document.body.classList.add(lx), ["black", "dimgrey", "lightgrey", "blue"]);
-    } else if (light === lmoon || (light === "" && lisday)) {
-      lg(lsun, (lx) => document.body.classList.add(lx), ["white", "lightgrey", "black", "red"]);
-    } else throw new Error([ldate, lisday, light].toString());
-  })
-  ('☉', ldate.getDate() < 15 ? '☽' : '☾'))
-  (Math.abs(ldate.getHours()-12) < 6, ight.innerHTML))
-  (new Date(), (light: string, lf: (lx: string) => void, lhues: string[]) => {
+  ((ldate: Date) => 
+  ((lsun: string, lmoon: string) => 
+  ((lwhich: boolean) =>
+  _.curry ((light: string, lhues: string[]) => {
     ight.innerHTML = light;
-    lf("night");
-    ["--bg", "--mg", "--fg", "--shadow"].map((v,k) => [v,lhues[k]])
-      .forEach((lxx: string[]) => (document.querySelector(":root") as HTMLElement).style.setProperty(lxx[0], lxx[1]));
-  });
+    _.each ((lxx: [string, string]) => document.body.style.setProperty(lxx[0], lxx[1]))
+           (_.zip (["--bg", "--mg", "--fg", "--shadow"]) (lhues))
+    ;
+  }
+  )(lwhich ? lmoon : lsun)
+   (lwhich ? ["black", "dimgrey", "lightgrey", "blue"] : ["white", "lightgrey", "black", "red"])
+  )(ight.innerHTML === lsun || (ight.innerHTML === "" && Math.abs(ldate.getHours()-12) > 6))
+  )('☉', ldate.getDate() < 15 ? '☽' : '☾')
+  )(new Date())
+  ;
 }
 
-function transpile(innards: string): string {
-  return `<svg width="${W}" height="${H}" viewbox="${ULX} ${ULY} ${W} ${H}"
-           xmlns="http://www.w3.org/2000/svg">${(mill(parse(lex(innards))))}</svg>`;
+function transpile(): void {
+  randy.update(weyd(parse(lex(asyblock.value.trim())))).render();
 }
 
-function mill(phrase: Phrase): any {
-  if (phrase === undefined) return;
+function weyd(phrase: Phrase): any {
+  console.log(phrase, typeof phrase);
+  if (phrase === undefined) {
+    return;
+  }
   loudly(`Milling '${phrase.name()}'`);
   switch (phrase.kind()) {
+    // todo: these should be morphemes
     case Grapheme.Name:
-      if (phrase.value() === "let") {
-        return ((lx) => (lookup(lx))(phrase.right!.left!.value(), ...[mill(phrase.right!.right!)].flat(Infinity)))(variables.has(phrase.value()) ? variables.get(phrase.value()) : phrase.value());
-      } else {
-        return ((lx) => (lookup(lx))(...[mill(phrase.right!)].flat(Infinity)))(variables.has(phrase.value()) ? variables.get(phrase.value()) : phrase.value());
-      }
+//      return ((l) => (lookup(l))(loudly(shell(phrase.right!))))(phrase.value());
+//      if (phrase.value() === "let") {
+//        return ((lx) => (lookup(lx))(phrase.right!.left!.value(), ...[weyd(phrase.right!.right!)].flat(Infinity)))(variables.has(phrase.value()) ? variables.get(phrase.value()) : phrase.value());
+//      } else {
+        return ((lx) => (lookup(lx))(...[weyd(phrase.right!)].flat(Infinity)))(variables.has(phrase.value()) ? variables.get(phrase.value()) : phrase.value());
+//      }
     case Grapheme.Plus:
-      return mill(phrase.left!).plus(mill(phrase.right!));
+      return weyd(phrase.left!).plus(weyd(phrase.right!));
     case Grapheme.Minus:
-      return (phrase.left ? mill(phrase.left) : new Real(0)).plus(mill(phrase.right!).negate());
+      return (phrase.left ? weyd(phrase.left) : new Real(0)).plus(weyd(phrase.right!).negate());
     case Grapheme.Star:
-      return mill(phrase.left!).times(mill(phrase.right!));
+      return weyd(phrase.left!).times(weyd(phrase.right!));
     case Grapheme.Slash:
-      return mill(phrase.left!).times(mill(phrase.right!).invert());
+      console.log(phrase);
+      return weyd(phrase.left!).times(weyd(phrase.right!).invert());
     case Grapheme.Comma:
       return phrase instanceof PairP
-        ? new Pair(...mill(phrase.right) as [Real, Real])
-        : [mill(phrase.left!), mill(phrase.right!)].flat(Infinity);
+        ? new Pair(...weyd(phrase.right) as [Real, Real])
+        : [weyd(phrase.left!), weyd(phrase.right!)].flat(Infinity);
     case Grapheme.MinusMinus:
-      return mill(phrase.left!) instanceof Pair
-        ? new Path([mill(phrase.left!), mill(phrase.right!)])
-        // todo: why does this proudly get hit so many times
-        : proudly(mill(phrase.left!).add(mill(phrase.right!)));
+      return weyd(phrase.left!) instanceof Pair
+        ? new Path([weyd(phrase.left!), weyd(phrase.right!)])
+        // todo: why does proudlying this make it print so many times
+        : weyd(phrase.left!).add(weyd(phrase.right!));
     case Grapheme.Semicolon:
-      return mill(phrase.left!)+(phrase.right ? mill(phrase.right) : '');
+      return ((lx) => typeof lx === "string" ? lx : '')(weyd(phrase.left!))+(phrase.right ? weyd(phrase.right) : '');
     case Grapheme.Cycle:
       return phrase.head;
     case Grapheme.Number:
       return new Real(phrase.head.value as number);
     default:
       throw new Error(`idk what this is: ${phrase.name()}`);
-  }
-}
-
-// todo: add cycle
-function path(rest: Pair | Path, last: Pair | typeof Grapheme.Cycle): Path {
-  if (rest instanceof Pair) {
-    return new Path([rest, last]);
-  } else {
-    return rest.add(last);
   }
 }

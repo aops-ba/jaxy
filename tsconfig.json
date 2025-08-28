@@ -17,7 +17,7 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "erasableSyntaxOnly": false, // disabled 22/8/25
+    "erasableSyntaxOnly": false, // whether enums are forbidden
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },

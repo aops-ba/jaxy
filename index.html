@@ -6,16 +6,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="shortcut icon" href="#" />
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Inconsolata&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Andika&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Andika:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="style.css" />
 
   <script src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js" defer></script>
-  <script type="module" src="/src/main.ts"></script>
 
   <title>Jaxy</title>
 </head>
@@ -41,17 +40,16 @@
     </div>
     <div id="shell">
       <div><textarea id="asy">
-let(P,5);
 draw(circle(origin, 4), red);
 filldraw(unitcircle, green, black);
 fill(1+N--2*E--3/S--4-W--cycle, blue);
-label(5);
 draw(origin--(1+2*3/4-5)*dir(1+2*3/4-5), red);
 dot(origin);
 </textarea></div>
-      <div><svg id="svg"></svg></div>
+      <div><svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg></div>
     </div>
   </div>
+  <script type="module" src="/src/main.ts"></script>
 </body>
 
 </html>
