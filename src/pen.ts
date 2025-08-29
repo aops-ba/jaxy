@@ -1,5 +1,5 @@
+import { proudly } from "./helper";
 import { Pair, origin } from "./number";
-
 
 export class Color {
   r: number;
@@ -29,6 +29,10 @@ export class Color {
     } else {
       throw new Error(`${options} isn't a color.`);
     }
+  }
+
+  entex(s: string): string {
+    return proudly(`\\(\\textcolor[RGB]{${this.r},${this.g},${this.b}}{${proudly(s.slice(2, -2))}}\\)`);
   }
 
   toString(): string {

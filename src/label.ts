@@ -20,7 +20,15 @@ export default class Label implements Seen {
 
   show(): ($pens: Pens) => ($scaling: scaling) => string {
     return ({fill, stroke}) => (scaling) =>
-      `<text x="${scaling.x*this.position.x}" y="${scaling.y*this.position.y}" fill="${(fill ?? defaultpen).color}"`
-     +`text-anchor="middle" dominant-baseline="middle">${this.text}</text>`;
+      `<foreignObject x="${scaling.x*this.position.x}" y="${scaling.y*this.position.y}"`
+    + `width="1000" height="1" style="overflow: visible;">`
+    + `${((lt: string) => fill ? fill.color.entex(lt) : lt)(this.entex(this.text))}`
+    + `</foreignObject>`;
+  }
+
+  entex(s: string): string {
+    return `\\(${_.replace (/\\text{}|\\\(|\\\)/gm) ('')
+      (`\\text{${_.replace (/\\\(/gm) ('}\\(')
+        (_.replace (/\\\)/gm) ('\\)\\text{') (s))}}`)}\\)`;
   }
 }

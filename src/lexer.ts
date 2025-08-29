@@ -53,7 +53,6 @@ function next(asy: string): string {
 }
 
 function lookup(chars: string, index: number): Morpheme {
-  console.log(chars);
   if (/^['|"].*['|"]$/.test(chars)) {
     return morph(Grapheme.String, index, chars);
   } else if (numeric(chars)) {

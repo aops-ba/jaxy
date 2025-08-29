@@ -1,5 +1,4 @@
 import _ from "lodash/fp";
-
 import Render from "./render";
 
 import { Real, Pair } from "./number";
@@ -44,24 +43,26 @@ function twilight(): void {
   _.curry ((light: string, lhues: string[]) => {
     ight.innerHTML = light;
     _.each ((lxx: [string, string]) => document.body.style.setProperty(lxx[0], lxx[1]))
-           (_.zip (["--bg", "--mg", "--fg", "--shadow"]) (lhues))
-    ;
+           (_.zip (["--bg", "--mg", "--fg", "--shadow"]) (lhues));
   }
-  )(lwhich ? lmoon : lsun)
-   (lwhich ? ["black", "dimgrey", "lightgrey", "blue"] : ["white", "lightgrey", "black", "red"])
-  )(ight.innerHTML === lsun || (ight.innerHTML === "" && Math.abs(ldate.getHours()-12) > 6))
-  )('☉', ldate.getDate() < 15 ? '☽' : '☾')
-  )(new Date())
+  ) (lwhich ? lmoon : lsun)
+    (lwhich ? ["black", "dimgrey", "lightgrey", "blue"] : ["white", "lightgrey", "black", "red"])
+  ) (ight.innerHTML === lsun || (ight.innerHTML === "" && Math.abs(ldate.getHours()-12) > 6))
+  ) ('☉', ldate.getDate() < 15 ? '☽' : '☾')
+  ) (new Date())
   ;
 }
 
 function truesight(): void {
-  ((lopen, lclosed) => ((lasleep: boolean) => [["open", "block", "none"], ["closed", "none", "block"]].map(([lwhich, ly, ln]) => {
+  ((lopen, lclosed) =>
+  ((lasleep: boolean) =>
+  _.map (([lwhich, ly, ln]: string[]) => {
     _.each ((le: HTMLElement) => le.style.setProperty("display", lasleep ? ly : ln))
            (document.getElementsByClassName(lwhich));
     thgi.innerHTML = lasleep ? lopen : lclosed;
-  }))(thgi.innerHTML === lclosed)
-  )('ɮ', 'ɬ');
+  }) ([["open", "block", "none"], ["closed", "none", "block"]])
+  ) (thgi.innerHTML === lclosed)
+  ) ('ɮ', 'ɬ');
 }
 
 function transpile(): void {
@@ -82,7 +83,12 @@ function understand(phrase: Phrase | undefined): any {
   switch (phrase.kind()) {
     // todo: these should be morphemes
     case Grapheme.Name:
-      return lookup(phrase.value())(_.flatten([understand(phrase.right!)]));
+      if (phrase.value() === "let") {
+        console.log(phrase);
+        return (lookup(phrase.value()))([phrase.right?.left?.value(), _.flatten([understand(phrase.right?.right!)])]);
+      } else {
+        return (lookup(phrase.value()) ?? variables.get(phrase.value() as string))(_.flatten([understand(phrase.right!)]));
+      }
     case Grapheme.Plus:
       return understand(phrase.left!).plus(understand(phrase.right!));
     case Grapheme.Minus:
@@ -98,7 +104,8 @@ function understand(phrase: Phrase | undefined): any {
     case Grapheme.MinusMinus:
       return ((lw) => lw instanceof Pair
         ? new Path([lw, understand(phrase.right!)])
-        : lw.add(understand(phrase.right!)))(understand(phrase.left!));
+        : (lw as Path).add(understand(phrase.right!))
+      ) (shed(understand(phrase.left!)));
     case Grapheme.Semicolon:
       return _.compact(_.flattenDeep([understand(phrase.left), understand(phrase.right)]));
     case Grapheme.Cycle:
