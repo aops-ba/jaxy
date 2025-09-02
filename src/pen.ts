@@ -1,6 +1,3 @@
-import { proudly } from "./helper";
-import { Pair, origin } from "./number";
-
 export class Color {
   r: number;
   g: number;
@@ -31,14 +28,11 @@ export class Color {
     }
   }
 
-  entex(s: string): string {
-    return proudly(`\\(\\textcolor[RGB]{${this.r},${this.g},${this.b}}{${proudly(s.slice(2, -2))}}\\)`);
-  }
-
   toString(): string {
     return `rgb(${this.r}, ${this.g}, ${this.b})`;
   }
 }
+
 export type Pens = { fill?: Pen, stroke?: Pen };
 
 export class Pen {

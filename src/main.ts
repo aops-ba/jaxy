@@ -10,11 +10,10 @@ import { Grapheme } from "./grapheme";
 import { lookup } from "./render";
 import { variables } from "./render";
 
-import { loudly, proudly, shed, shell } from "./helper";
+import { loudly, shed } from "./helper";
 
 import lex from "./lexer";
 import parse from "./parser";
-import Label from "./label";
 
 const asyblock = document.getElementById("asy")! as HTMLTextAreaElement;
 const svgblock = document.getElementById("svg")! as HTMLElement;
@@ -40,13 +39,15 @@ function twilight(): void {
   ((ldate: Date) => 
   ((lsun: string, lmoon: string) => 
   ((lwhich: boolean) =>
-  _.curry ((light: string, lhues: string[]) => {
+  ((light: string) =>
+  ((lhues: string[]) => {
     ight.innerHTML = light;
     _.each ((lxx: [string, string]) => document.body.style.setProperty(lxx[0], lxx[1]))
-           (_.zip (["--bg", "--mg", "--fg", "--shadow"]) (lhues));
+           (_.zip (["--bg", "--mg", "--fg", "--shadow"])
+                  (lhues));
   }
+  ) (lwhich ? ["dimgrey", "black", "white", "blue"] : ["lightgrey", "white", "black", "red"])
   ) (lwhich ? lmoon : lsun)
-    (lwhich ? ["black", "dimgrey", "lightgrey", "blue"] : ["white", "lightgrey", "black", "red"])
   ) (ight.innerHTML === lsun || (ight.innerHTML === "" && Math.abs(ldate.getHours()-12) > 6))
   ) ('☉', ldate.getDate() < 15 ? '☽' : '☾')
   ) (new Date())
@@ -60,7 +61,8 @@ function truesight(): void {
     _.each ((le: HTMLElement) => le.style.setProperty("display", lasleep ? ly : ln))
            (document.getElementsByClassName(lwhich));
     thgi.innerHTML = lasleep ? lopen : lclosed;
-  }) ([["open", "block", "none"], ["closed", "none", "block"]])
+  }
+  ) ([["open", "block", "none"], ["closed", "none", "block"]])
   ) (thgi.innerHTML === lclosed)
   ) ('ɮ', 'ɬ');
 }

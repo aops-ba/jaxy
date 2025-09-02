@@ -1,5 +1,3 @@
-import { loudly, proudly } from "./helper";
-
 import _ from "lodash/fp";
 
 import { randy } from "./main";
@@ -11,10 +9,10 @@ import { origin, N, S, E, W } from "./number";
 
 import Path from "./path";
 
-import { Arc, Circle } from "./arc";
+import { Dot, Arc, Circle } from "./arc";
 import { unitcircle } from "./arc";
 
-import type { Pen, Pens } from "./pen";
+import type { Pen } from "./pen";
 import { defaultpen, penboard } from "./pen";
 import Label from "./label";
 
@@ -29,10 +27,6 @@ type BBox = {
 
 type scaling = { x: number, y: number };
 
-interface Seen {
-  show(): ($pens: Pens) => ($scaling: scaling) => string;
-}
-
 export default class Render {
   static UP = -1; // asy up = svg down
   static PT = 1; // 1pt = 1pt
@@ -40,6 +34,8 @@ export default class Render {
   static INCH = 72; // 1in = 72pt
   static CM = Render.INCH*50/127; // 127cm = 50in
   static MM = Render.CM*10; // 127cm = 50in
+  static DEFAULTSIZE = 40; // empirical painful
+  static SCALE = 3/2; // empirical painful
 
   svgblock: HTMLElement;
   wisdom: (($s: scaling) => string)[];
@@ -53,34 +49,33 @@ export default class Render {
     })(this.bbox());
 
     this.wisdom = [];
-    this.scaling = { x: 1, y: 1*Render.UP };
+    this.scaling = { x: 0, y: 0 };
     console.log(window.devicePixelRatio);
   }
 
-//  resize(svg: HTMLElement) {
-//    this.svgblock.setAttribute("width", `${l.width}`);
-//    this.svgblock.setAttribute("height", `${l.height}`);
-//  }
-
-  size(x: number, y?: number): void {
-    this.scaling.x = x;
-    this.scaling.y = (y ?? x)*Render.UP;
+  size(x: number, y?: number): ($s: scaling) => string {
+    return ((ls: scaling) => {
+      ls.x = x/(20/3);
+      ls.y = (y ?? x)*Render.UP/(20/3);
+      return "";
+    });
   }
 
   update(knowledge: (($s: scaling) => string)[]): Render {
-    this.wisdom = knowledge;
+    this.wisdom = [this.size(Render.DEFAULTSIZE, Render.DEFAULTSIZE)].concat(knowledge);
     return this;
   }
 
-  render(): void {
-    ((l) => { // this should really be outpulling all the size setters and applying only the last one
+  async render(): Promise<void> {
+    console.log(this.scaling);
+    await (async (l): Promise<void> => { // this should really be outpulling all the size setters and applying only the last one
       this.svgblock.innerHTML = `${_.join ('')
                                           (_.map ((ls: ($s: scaling) => string) => ls(this.scaling))
                                                  (this.wisdom))}`;
       this.svgblock.setAttribute("viewBox", `${l.minx} ${l.miny} ${l.width} ${l.height}`);
       this.svgblock.setAttribute("preserveAspectRatio", "xMidYMid meet");
-
-      MathJax.typeset();
+      
+      await MathJax.typesetPromise();
 
       (_.each ((lf: Element) => ((lr: DOMRect) => {
         lf.setAttribute("x", `${Number(lf.getAttribute("x"))-lr.width/2}`);
@@ -88,19 +83,9 @@ export default class Render {
         lf.setAttribute("width", ''+lr.width);
         lf.setAttribute("height", ''+lr.height);
       }) (lf.firstElementChild!.getBoundingClientRect()))
-      ) (document.getElementsByTagName("foreignObject"));
-      // todo: fix this
- //     await MathJax.typesetPromise(function(resolve: ($ee: HTMLCollectionOf<SVGForeignObjectElement>) => void) {
- //       resolve((_.each ((lf: Element) => ((lr: DOMRect) => {
- //         console.log(lf, lr);
- //         console.log("wah wah wah wah wah");
- //         lf.setAttribute("x", `${Number(lf.getAttribute("x"))-lr.width/2}`);
- //         lf.setAttribute("y", `${Number(lf.getAttribute("y"))-lr.height/2}`);
- //         lf.setAttribute("width", ''+lr.width);
- //         lf.setAttribute("height", ''+lr.height);
- //       }) (lf.firstElementChild!.getBoundingClientRect())
- //     ) (document.getElementsByTagName("foreignObject"))));
- //   })
+      ) (document.getElementsByTagName("foreignObject"))
+ ;     
+//    );
     })(this.bbox());
   }
 
@@ -157,25 +142,31 @@ function letlet([name, value]: [string, unknown]): void {
 }
 
 function draw([path, ps]: [Path | Arc, Pen]): ($scaling: scaling) => string {
-  return path.show()({ fill: undefined, stroke: ps ?? defaultpen });
+  return path.show({ fill: undefined, stroke: ps ?? defaultpen });
 }
 
 function fill([path, pf]: [Path | Arc, Pen]): ($scaling: scaling) => string {
-  return path.show()({ fill: pf, stroke: undefined });
+  return path.show({ fill: pf, stroke: undefined });
 }
 
-function filldraw([path, pf, pens]: [Path | Arc, Pen, Pen]): (($scaling: scaling) => string)[] {
-  return [draw([path, pens]), fill([path, pf])];
+function filldraw([path, pf, ps]: [Path | Arc, Pen, Pen]): (($scaling: scaling) => string)[] {
+  return [draw([path, ps]), fill([path, pf])];
 }
 
 // todo: calibrate label appearance
 function label([text, position, pf]: [string, Pair, Pen]): ($scaling: scaling) => string {
-  return new Label(text, position).show()({ fill: pf, stroke: undefined });
+  return new Label(text, position).show({ fill: pf, stroke: undefined });
 }
 
+// shuffle the arguments from asy order to javascript order
+//function shuffle(f: Function): Function {
+//  return f;
+//}
+
+type Align = Pair;
 // todo: calibrate dot size
-function dot([pair, pf]: [Pair, Pen]): ($scaling: scaling) => string {
-  return fill([new Circle(pair, 2**-4), pf ?? defaultpen]);
+function dot([pair, pf, text, align]: [Pair, Pen, string, Pair]): ($scaling: scaling) => string {
+  return fill([new Dot(pair, text, align), pf ?? defaultpen]);
 }
 
-export { scaling, Seen, variables, lookup };
+export { scaling, variables, lookup, Align };

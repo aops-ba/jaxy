@@ -1,18 +1,16 @@
-import { proudly } from "./helper";
-
-import type { scaling, Seen } from "./render";
-import Render from "./render";
+import type { scaling } from "./render";
+import { Shape } from "./seen";
 
 import type { Pair } from "./number";
 
 import type { Pens } from "./pen";
-import { defaultpen } from "./pen";
 
-export default class Path implements Seen {
+export default class Path extends Shape {
   points: Pair[];
   cyclic: boolean;
 
   constructor(points?: Pair[], cyclic?: boolean) {
+    super();
     this.points = points ?? [];
     this.cyclic = cyclic ?? false;
   }
@@ -35,10 +33,10 @@ export default class Path implements Seen {
     return this;
   }
 
-  show(): ($pens: Pens) => ($scaling: scaling) => string {
-    return ({fill, stroke}) => (scaling) =>
+  show(pens: Pens): ($s: scaling) => string {
+    return (scaling: scaling) =>
     `<path d="${this.points.map((lpair: Pair, lindex: number): string =>
-      `${lindex==0 ? 'M' : ' L'} ${scaling.x*lpair.x} ${scaling.y*lpair.y}`).join('')}${this.cyclic ? ' Z' : ''}"`+
-      `fill="${fill?.color ?? "none"}" stroke="${stroke?.color ?? "none"}" stroke-width="${Render.PT*(stroke ?? defaultpen).width}" />`;
+      `${lindex==0 ? 'M' : ' L'} ${scaling.x*lpair.x} ${scaling.y*lpair.y}`).join('')}
+       ${this.cyclic ? ' Z' : ''}"` + this.ink(pens)('') + ` />`;
   }
 }

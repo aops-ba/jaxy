@@ -1,11 +1,10 @@
-import { proudly } from "./helper";
-
-import type { scaling, Seen } from "./render";
+import type { scaling } from "./render";
+import { Seen } from "./seen";
 
 import type { Pair } from "./number";
 import { origin } from "./number";
 
-import type { Pens } from "./pen";
+import { Pens } from "./pen";
 import { defaultpen } from "./pen";
 import _ from "lodash/fp";
 
@@ -18,17 +17,23 @@ export default class Label implements Seen {
     this.position = position ?? origin;
   }
 
-  show(): ($pens: Pens) => ($scaling: scaling) => string {
-    return ({fill, stroke}) => (scaling) =>
-      `<foreignObject x="${scaling.x*this.position.x}" y="${scaling.y*this.position.y}"`
-    + `width="1000" height="1" style="overflow: visible;">`
-    + `${((lt: string) => fill ? fill.color.entex(lt) : lt)(this.entex(this.text))}`
-    + `</foreignObject>`;
+  ink({fill}: Pens): ($s: string) => string {
+    return ((lw: string) => `\\(\\textcolor[RGB]{` + ((lc) => `${lc.r},${lc.g},${lc.b}`)((fill ?? defaultpen).color) + `}`
+    + `{${`${_.replace (/\\text{}|\\\(|\\\)/gm)
+                          ('')
+                          (`\\text{${_.replace (/\\\(/gm)
+                                               ('}\\(')
+                                               (_.replace (/\\\)/gm)
+                                                          ('\\)\\text{')
+                                                          (lw)
+    )}}}`)}\\)`}`);
   }
 
-  entex(s: string): string {
-    return `\\(${_.replace (/\\text{}|\\\(|\\\)/gm) ('')
-      (`\\text{${_.replace (/\\\(/gm) ('}\\(')
-        (_.replace (/\\\)/gm) ('\\)\\text{') (s))}}`)}\\)`;
+  show(pens: Pens): ($scaling: scaling) => string {
+    return (scaling: scaling) =>
+      `<foreignObject x="${scaling.x*this.position.x}" y="${scaling.y*this.position.y}"`
+    // todo: compute from bbox instead
+      + `width="1000" height="1" style="overflow: visible;">`
+      + this.ink(pens)(this.text) + `</foreignObject>`;
   }
 }

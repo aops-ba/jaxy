@@ -30,12 +30,28 @@ class Real {
         : new Real(this.x+z);
   }
 
+  minus(z: Closed): Closed {
+    return z instanceof Pair
+      ? z.minus(this)
+      : z instanceof Real
+        ? new Real(this.x-z.x)
+        : new Real(this.x-z);
+  }
+
   times(z: Closed): Closed {
     return z instanceof Pair
       ? z.times(this)
       : z instanceof Real
         ? new Real(this.x*z.x)
         : new Real(this.x*z);
+  }
+
+  divide(z: Closed): Closed {
+    return z instanceof Pair
+      ? z.divide(this)
+      : z instanceof Real
+        ? new Real(this.x/z.x)
+        : new Real(this.x/z);
   }
 
   power(z: Closed): Closed {
@@ -111,7 +127,13 @@ class Pair extends Real {
   }
 
   plus(z: Closed): Pair {
-    return new Pair(this.x+(typeof z === "number" ? z : z.x), this.y+(z instanceof Pair ? z.y : 0));
+    return new Pair(this.x+(typeof z === "number" ? z : z.x),
+                    this.y+(z instanceof Pair ? z.y : 0));
+  }
+
+  minus(z: Closed): Pair {
+    return new Pair(this.x+(typeof z === "number" ? z : z.negate().x),
+                    this.y+(z instanceof Pair ? z.negate().y : 0));
   }
 
   times(z: Closed): Closed {
@@ -120,6 +142,14 @@ class Pair extends Real {
       : z instanceof Real
         ? new Pair(this.x*z.x, this.y*z.x)
         : new Pair(this.x*z, this.y*z);
+  }
+
+  divide(z: Closed): Closed {
+    return z instanceof Pair
+      ? ((lth, lz) => new Pair(lth.dot(lz), lth.det(lz))) (this.conjugate(), z.invert())
+      : z instanceof Real
+        ? ((lz) => new Pair(this.x*lz.x, this.y*lz.x)) (z.invert())
+        : ((lz) => new Pair(this.x*lz, this.y*lz)) (1/z);
   }
 
   power(z: Closed): Closed {

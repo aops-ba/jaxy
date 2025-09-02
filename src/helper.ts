@@ -1,5 +1,4 @@
 import _ from "lodash/fp";
-import { Phrase } from "./parser";
 
 const loud = false;
 
@@ -28,8 +27,8 @@ function timely<T,U>(work: ($T: T) => U=_.identity, iterations: number=1): ($T: 
 }
 
 // [a] -> a on singletons, else id
-function shed(body: unknown[]): unknown {
-  return ((l) => l.length > 1 ? l : l[0])(_.flatten([body]));
+function shed(body: unknown | unknown[]): unknown | unknown[] {
+  return ((l) => l.length > 1 ? l : l[0])(shell(body));
 }
 
 // inverse of `shed`
@@ -37,4 +36,7 @@ function shell(body: unknown): unknown[] {
   return _.flatten([body]);
 }
 
-export { loudly, proudly, timely, shed, shell };
+// hide those warnings
+function id(...stuff: any[]): void { stuff ? {} : {}; }
+
+export { loudly, proudly, timely, shed, shell, id };

@@ -72,11 +72,13 @@ h1 {
 #asy {
   padding: 0.5em;
   font-family: var(--inconsolata);
+  color: var(--fg);
 }
 
 #svg {
   margin-left: auto;
   margin-right: auto;
+  background: white;
   font-family: var(--gentium);
 }
 
