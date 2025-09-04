@@ -1,27 +1,21 @@
 import { asyUnreachable } from "./error";
 
 import type { Binor, Unor, Assignor, Modifior, Literal } from "./tokens";
-import { Keyword, Operator, Separator, Other } from "./tokens";
+import { Keyword, Operator, Separator, Other, DEFSPAN } from "./tokens";
 
 import type { Span } from "./tokens";
-import { span, allspan, rightAfter } from "./tokens";
+import { span } from "./tokens";
 
-import type { Erroneous, Token, TokenType } from "./tokens";
-import { Tokenboard, isGood, isKeyword, isOperator, isSeparator, isStringKeywordOrLiteral } from "./tokens";
-import { tokenTypeToLength, tokenTypeToString } from "./tokens";
+import type { Token } from "./tokens";
+import { tokenTypeToString } from "./tokens";
 
-//import type {ScopeChainNode} from "./scope.ts";
-import { loudly, maybeArray, meet, weep } from "./helper";
-import { lookup, nameboard } from "./render";
+import { maybeArray, weep } from "./helper";
+import { lookup, UnscaledSpell, unspell } from "./randy";
 
-const DEFAULT_SPAN = span(-1, -1);
-/**
- * Base class for all trees in the CST.
- */
 export class Phrase {
 
   constructor(
-    public span: Span = DEFAULT_SPAN,
+    public span: Span = DEFSPAN,
     public flags: number = 0,
 //    public scope: ScopeChainNode | null = null,
     public docComment: Comment | null = null,
@@ -162,33 +156,52 @@ export class Phrase {
   }
 }
 
-export class ImportDeclarationPhrase extends Phrase {
+export class DeclareP extends Phrase {}
+export class StateP extends Phrase {}
+export class OperateP extends Phrase {}
+export class ExpressP extends Phrase {}
+
+export class DeclareImportP extends DeclareP {
   constructor (
     readonly modifiers: Token<Modifior>[],
     readonly importToken: Token<Keyword.import>,
-    readonly importTarget: Token<Other.StringLiteral> | IdentifierPhrase | null,
+    readonly importTarget: Token<Other.StringLiteral> | IdentifierP | null,
     readonly asToken: Token<Other.Identifier> | null,
-    readonly alias: IdentifierPhrase | null,
+    readonly alias: IdentifierP | null,
     readonly semicolon: Token<Separator.Semicolon> | null
   ) { super(); }
 }
 
-export class StructDeclarationPhrase extends Phrase {
-  constructor(readonly modifiers: Token<Modifior>[],
-        readonly structToken: Token<Keyword.struct>,
-        readonly name: IdentifierPhrase | null,
-        readonly openBrace: Token<Separator.LCurly> | null,
-        readonly body: Phrase[] | null,
-        readonly closeBrace: Token<Separator.RCurly> | null) {
-    super();
-  }
+export class DeclareStructP extends DeclareP {
+  constructor (
+    readonly modifiers: Token<Modifior>[],
+    readonly structToken: Token<Keyword.struct>,
+    readonly name: IdentifierP | null,
+    readonly openBrace: Token<Separator.LCurly> | null,
+    readonly body: Phrase[] | null,
+    readonly closeBrace: Token<Separator.RCurly> | null
+  ) { super(); }
 }
 
-export class VariableDeclarationPhrase extends Phrase {
-  constructor(readonly name: IdentifierPhrase,
-        readonly brackets: BracketsPhrase | null,
+export class DeclareFunctionP extends DeclareP {
+  constructor (
+    readonly modifiers: Token<Modifior>[],
+    readonly returnType: Phrase | null,
+    readonly isOperator: Token<Keyword.operator> | null,
+    readonly name: Token<Operator | Other.Identifier> | null,
+    readonly openParen: Token<Separator.LRound> | null,
+    readonly params: DeclareManyVariablesP[],  // each will only have one parameter, generally
+    readonly lastParamIsRest: Token<Separator.DotDotDot> | null,
+    readonly closeParen: Token<Separator.RRound> | null,
+    readonly body: BlockP | Phrase | Token<Separator.Semicolon> | null
+  ) { super(); }
+}
+
+export class DeclareOneVariableP extends DeclareP {
+  constructor(readonly name: IdentifierP,
+        readonly brackets: DimensionsP | null,
         readonly openParen: Token<Separator.LRound> | null,
-        readonly args: VariableDeclarationListPhrase[] | null,
+        readonly args: DeclareManyVariablesP[] | null,
         readonly lastParamIsRest: Token<Separator.DotDotDot> | null,
         readonly closeParen: Token<Separator.RRound> | null,
         readonly equalsToken: Token<Operator.Eq> | null,
@@ -213,34 +226,11 @@ export class VariableDeclarationPhrase extends Phrase {
   }
 }
 
-export class TypedefPhrase extends Phrase {
-  constructor(
-    readonly typedefToken: Token<Keyword.typedef>,
-    readonly asDecl: VariableDeclarationListPhrase | FunctionDeclarationPhrase | null
-  ) {
-    super();
-  }
-}
-
-export class FunctionDeclarationPhrase extends Phrase {
-  constructor (
-    readonly modifiers: Token<Modifior>[],
-    readonly returnType: Phrase | null,
-    readonly isOperator: Token<Keyword.operator> | null,
-    readonly name: Token<Operator | Other.Identifier> | null,
-    readonly openParen: Token<Separator.LRound> | null,
-    readonly params: VariableDeclarationListPhrase[],  // each will only have one parameter, generally
-    readonly lastParamIsRest: Token<Separator.DotDotDot> | null,
-    readonly closeParen: Token<Separator.RRound> | null,
-    readonly body: BlockPhrase | Phrase | Token<Separator.Semicolon> | null
-  ) { super(); }
-}
-
-export class VariableDeclarationListPhrase extends Phrase {
+export class DeclareManyVariablesP extends DeclareP {
   constructor (
     readonly modifiers: Token<Modifior>[],
     readonly type: TypePhrase | null,
-    readonly decls: VariableDeclarationPhrase[],
+    readonly decls: DeclareOneVariableP[],
     public semicolonToken: Token<Separator.Semicolon> | null
   ) { super(); }
 
@@ -252,8 +242,14 @@ export class VariableDeclarationListPhrase extends Phrase {
   }
 }
 
+export class TypedefP extends DeclareP {
+  constructor (
+    readonly typedefToken: Token<Keyword.typedef>,
+    readonly asDecl: DeclareManyVariablesP | DeclareFunctionP | null,
+  ) { super(); }
+}
 
-export class IfStatementPhrase extends Phrase {
+export class IfP extends StateP {
   constructor (
     readonly ifToken: Token<Keyword.if>,
     readonly openParen: Token<Separator.LRound> | null,
@@ -265,12 +261,12 @@ export class IfStatementPhrase extends Phrase {
   ) { super(); }
 }
 
-export class EnhancedForLoopPhrase extends Phrase {
+export class ForeachP extends StateP {
   constructor (
     readonly forToken: Token<Keyword.for>,
     readonly openParen: Token<Separator.LRound> | null,
     readonly elemType: TypePhrase | null,
-    readonly varName: IdentifierPhrase,
+    readonly varName: IdentifierP,
     readonly colon: Token<Operator.Colon> | null,
     readonly iterated: Phrase | null,
     readonly closeParen: Token<Separator.RRound> | null,
@@ -278,11 +274,11 @@ export class EnhancedForLoopPhrase extends Phrase {
   ) { super(); }
 }
 
-export class ForLoopPhrase extends Phrase {
+export class ForP extends StateP {
   constructor (
     readonly forToken: Token<Keyword.for>,
     readonly openParen: Token<Separator.LRound> | null,
-    readonly forInit: Phrase[] | VariableDeclarationListPhrase | null,
+    readonly forInit: Phrase[] | DeclareManyVariablesP | null,
     readonly sep1: Token<Separator.Semicolon> | null,
     readonly forCond: Phrase | null,
     readonly sep2: Token<Separator.Semicolon> | null,
@@ -292,7 +288,7 @@ export class ForLoopPhrase extends Phrase {
   ) { super(); }
 }
 
-abstract class WhilePhraseLike extends Phrase {
+abstract class WhilePLike extends StateP {
   constructor (
     readonly whileToken: Token<Keyword.while> | null,
     readonly openParen: Token<Separator.LRound> | null,
@@ -302,12 +298,12 @@ abstract class WhilePhraseLike extends Phrase {
   ) { super(); }
 }
 
-export class WhilePhrase extends WhilePhraseLike {
+export class WhileP extends WhilePLike {
   declare whileToken: Token<Keyword.while>;
 }
 
 // todo: redundancy
-export class DowhilePhrase extends WhilePhraseLike {
+export class DowhileP extends WhilePLike {
   constructor (
     readonly doToken: Token<Keyword.do>,
     readonly statement: Phrase | null,
@@ -319,21 +315,21 @@ export class DowhilePhrase extends WhilePhraseLike {
   ) { super(whileToken, openParen, condition, closeParen, statement); }
 }
 
-export class BreakStatementPhrase extends Phrase {
+export class BreakP extends StateP {
   constructor (
     readonly breakToken: Token<Keyword.break>,
     readonly semicolon: Token<Separator.Semicolon> | null
   ) { super(); }
 }
 
-export class ContinueStatementPhrase extends Phrase {
+export class ContinueP extends StateP {
   constructor (
     readonly continueToken: Token<Keyword.continue>,
     readonly semicolon: Token<Separator.Semicolon> | null
   ) { super(); }
 }
 
-export class ReturnStatementPhrase extends Phrase {
+export class ReturnP extends StateP {
   constructor (
     readonly returnToken: Token<Keyword.return>,
     readonly returnExpr: Phrase | null,
@@ -341,81 +337,77 @@ export class ReturnStatementPhrase extends Phrase {
   ) { super(); }
 }
 
-export class BracketsPhrase extends Phrase {
+export class DimensionsP extends Phrase {
   constructor(readonly brackets: Token<Separator.LSquare | Separator.RSquare>[]) {
     super();
   }
 
-  dims() {
-    let c = 0;
-    for (const b of this.brackets) {
-      c += +(b.kind === Separator.LSquare)
-    }
-    return c;
+  dims(): number {
+    return this.brackets.filter((b) => b.kind === Separator.LSquare).length;
   }
 
-  toString() {
+  toString(): string {
     return "[]".repeat(this.dims());
   }
 }
 
-export class IdentifierPhrase extends Phrase {
+export class IdentifierP extends Phrase {
   constructor(readonly name: Token<Other.Identifier>) {
     super();
   }
 
-  getName() {
-    return this.name.value;
+  getName(): string {
+    return this.name.value!;
   }
 
-  toString() {
-    return this.name.value;
+  toString(): string {
+    return this.getName();
   }
 }
 
-export class ExpressionStatementPhrase extends Phrase {
+export class ExpressionStatementPhrase extends StateP {
   constructor (
     readonly expr: Phrase | null,
     readonly semicolonToken: Token<Separator.Semicolon> | null
   ) { super(); }
 }
 
-export class BinorPhrase extends Phrase {
-  constructor(readonly left: Phrase | null,
-        readonly operator: Token<Binor> | null,
-        readonly right: Phrase | null,
-        readonly isImplicitMultiplication = false) {
-    super();
-  }
+export class BinorP extends OperateP {
+  constructor (
+    readonly left: Phrase | null,
+    readonly operator: Token<Binor> | null,
+    readonly right: Phrase | null,
+    readonly isImplicitMultiplication = false
+  ) { super(); }
 
   toString() {
     return "(" + (this.left?.toString() ?? "") + tokenTypeToString(this.operator?.kind || Operator.Star) + (this.right?.toString() ?? "") + ")";
   }
 }
 
-export class UnaryOperatorPhrase extends Phrase {
-  constructor(readonly operator: Token<Unor>,
-        readonly operand: Phrase | null,
-        readonly prefix: boolean) {
-    super();
-  }
+export class UnorP extends OperateP {
+  constructor (
+    readonly operator: Token<Unor>,
+    readonly operand: Phrase | null,
+    readonly isPrefix: boolean
+  ) { super(); }
 
   toString() {
     const s = this.operand?.toString() ?? "";
-    const prefix = this.prefix;
+    const prefix = this.isPrefix;
     return "(" + (prefix ? "" : s) + tokenTypeToString(this.operator.kind) + (prefix ? s : "") + ")";
   }
 }
 
 // e.g. "operator --"
-export class OperatorReferencePhrase extends Phrase {
-  constructor(readonly operatorToken: Token<Keyword.operator>,
-        readonly op: Token<Operator> | Token<Other.Identifier> | null) {
-    super();
-  }
+export class OperatorizerP extends Phrase {
+  constructor (
+    readonly operatorToken: Token<Keyword.operator>,
+    readonly op: Token<Operator> | Token<Other.Identifier> | null
+  ) { super(); }
 }
 
-export class AssignmentExpressionPhrase extends Phrase {
+export class AssignorP extends Phrase {
   constructor(readonly left: Phrase | null,
         readonly equalsToken: Token<Assignor>,
         readonly right: Phrase | null) {
@@ -427,35 +419,35 @@ export class AssignmentExpressionPhrase extends Phrase {
   }
 }
 
-export class CallArgsPhrase extends Phrase {
+export class CallArgsP extends Phrase {
   constructor(readonly argIsSpread: Token<Separator.DotDotDot> | null,
-        readonly namedParameter: IdentifierPhrase | null,
+        readonly namedParameter: IdentifierP | null,
         readonly equalsToken: Token<Operator.Eq> | null,
         readonly expr: Phrase | null) {
     super();
   }
 }
 
-export class CallPhrase extends Phrase {
+export class CallP extends Phrase {
   constructor(readonly caller: Phrase,
         readonly openParen: Token<Separator.LRound>,
-        readonly args: CallArgsPhrase[],
+        readonly args: CallArgsP[],
         readonly closeParen: Token<Separator.RRound> | null) {
     super();
   }
 }
 
-export class AccessPhrase extends Phrase {
+export class AccessP extends Phrase {
   constructor(readonly modifiers: Token<Modifior>[],
         readonly accessToken: Token<Keyword.access>,
-        readonly module: IdentifierPhrase | null,
+        readonly module: IdentifierP | null,
         readonly semi: Token<Separator.Semicolon> | null) {
     super();
   }
 }
 
-export class NakedSemicolonPhrase extends Phrase {
-  constructor(readonly semi: Token<Separator.Semicolon>) {
+export class SemicolonP extends Phrase {
+  constructor(readonly semicolon: Token<Separator.Semicolon>) {
     super();
   }
 }
@@ -493,7 +485,7 @@ export class IndexExpressionPhrase extends Phrase {
 }
 
 export class TypePhrase extends Phrase {
-  constructor(readonly ident: IdentifierPhrase, public brackets: BracketsPhrase | null) {
+  constructor(readonly ident: IdentifierP, public brackets: DimensionsP | null) {
     super();
   }
 
@@ -502,7 +494,7 @@ export class TypePhrase extends Phrase {
   }
 }
 
-export class CastExpressionPhrase extends Phrase {
+export class CastP extends ExpressP {
   constructor(readonly lparen: Token<Separator.LRound>,
         readonly type: TypePhrase,
         readonly rparen: Token<Separator.RRound> | null,
@@ -515,14 +507,14 @@ export class CastExpressionPhrase extends Phrase {
   }
 }
 
-export class AnonymousFunctionExpressionPhrase extends Phrase {
+export class LambdaP extends ExpressP {
   constructor(readonly newToken: Token<Keyword.new>,
         readonly returnType: TypePhrase | null,
         readonly openParen: Token<Separator.LRound>,
-        readonly decls: VariableDeclarationListPhrase[],
+        readonly decls: DeclareManyVariablesP[],
         readonly lastParamIsRest: Token<Separator.DotDotDot> | null,
         readonly closeParen: Token<Separator.RRound> | null,
-        readonly body: BlockPhrase | null) {
+        readonly body: BlockP | null) {
     super();
   }
 }
@@ -550,7 +542,7 @@ export class ArrayCreationPhrase extends Phrase {
   }
 }
 
-export class BlockPhrase extends Phrase {
+export class BlockP extends Phrase {
   constructor (
     readonly openBrace: Token<Separator.LCurly> | null,
     readonly statements: Phrase[],
@@ -558,7 +550,7 @@ export class BlockPhrase extends Phrase {
   ) { super(); }
 }
 
-export class TernorPhrase extends Phrase {
+export class TernorP extends ExpressP {
   constructor (
     readonly condition: Phrase | null,
     readonly questionToken: Token<Operator.Question> | null,
@@ -568,7 +560,7 @@ export class TernorPhrase extends Phrase {
   ) { super(); }
 }
 
-export class TupleExpressionPhrase extends Phrase {
+export class TupleP extends ExpressP {
   constructor (
     readonly openParen: Token<Separator.LRound>,
     readonly exprs: (Phrase | null)[],
@@ -580,14 +572,14 @@ export class TupleExpressionPhrase extends Phrase {
   }
 }
 
-export class SpreadExpressionPhrase extends Phrase {
+export class SpreadP extends ExpressP {
   constructor (
     readonly ellipsis: Token<Separator.DotDotDot>,
-    readonly spreadedExpr: CallArgsPhrase | null
+    readonly spreadedExpr: CallArgsP | null
   ) { super(); }
 }
 
-export class LiteralPhrase extends Phrase {
+export class LiteralP extends ExpressP {
   constructor (
     readonly token: Token<Literal>
   ) { super(); }
@@ -608,7 +600,7 @@ export class MemberAccessPhrase extends Phrase {
   constructor (
     readonly lhs: Phrase,
     readonly dotToken: Token<Separator.Dot>,
-    readonly rhs: IdentifierPhrase | null
+    readonly rhs: IdentifierP | null
   ) { super(); }
 
   toString(): string {
@@ -616,7 +608,7 @@ export class MemberAccessPhrase extends Phrase {
   }
 }
 
-export class ParenthesizedExpressionPhrase extends Phrase {
+export class RoundP extends ExpressP {
   constructor (
     readonly openParen: Token<Separator.LRound>,
     readonly expr: Phrase | null,
@@ -628,30 +620,31 @@ export class ParenthesizedExpressionPhrase extends Phrase {
   }
 }
 
-export class CompilationUnitPhrase extends Phrase {
+export class AllP extends Phrase {
   constructor (
     readonly decls: Phrase[],
     private step: number = 0,
   ) { super(); }
 
-  understandNext() {
-    if (this.step >= this.decls.length) return;
-    return this.understand(this.decls[this.step++]);
+  understandNext(): UnscaledSpell {
+    return (this.step < this.decls.length)
+    ? this.understand(this.decls[this.step++]) as UnscaledSpell
+    : unspell;
   }
 
   understand(t: Phrase | null): unknown {
     if (t === null) return;
     if (t instanceof ExpressionStatementPhrase) {
       return this.understand(t.expr);
-    } else if (t instanceof CallPhrase) {
+    } else if (t instanceof CallP) {
       return (this.understand(t.caller) as Function) (t.args.map(x => this.understand(x)));
-    } else if (t instanceof BinorPhrase) {
+    } else if (t instanceof BinorP) {
       return (lookup(t.operator)) (this.understand(t.left), this.understand(t.right));
-    } else if (t instanceof CallArgsPhrase) {
+    } else if (t instanceof CallArgsP) {
       return this.understand(t.expr);
-    } else if (t instanceof IdentifierPhrase) {
+    } else if (t instanceof IdentifierP) {
       return lookup(t.name);
-    } else if (t instanceof LiteralPhrase) {
+    } else if (t instanceof LiteralP) {
       switch (t.token.kind) {
         case Other.FloatLiteral:
         case Other.IntegerLiteral:

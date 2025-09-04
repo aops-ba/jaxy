@@ -2,7 +2,7 @@ import { CompileError } from "./error";
 import { asyAssert, asyUnreachable } from "./error";
 import { nextSuchThat } from "./helper";
 
-import { Keyword, Operator, Separator, Other, isGood, span } from "./tokens";
+import { Keyword, Operator, Separator, Other, span } from "./tokens";
 
 import type { Erroneous, Token } from "./tokens";
 import { isStringKeywordOrLiteral } from "./tokens";
@@ -63,7 +63,7 @@ function parseDecimalFloatSloppy(text: string, offset: number):
   if (text[i] === ".") ++i;
   skipDigits();
   if (!hasDigits)
-    return [{kind: Other.Erroneous, value: "Invalid floating-point literal"}, i];
+    return [{kind: Other.Bad, value: "Invalid floating-point literal"}, i];
 
   let expStart = i;
   if (text[i] === "e" || text[i] === "E") {
@@ -114,7 +114,7 @@ function processCharacterOrOctalEscape(
       case '"':
         return [34, 2];
       case undefined: // only undefined if at EOF
-        return [{kind: Other.Erroneous, value: "Unterminated escape sequence"
+        return [{kind: Other.Bad, value: "Unterminated escape sequence"
         }, 1];
       case "\\":
         asyUnreachable("Should have been handled outside");
@@ -158,7 +158,7 @@ function processCharacterOrOctalEscape(
       if (val > 0xff) {
         // maximum allowed value is 0xff
         return [
-          {kind: Other.Erroneous, value: "Invalid octal escape sequence"},
+          {kind: Other.Bad, value: "Invalid octal escape sequence"},
           i - offset,
         ];
       }
@@ -175,7 +175,7 @@ function processCharacterOrOctalEscape(
         ++i;
       if (i === offset + 2) {
         return [
-          {kind: Other.Erroneous, value: "Invalid hex escape sequence"},
+          {kind: Other.Bad, value: "Invalid hex escape sequence"},
           2,
         ];
       }
@@ -183,7 +183,7 @@ function processCharacterOrOctalEscape(
       if (val > 0xff) {
         // maximum allowed value is 0xff
         return [
-          {kind: Other.Erroneous, value: "Invalid hex escape sequence"},
+          {kind: Other.Bad, value: "Invalid hex escape sequence"},
           i - offset,
         ];
       }
@@ -191,7 +191,7 @@ function processCharacterOrOctalEscape(
     }
 
     case undefined: // only undefined if at EOF
-      return [{ kind: Other.Erroneous, value: "Unterminated escape sequence" }, 1];
+      return [{ kind: Other.Bad, value: "Unterminated escape sequence" }, 1];
     default: // just process as a backslash
       return [92, 1];
   }
@@ -282,13 +282,11 @@ class Lexy {
         return { kind: Other.Eof, span: { start: this.offset, end: this.offset } };
       }
 
-      if (token.kind === Other.Erroneous) {
+      if (token.kind === Other.Bad) {
         this.error(token.value as string, lastOffset, this.offset);
         asyAssert(this.offset > lastOffset, "Did not advance after erroneous");
         continue;
       }
-
-      isGood(token); // why doesnt this work :(
 
       if (lastComment !== null) {
         this.commentMap.set(token as Token<any>, lastComment);
@@ -465,13 +463,14 @@ class Lexy {
 
     this.eatUntil(digitsEnd);
     if (typeof value === "string") {
-      return { kind: Other.Erroneous, value: value };
+      return { kind: Other.Bad, value: value };
     }
 
     // to-do: Check overflow which is an error
     return {
       kind: Other.IntegerLiteral,
       value: Number(value.value), // for testing… no bigints for now. 3/9/25 KB
+//    value: value.value,
       originalType: "decimal",
       span,
     };
@@ -594,7 +593,7 @@ class Lexy {
   private error(message: string, start: number=0, end: number=start+1): [Erroneous, number] {
     return ((lend) => {
       this.errors.push(new CompileError(message, {start: start, end: lend}));
-      return [{ kind: Other.Erroneous, value: this._text.slice(start, lend) }, lend-start];
+      return [{ kind: Other.Bad, value: this._text.slice(start, lend) }, lend-start];
     }) (Math.max(end, start + 1));
   }
 
@@ -632,4 +631,3 @@ class Lexy {
 
 export type { LexyOptions };
 export { Lexy };
-export { processCharacterOrOctalEscape };

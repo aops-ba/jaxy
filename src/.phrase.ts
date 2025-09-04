@@ -1,5 +1,5 @@
-import { Grapheme } from "./grapheme";
-import { Morpheme } from "./morpheme";
+import { Grapheme } from "./.grapheme";
+import { Morpheme } from "./.morpheme";
 
 type Handed = "left" | "right";
 

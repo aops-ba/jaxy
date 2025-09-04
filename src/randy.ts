@@ -2,7 +2,7 @@ import _ from "lodash/fp";
 
 import { randy } from "./main";
 
-import { Grapheme } from "./grapheme";
+import { Grapheme } from "./.grapheme";
 
 import { Pair, Real, Rimelike } from "./number";
 import { origin, N, S, E, W } from "./number";
@@ -28,7 +28,9 @@ type BBox = {
   miny: number
 };
 
-type scaling = { x: number, y: number };
+type Scaling = { x: number, y: number };
+type UnscaledSpell = ($s: Scaling) => string;
+const unspell: UnscaledSpell = _ => "";
 
 export default class Render {
   static UP = -1; // asy up = svg down
@@ -41,8 +43,8 @@ export default class Render {
   static SCALE = 3/2; // empirical painful
 
   svgblock: HTMLElement;
-  wisdom: (($s: scaling) => string)[];
-  scaling: scaling;
+  wisdom: (($s: Scaling) => string)[];
+  scaling: Scaling;
 
   constructor(svgblock: HTMLElement) {
     this.svgblock = svgblock;
@@ -56,15 +58,15 @@ export default class Render {
     console.log(window.devicePixelRatio);
   }
 
-  size(x: Rimelike, y?: Rimelike): ($s: scaling) => string {
-    return ((ls: scaling) => {
+  size(x: Rimelike, y?: Rimelike): ($s: Scaling) => string {
+    return ((ls: Scaling) => {
       ls.x = Number(x)/(20/3);
       ls.y = Number(y ?? x)*Render.UP/(20/3);
       return "";
     });
   }
 
-  update(knowledge: (($s: scaling) => string)[]): Render {
+  update(knowledge: (($s: Scaling) => string)[]): Render {
     this.wisdom = [this.size(Render.DEFAULTSIZE, Render.DEFAULTSIZE)].concat(_.compact (_.flattenDeep (knowledge)));
     return this;
   }
@@ -72,7 +74,7 @@ export default class Render {
   async render(): Promise<void> {
     await (async (l): Promise<void> => { // this should really be outpulling all the size setters and applying only the last one
       this.svgblock.innerHTML = `${_.join ('')
-                                          (_.map ((ls: ($s: scaling) => string) => ls(this.scaling))
+                                          (_.map ((ls: ($s: Scaling) => string) => ls(this.scaling))
                                                  (this.wisdom))}`;
       this.svgblock.setAttribute("viewBox", `${l.minx} ${l.miny} ${l.width} ${l.height}`);
       this.svgblock.setAttribute("preserveAspectRatio", "xMidYMid meet");
@@ -137,28 +139,29 @@ function lookup(thing: Token<Keyword | Operator | Other.Identifier> | null): any
   }) ("value" in thing ? thing.value as string : Tokenboard[thing.kind]);
 }
 
-function draw([path, ps]: [Path | Arc, Pen]): ($scaling: scaling) => string {
+function draw([path, ps]: [Path | Arc, Pen]): ($scaling: Scaling) => string {
   return path.show({ fill: undefined, stroke: ps ?? defaultpen });
 }
 
-function fill([path, pf]: [Path | Arc, Pen]): ($scaling: scaling) => string {
+function fill([path, pf]: [Path | Arc, Pen]): ($scaling: Scaling) => string {
   return path.show({ fill: pf, stroke: undefined });
 }
 
-function filldraw([path, pf, ps]: [Path | Arc, Pen, Pen]): (($scaling: scaling) => string)[] {
+function filldraw([path, pf, ps]: [Path | Arc, Pen, Pen]): (($scaling: Scaling) => string)[] {
   return [draw([path, ps]), fill([path, pf])];
 }
 
 // todo: calibrate label appearance
-function label([text, position, pf]: [string, Pair, Pen]): ($scaling: scaling) => string {
+function label([text, position, pf]: [string, Pair, Pen]): ($scaling: Scaling) => string {
   return new Label(text, position).show({ fill: pf, stroke: undefined });
 }
 
 type Align = Pair;
 // todo: calibrate dot size
-function dot([pair, pf, text, align]: [Pair, Pen, string, Pair]): ($scaling: scaling) => string {
+function dot([pair, pf, text, align]: [Pair, Pen, string, Pair]): ($scaling: Scaling) => string {
   console.log(pair, pf, text, align);
   return fill([new Dot(pair, text, align), pf ?? defaultpen]);
 }
 
-export { scaling, lookup, Align };
+export type { Align, Scaling, UnscaledSpell };
+export { unspell, lookup };

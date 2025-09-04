@@ -1,5 +1,5 @@
-import type { Handed } from "./phrase";
-import { Grapheme } from "./grapheme";
+import type { Handed } from "./.phrase";
+import { Grapheme } from "./.grapheme";
 
 class Morpheme {
   kind: typeof Grapheme;

@@ -58,7 +58,7 @@ export class Pen {
   }
 
   private constructor(options: {name?: string, color?: Color, r?: number, g?: number, b?: number}) {
-    this.width = 0.5*2;
+    this.width = 0.5*4; // todo: calibrate
     if (options.name)
       this.color = Color.names.get(options.name)!;
     else if (options.color)

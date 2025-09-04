@@ -1,4 +1,4 @@
-import type { scaling } from "./render";
+import type { Scaling } from "./randy";
 import { Shape } from "./seen";
 
 import type { Pair } from "./number";
@@ -33,8 +33,8 @@ export default class Path extends Shape {
     return this;
   }
 
-  show(pens: Pens): ($s: scaling) => string {
-    return (scaling: scaling) =>
+  show(pens: Pens): ($s: Scaling) => string {
+    return (scaling: Scaling) =>
     `<path d="${this.points.map((lpair: Pair, lindex: number): string =>
       `${lindex==0 ? 'M' : ' L'} ${scaling.x*lpair.x} ${scaling.y*lpair.y}`).join('')}
        ${this.cyclic ? ' Z' : ''}"` + this.ink(pens)('') + ` />`;

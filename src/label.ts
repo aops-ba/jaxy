@@ -1,4 +1,4 @@
-import type { scaling } from "./render";
+import type { Scaling } from "./randy";
 import { Seen } from "./seen";
 
 import type { Pair } from "./number";
@@ -29,8 +29,8 @@ export default class Label implements Seen {
     )}}}`)}\\)`}`);
   }
 
-  show(pens: Pens): ($scaling: scaling) => string {
-    return (scaling: scaling) =>
+  show(pens: Pens): ($scaling: Scaling) => string {
+    return (scaling: Scaling) =>
       `<foreignObject x="${scaling.x*this.position.x}" y="${scaling.y*this.position.y}"`
     // todo: compute from bbox instead
       + `width="1000" height="1" style="overflow: visible;">`

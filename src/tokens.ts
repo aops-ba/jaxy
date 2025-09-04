@@ -1,7 +1,10 @@
-import { enumNames, max, min, peel, repeatedly } from "./helper";
+import type { Enumlike } from "./helper";
+import { enumNames, repeatedly } from "./helper";
+import { max, min, peel} from "./helper";
 
-type Enumlike = { [key: number]: string };
 type Span = { start: number; end: number };
+
+const DEFSPAN = span(-1, -1);
 
 function span(start: number, end: number): Span {
   return { start, end };
@@ -95,7 +98,7 @@ enum Other {
   NullLiteral,
   Comment,
   Eof,
-  Erroneous,
+  Bad,
 
   last,
 }
@@ -171,11 +174,6 @@ const Tokenboard: Enumlike = {
   [Separator.Semicolon]: ";",
 };
 
-type Erroneous = {
-  kind: Other.Erroneous;
-  value: string;
-}
-
 type TokenType = Keyword | Operator | Separator | Other;
 
 type Token<T extends TokenType> = {
@@ -184,16 +182,17 @@ type Token<T extends TokenType> = {
   value?: T extends Other.BooleanLiteral ? boolean
         : T extends Other.FloatLiteral ? number
         : T extends Other.IntegerLiteral ? bigint
+        : T extends Other.StringLiteral ? string
         : T extends Other.Identifier ? string
         : T extends Other.Comment ? string
-        : T extends Other.StringLiteral ? string
         : undefined,
   originalType?: T extends Other.IntegerLiteral ? "decimal" : undefined,
   isHexFloat?: T extends Other.FloatLiteral ? boolean : undefined,
 }
 
-function isGood(t: Token<any> | Erroneous | null): t is Token<any> {
-  return t !== null && t.kind !== Other.Erroneous;
+type BadToken = {
+  kind: Other.Bad;
+  value: string;
 }
 
 function isKeyword(e: number): e is Keyword {
@@ -222,11 +221,10 @@ function tokenTypeToString(tt: TokenType): string {
   return isKeyword(tt)
     ? Keyword[tt]
     : isSeparator(tt) || isOperator(tt)
-      ? Tokenboard[tt]!
+      ? Tokenboard[tt]
       : Other[tt];
 }
 
-// tt -> length of bestringing of tt
 function tokenTypeToLength(tt: Operator | Separator): number {
   return tokenTypeToString(tt).length;
 }
@@ -240,7 +238,7 @@ type Unor = Operator.Plus | Operator.Minus
 
 type Binor = Operator | Keyword.controls | Keyword.tension;
 
-type Modifior = Keyword.private | Keyword.public | Keyword.restricted
+type Modifactor = Keyword.private | Keyword.public | Keyword.restricted
   | Keyword.explicit | Keyword.interactive;
 
 type Assignor = Operator.Eq
@@ -250,13 +248,12 @@ type Assignor = Operator.Eq
 type Literal = Other.IntegerLiteral | Other.FloatLiteral
   | Other.StringLiteral | Other.BooleanLiteral | Other.NullLiteral;
 
-export type { Enumlike };
 export { Keyword, Operator, Separator, Other };
 
 export type { Span };
-export { span, allspan, rightAfter };
+export { DEFSPAN, span, allspan, rightAfter };
 
-export type { Erroneous, Token, TokenType };
-export type { Binor, Unor, Assignor, Modifior, Literal };
-export { Tokenboard, isGood, isKeyword, isOperator, isSeparator, isStringKeywordOrLiteral };
+export type { BadToken as Erroneous, Token, TokenType };
+export type { Binor, Unor, Assignor, Modifactor as Modifior, Literal };
+export { Tokenboard, isKeyword, isOperator, isSeparator, isStringKeywordOrLiteral };
 export { tokenTypeToLength, tokenTypeToString };

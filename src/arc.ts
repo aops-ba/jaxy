@@ -1,4 +1,4 @@
-import type { scaling } from "./render";
+import type { Scaling } from "./randy";
 //import { Seen } from "./render";
 
 import type { Pair } from "./number";
@@ -9,7 +9,7 @@ import { defaultpen } from "./pen";
 
 import { Shape } from "./seen";
 import Label from "./label";
-import { id, weep } from "./helper";
+import { same, weep } from "./helper";
 
 class Arc extends Shape {
   center: Pair;
@@ -25,8 +25,8 @@ class Arc extends Shape {
     this.to = to;
   }
 
-  show(pens: Pens): ($s: scaling) => string {
-    id(pens);
+  show(pens: Pens): ($s: Scaling) => string {
+    same(pens);
     throw new TypeError("cant draw arcs yet lol");
   }
 }
@@ -37,8 +37,8 @@ class Circle extends Arc {
     super(center, radius, 0, 360, label, align);
   }
 
-  show(pens: Pens): ($s: scaling) => string {
-    return (scaling: scaling) =>
+  show(pens: Pens): ($s: Scaling) => string {
+    return (scaling: Scaling) =>
       `<circle cx="${scaling.x*this.center.x}" cy="${scaling.y*this.center.y}" r="${scaling.x*this.radius}"`
     + `${ this.ink(pens)('')} />`
     + `${!!this.label ? new Label(this.label!, this.center.minus(this.radius).plus((this.align ?? origin).times(12*(pens.stroke ?? defaultpen).width)))?.show(pens)({x: 1, y: 1}) : ''}`;

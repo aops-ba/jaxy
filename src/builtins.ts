@@ -158,7 +158,7 @@ export function bake<N extends string, S extends string>(name: N, _: S, spell: T
 //  cake("string(int)", i => i.toString()),
 //];
 
-export const bakeboard: Map<string, TSFunctionType<any>> = new Map([
+const bakeboard: Map<string, TSFunctionType<any>> = new Map([
   /** BASIC STRING BUILTINS */
   bake("+", "string(string, string)", (x, y) => x + y),
   bake("string", "string(int)", (x) => x.toString()),
@@ -323,4 +323,4 @@ bake("+", "pair(pair)", (a) => a);
 bake("conj", "pair(pair)", (a) => ({ x: a.x, y: -a.y }));
 bake("expi", "pair(real)", (x) => ({ x: Math.cos(x), y: Math.sin(x) }));
 
-export { bakeboard as builtinboard };
+export { bakeboard };

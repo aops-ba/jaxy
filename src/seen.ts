@@ -1,6 +1,6 @@
 import { Pair } from "./number";
 import { Pens, defaultpen } from "./pen";
-import Render from "./render";
+import Render from "./randy";
 
 export interface Seen {
   ink({fill, stroke}: Pens): ($s: string) => string;
