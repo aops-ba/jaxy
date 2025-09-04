@@ -9,8 +9,9 @@ import { span } from "./tokens";
 import type { Token } from "./tokens";
 import { tokenTypeToString } from "./tokens";
 
-import { maybeArray, weep } from "./helper";
-import { lookup, UnscaledSpell, unspell } from "./randy";
+import { loudly, maybeArray, weep } from "./helper";
+import { lookup, remember, UnscaledSpell, unspell } from "./randy";
+import { Pair } from "./number";
 
 export class Phrase {
 
@@ -198,16 +199,16 @@ export class DeclareFunctionP extends DeclareP {
 }
 
 export class DeclareOneVariableP extends DeclareP {
-  constructor(readonly name: IdentifierP,
-        readonly brackets: DimensionsP | null,
-        readonly openParen: Token<Separator.LRound> | null,
-        readonly args: DeclareManyVariablesP[] | null,
-        readonly lastParamIsRest: Token<Separator.DotDotDot> | null,
-        readonly closeParen: Token<Separator.RRound> | null,
-        readonly equalsToken: Token<Operator.Eq> | null,
-        readonly initializer: Phrase | null) {
-    super();
-  }
+  constructor (
+    readonly name: IdentifierP,
+    readonly brackets: DimensionsP | null,
+    readonly openParen: Token<Separator.LRound> | null,
+    readonly args: DeclareManyVariablesP[] | null,
+    readonly lastParamIsRest: Token<Separator.DotDotDot> | null,
+    readonly closeParen: Token<Separator.RRound> | null,
+    readonly equalsToken: Token<Operator.Eq> | null,
+    readonly initializer: Phrase | null
+  ) { super(); }
 
   toString(): string {
     return this.name.toString() + (this.brackets?.toString() ?? "") + (this.args ? this._fmtArgs() : "") + (this.initializer ? this._fmtInitializer() : "");
@@ -229,7 +230,7 @@ export class DeclareOneVariableP extends DeclareP {
 export class DeclareManyVariablesP extends DeclareP {
   constructor (
     readonly modifiers: Token<Modifior>[],
-    readonly type: TypePhrase | null,
+    readonly type: TypeP | null,
     readonly decls: DeclareOneVariableP[],
     public semicolonToken: Token<Separator.Semicolon> | null
   ) { super(); }
@@ -265,7 +266,7 @@ export class ForeachP extends StateP {
   constructor (
     readonly forToken: Token<Keyword.for>,
     readonly openParen: Token<Separator.LRound> | null,
-    readonly elemType: TypePhrase | null,
+    readonly elemType: TypeP | null,
     readonly varName: IdentifierP,
     readonly colon: Token<Operator.Colon> | null,
     readonly iterated: Phrase | null,
@@ -365,7 +366,7 @@ export class IdentifierP extends Phrase {
   }
 }
 
-export class ExpressionStatementPhrase extends StateP {
+export class StateExpressionP extends StateP {
   constructor (
     readonly expr: Phrase | null,
     readonly semicolonToken: Token<Separator.Semicolon> | null
@@ -484,10 +485,11 @@ export class IndexExpressionPhrase extends Phrase {
   }
 }
 
-export class TypePhrase extends Phrase {
-  constructor(readonly ident: IdentifierP, public brackets: DimensionsP | null) {
-    super();
-  }
+export class TypeP extends Phrase {
+  constructor (
+    readonly ident: IdentifierP,
+    public brackets: DimensionsP | null
+  ) { super(); }
 
   toString() {
     return this.ident.toString() + (this.brackets?.toString() ?? "");
@@ -496,7 +498,7 @@ export class TypePhrase extends Phrase {
 
 export class CastP extends ExpressP {
   constructor(readonly lparen: Token<Separator.LRound>,
-        readonly type: TypePhrase,
+        readonly type: TypeP,
         readonly rparen: Token<Separator.RRound> | null,
         readonly expr: Phrase | null) {
     super();
@@ -509,7 +511,7 @@ export class CastP extends ExpressP {
 
 export class LambdaP extends ExpressP {
   constructor(readonly newToken: Token<Keyword.new>,
-        readonly returnType: TypePhrase | null,
+        readonly returnType: TypeP | null,
         readonly openParen: Token<Separator.LRound>,
         readonly decls: DeclareManyVariablesP[],
         readonly lastParamIsRest: Token<Separator.DotDotDot> | null,
@@ -530,7 +532,7 @@ export class ArrayInitializerList extends Phrase {
 export class ArrayCreationPhrase extends Phrase {
   constructor (
     readonly newToken: Token<Keyword.new>,
-    readonly elementType: TypePhrase,
+    readonly elementType: TypeP,
     readonly args: Phrase[],
     readonly initializer: ArrayInitializerList | null
   ) { super(); }
@@ -634,14 +636,25 @@ export class AllP extends Phrase {
 
   understand(t: Phrase | null): unknown {
     if (t === null) return;
-    if (t instanceof ExpressionStatementPhrase) {
+    if (t instanceof DeclareManyVariablesP) {
+      return t.decls.map(x => this.understand(x));
+    } else if (t instanceof DeclareImportP) {
+      return console.log(t.importTarget);
+    } else if (t instanceof DeclareOneVariableP) {
+      return remember(t.name.getName(), t.initializer!);
+    } else if (t instanceof StateExpressionP) {
       return this.understand(t.expr);
     } else if (t instanceof CallP) {
       return (this.understand(t.caller) as Function) (t.args.map(x => this.understand(x)));
+    } else if (t instanceof UnorP) {
+      return (lookup(t.operator)) (this.understand(t.operand));
     } else if (t instanceof BinorP) {
       return (lookup(t.operator)) (this.understand(t.left), this.understand(t.right));
     } else if (t instanceof CallArgsP) {
       return this.understand(t.expr);
+    } else if (t instanceof TupleP) {
+      // todo: make this type-safe
+      return Pair.fromArray(t.exprs.map(x => this.understand(x)) as [number, number]);
     } else if (t instanceof IdentifierP) {
       return lookup(t.name);
     } else if (t instanceof LiteralP) {

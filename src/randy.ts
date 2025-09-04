@@ -4,7 +4,7 @@ import { randy } from "./main";
 
 import { Grapheme } from "./.grapheme";
 
-import { Pair, Real, Rimelike } from "./number";
+import { Pair, Real } from "./number";
 import { origin, N, S, E, W } from "./number";
 
 import Path from "./path";
@@ -18,6 +18,7 @@ import Label from "./label";
 import { loudly, shed, weep } from "./helper";
 import { Keyword, Operator, Other, Token, Tokenboard } from "./tokens";
 import { bake as bake, bakeboard } from "./builtins";
+import { Phrase } from "./model";
 
 const MathJax = window["MathJax" as keyof typeof window];
 
@@ -58,7 +59,7 @@ export default class Render {
     console.log(window.devicePixelRatio);
   }
 
-  size(x: Rimelike, y?: Rimelike): ($s: Scaling) => string {
+  size(x: number, y?: number): ($s: Scaling) => string {
     return ((ls: Scaling) => {
       ls.x = Number(x)/(20/3);
       ls.y = Number(y ?? x)*Render.UP/(20/3);
@@ -123,19 +124,31 @@ export const nameboard = new Map<string, any>([
   ["S", S],
   ["E", E],
   ["W", W],
+  ["cycle", "cycle"],
   ["inches", Render.INCH],
   ["cm", Render.CM],
   ["mm", Render.MM],
   ["pt", Render.PT],
-  ["size", ([x,y=x]: Rimelike[]) => randy.size(x, y)],
+  ["size", ([x,y=x]: number[]) => randy.size(x, y)],
   ...penboard,
   ...bakeboard,
 ] as [string, any][]);
 
+const variables: Map<string, Phrase> = new Map();
+
+export function remember(name: string, value: Phrase): string {
+  variables.set(name, value);
+  return "";
+}
+
 function lookup(thing: Token<Keyword | Operator | Other.Identifier> | null): any {
-  if (thing === null) return;
+  if (thing === null) return null;
   return (lname => {
-    return nameboard.has(lname) ? nameboard.get(lname) : () => thing;
+    return nameboard.has(lname)
+      ? nameboard.get(lname)
+      : variables.has(lname)
+        ? variables.get(lname)
+        : () => thing;
   }) ("value" in thing ? thing.value as string : Tokenboard[thing.kind]);
 }
 
@@ -159,7 +172,6 @@ function label([text, position, pf]: [string, Pair, Pen]): ($scaling: Scaling) =
 type Align = Pair;
 // todo: calibrate dot size
 function dot([pair, pf, text, align]: [Pair, Pen, string, Pair]): ($scaling: Scaling) => string {
-  console.log(pair, pf, text, align);
   return fill([new Dot(pair, text, align), pf ?? defaultpen]);
 }
 

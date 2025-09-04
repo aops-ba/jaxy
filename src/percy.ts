@@ -42,7 +42,7 @@ import {
   RoundP,
   TupleP,
   TypedefP,
-  TypePhrase,
+  TypeP,
   UnorP,
   DeclareManyVariablesP,
   DeclareOneVariableP,
@@ -53,7 +53,7 @@ import {
   AccessP,
   DimensionsP,
   TernorP,
-  ExpressionStatementPhrase
+  StateExpressionP
 } from "./model.ts";
 
 export type PercyOptions = {
@@ -348,11 +348,11 @@ export default class Percy {
     return null;
   }
 
-  consumeType(noBrackets: boolean = false): TypePhrase | null {
+  consumeType(noBrackets: boolean = false): TypeP | null {
     const ident = this.expectIdent();
     if (!ident) return null;
     const brackets = (!noBrackets && this.peek().kind === Separator.LSquare) ? this.consumeOptionalBrackets() : null;
-    return new TypePhrase(ident, brackets);
+    return new TypeP(ident, brackets);
   }
 
   maybeContextualKw(kw: string): Token<Other.Identifier> | null {
@@ -480,7 +480,7 @@ export default class Percy {
     return null;
   }
 
-  consumeFunctionOrVariableDeclaration(type: TypePhrase | null, modifiers: Token<Modifior>[]): DeclareFunctionP | DeclareManyVariablesP | null {
+  consumeFunctionOrVariableDeclaration(type: TypeP | null, modifiers: Token<Modifior>[]): DeclareFunctionP | DeclareManyVariablesP | null {
     const isOperator = this.maybeTT(Keyword.operator);
     const name = isOperator ? this.expectOperatorName() : this.expectTT(Other.Identifier);
     if (!name) return null;
@@ -1014,7 +1014,7 @@ export default class Percy {
     const expr = this.consumeExpression();
     const semicolon = this.expectSemicolon();
 
-    return new ExpressionStatementPhrase(expr, semicolon);
+    return new StateExpressionP(expr, semicolon);
   }
 
   captureErrors<T>(callback: () => T): {errs: CompileError[]; result: T} {
@@ -1390,7 +1390,7 @@ export default class Percy {
     return exprStack[0]! as StateP;
   }
 
-  private _consumeCast(openParen: Token<Separator.LRound>, type: TypePhrase, closeParen: Token<Separator.RRound> | null) {
+  private _consumeCast(openParen: Token<Separator.LRound>, type: TypeP, closeParen: Token<Separator.RRound> | null) {
     const expr = this.consumeExpression();
     return new CastP(openParen, type, closeParen, expr)
   }

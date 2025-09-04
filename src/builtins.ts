@@ -10,6 +10,8 @@ import {
 } from "./special_functions.ts";
 import {AsyError} from "./error.ts";
 import { loudly, weep } from "./helper.ts";
+import { AsyMath, Closed, Real } from "./number.ts";
+import Path from "./path.ts";
 
 export type AsyType<JSType> = {
   // Readable name for this type (e.g. "real" or "real[]")
@@ -158,23 +160,37 @@ export function bake<N extends string, S extends string>(name: N, _: S, spell: T
 //  cake("string(int)", i => i.toString()),
 //];
 
-const bakeboard: Map<string, TSFunctionType<any>> = new Map([
-  /** BASIC STRING BUILTINS */
-  bake("+", "string(string, string)", (x, y) => x + y),
-  bake("string", "string(int)", (x) => x.toString()),
-  // TODO fix
-  bake("string", "string(real, int)", (x, digits) => x.toFixed(Number(digits))),
+const bakeboard: Map<string, Functionlike> = new Map([
+  ["+", AsyMath.plus],
+  ["-", AsyMath.minus],
+  ["*", AsyMath.times],
+  ["/", AsyMath.divide],
+  ["--", (x,y) => x instanceof Path ? x.add(y) : new Path([x, y])],
+] as [string, Functionlike][]);
 
-  /** BASIC REAL/INT BUILTINS **/
-  bake("+", "real(real, real)", (x, y) => x + y),
-  bake("*", "real(real, real)", (x, y) => x * y),
-  bake("-", "real(real, real)", (x, y) => x - y),
-  bake("-", "real(real)", (x) => -x),
-  bake("/", "real(real, real)", (x, y) => x / divideByZero(y)),
-  bake("+", "real(real)", (x) => x),
-  bake("abs", "real(real)", Math.abs),
-
-] as [string, TSFunctionType<any>][]);
+//const bakeboard: Map<string, TSFunctionType<any>> = new Map([
+//  /** BASIC STRING BUILTINS */
+//  bake("+", "string(string, string)", (x, y) => x + y),
+//  bake("string", "string(int)", (x) => x.toString()),
+//  // TODO fix
+//  bake("string", "string(real, int)", (x, digits) => x.toFixed(Number(digits))),
+//
+//  /** BASIC REAL/INT BUILTINS **/
+//  bake("+", "real(real, real)", (x, y) => x + y),
+//  bake("+", "real(real)", (x) => x),
+//  bake("*", "real(real, real)", (x, y) => x * y),
+//  bake("-", "real(real, real)", (x, y) => x - y),
+//  bake("-", "real(real)", (x) => -x),
+//  bake("/", "real(real, real)", (x, y) => x / divideByZero(y)),
+//  bake("abs", "real(real)", Math.abs),
+//
+//  // some makeshift `pair` stuff
+//  bake("+", "pair(pair, pair)", (z, w) => ({ x: z.x+w.x, y: z.y+w.y })),
+//  bake("-", "pair(pair, pair)", (z, w) => ({ x: z.x-w.x, y: z.y-w.y })),
+//  bake("-", "pair(pair)", (z) => ({ x: -z.x, y: -z.y })),
+//  bake("*", "pair(real, pair)", (n, z) => ({ x: n*z.x, y: n*z.y })),
+//
+//] as [string, TSFunctionType<any>][]);
 
 
 

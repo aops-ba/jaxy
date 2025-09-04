@@ -1,13 +1,51 @@
+import { asyAssert } from "./error";
+import { loudly } from "./helper";
 import Path from "./path";
 
-type Rimelike = bigint | number;
-type Fielded = number | Real;
-type Closed = Fielded | Pair;
+type Rime<T> = T | number;
+type Fielded = Real | Pair;
+
+export class AsyMath {
+  static lift(first: Rime<Fielded>, second: Rime<Fielded>): [Fielded, Fielded] {
+    return (T => [new T(first), new T(second)])
+      (first instanceof Pair || second instanceof Pair ? Pair : Real);
+  }
+
+  static negate(noughth: Rime<Fielded>): Fielded {
+    return typeof noughth === "number" ? new Real(-noughth) : noughth.negate();
+  }
+
+  static invert(noughth: Rime<Fielded>): Fielded {
+    return typeof noughth === "number" ? new Real(1/noughth) : noughth.invert();
+  }
+
+  static plus(first: Rime<Fielded>, second: Rime<Fielded> =0): Fielded {
+    return (([lf, ls]) => lf.plus(ls))(AsyMath.lift(first, second));
+  }
+
+  static minus(first: Rime<Fielded>, second: Rime<Fielded>): Fielded {
+    return (([lf, ls]) => (([llf, lls]) => llf.minus(lls))(AsyMath.lift(lf, ls)))
+           (second ? [first, second] : [0, first]);
+  }
+
+  static times(first: Rime<Fielded>, second: Rime<Fielded>): Fielded {
+    return (([lf, ls]) => lf.times(ls))(AsyMath.lift(first, second));
+  }
+
+  static divide(first: Rime<Fielded>, second: Rime<Fielded>): Fielded {
+    return (([lf, ls]) => (([llf, lls]) => llf.divide(lls))(AsyMath.lift(lf, ls)))
+           (second ? [first, second] : [1, first]);
+  }
+
+  static power(first: Rime<Fielded>, second: Rime<Fielded>): Fielded {
+    return (([lf, ls]) => lf.power(ls))(AsyMath.lift(first, second));
+  }
+}
 
 class Real {
   x: number;
 
-  constructor(x: Fielded) {
+  constructor(x: Rime<Real>) {
     this.x = x instanceof Real ? x.x : x;
   }
 
@@ -23,48 +61,29 @@ class Real {
     return new Real(1/this.x);
   }
 
-  plus(z: Closed): Closed {
-    return z instanceof Pair
-      ? z.plus(this)
-      : z instanceof Real
-        ? new Real(this.x+z.x)
-        : new Real(this.x+z);
+  plus(r: Real): Real {
+    return new Real(this.x + r.x);
   }
 
-  minus(z: Closed): Closed {
-    return z instanceof Pair
-      ? z.minus(this)
-      : z instanceof Real
-        ? new Real(this.x-z.x)
-        : new Real(this.x-z);
+  minus(r: Real): Real {
+    return new Real(this.x - r.x);
   }
 
-  times(z: Closed): Closed {
-    return z instanceof Pair
-      ? z.times(this)
-      : z instanceof Real
-        ? new Real(this.x*z.x)
-        : new Real(this.x*z);
+  times(r: Real): Real {
+    return new Real(this.x * r.x);
   }
 
-  divide(z: Closed): Closed {
-    return z instanceof Pair
-      ? z.divide(this)
-      : z instanceof Real
-        ? new Real(this.x/z.x)
-        : new Real(this.x/z);
+  divide(r: Real): Real {
+    return new Real(this.x / r.x);
   }
 
-  power(z: Closed): Closed {
-    return z instanceof Pair
-      ? new Pair(this.x, 0).power(z)
-      : z instanceof Real
-        ? new Real(this.x**z.x)
-        : new Real(this.x**z);
+  power(r: Real): Real {
+    return new Real(this.x ** r.x);
   }
 }
 
-class Pair extends Real {
+class Pair {
+  x: number;
   y: number;
 
   static fromArray([x,y]: number[]): Pair {
@@ -83,12 +102,14 @@ class Pair extends Real {
     }
   }
 
-  constructor(x: Fielded | Pair, y?: Fielded) {
-    if (x instanceof Pair && !y) {
-      super(x.x);
+  // todo: use asserts instead
+  constructor(x: Rime<Fielded>, y?: Rime<Real>) {
+    if (x instanceof Pair) {
+      asyAssert(!y);
+      this.x = x.x;
       this.y = x.y;
     } else {
-      super(new Real(x).x);
+      this.x = new Real(x).x;
       this.y = new Real(y ?? 0).x;
     }
   }
@@ -127,17 +148,17 @@ class Pair extends Real {
     return ((lr) => new Pair(this.x/lr, -this.y/lr))(this._length2());
   }
 
-  plus(z: Closed): Pair {
+  plus(z: Fielded): Pair {
     return new Pair(this.x+(typeof z === "number" ? z : z.x),
                     this.y+(z instanceof Pair ? z.y : 0));
   }
 
-  minus(z: Closed): Pair {
+  minus(z: Fielded): Pair {
     return new Pair(this.x+(typeof z === "number" ? z : z.negate().x),
                     this.y+(z instanceof Pair ? z.negate().y : 0));
   }
 
-  times(z: Closed): Closed {
+  times(z: Fielded): Fielded {
     return z instanceof Pair
       ? ((lz, lw) => new Pair(lz.dot(lw), lz.det(lw)))(this.conjugate(), z)
       : z instanceof Real
@@ -145,7 +166,7 @@ class Pair extends Real {
         : new Pair(this.x*z, this.y*z);
   }
 
-  divide(z: Closed): Closed {
+  divide(z: Fielded): Fielded {
     return z instanceof Pair
       ? ((lth, lz) => new Pair(lth.dot(lz), lth.det(lz))) (this.conjugate(), z.invert())
       : z instanceof Real
@@ -153,10 +174,10 @@ class Pair extends Real {
         : ((lz) => new Pair(this.x*lz, this.y*lz)) (1/z);
   }
 
-  power(z: Closed): Closed {
+  power(z: Fielded): Fielded {
     return ((lz, lw) => this.length() === 0
       ? lz.length() === 0 ? E : origin
-      : (((la) => Pair.expi(la))(lz.dot(lw))).times(Math.E**lz.det(lw)))
+      : AsyMath.times(((la) => Pair.expi(la))(lz.dot(lw)), Math.E**lz.det(lw)))
         (new Pair(z), new Pair(this.angle(), Math.log(this.length())));
   }
 
@@ -191,6 +212,6 @@ function toRadians(r: number): number {
   return r/180*Math.PI;
 }
 
-export { Rimelike, Real, Fielded, Pair, Closed };
+export { Real, Fielded, Pair, Fielded as Closed };
 export { origin, N, S, E, W };
 export { toDegrees, toRadians };

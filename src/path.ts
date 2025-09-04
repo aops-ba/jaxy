@@ -4,8 +4,10 @@ import { Shape } from "./seen";
 import type { Pair } from "./number";
 
 import type { Pens } from "./pen";
+import { Keyword } from "./tokens";
 
 export default class Path extends Shape {
+  static cycle: "cycle";
   points: Pair[];
   cyclic: boolean;
 
@@ -24,6 +26,7 @@ export default class Path extends Shape {
     return this;
   }
 
+  // todo: this is ugly
   add(p: Pair | "cycle"): Path {
     if (p === "cycle") {
       this.becycle();

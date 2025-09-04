@@ -181,7 +181,7 @@ type Token<T extends TokenType> = {
   span: Span,
   value?: T extends Other.BooleanLiteral ? boolean
         : T extends Other.FloatLiteral ? number
-        : T extends Other.IntegerLiteral ? bigint
+        : T extends Other.IntegerLiteral ? number//bigint
         : T extends Other.StringLiteral ? string
         : T extends Other.Identifier ? string
         : T extends Other.Comment ? string
