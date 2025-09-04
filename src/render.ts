@@ -15,6 +15,9 @@ import { unitcircle } from "./arc";
 import type { Pen } from "./pen";
 import { defaultpen, penboard } from "./pen";
 import Label from "./label";
+import { loudly, shed, weep } from "./helper";
+import { Keyword, Operator, Other, Token, Tokenboard } from "./tokens";
+import { defineBuiltin } from "./builtins";
 
 const MathJax = window["MathJax" as keyof typeof window];
 
@@ -62,19 +65,18 @@ export default class Render {
   }
 
   update(knowledge: (($s: scaling) => string)[]): Render {
-    this.wisdom = [this.size(Render.DEFAULTSIZE, Render.DEFAULTSIZE)].concat(knowledge);
+    this.wisdom = [this.size(Render.DEFAULTSIZE, Render.DEFAULTSIZE)].concat(_.compact (_.flattenDeep (knowledge)));
     return this;
   }
 
   async render(): Promise<void> {
-    console.log(this.scaling);
     await (async (l): Promise<void> => { // this should really be outpulling all the size setters and applying only the last one
       this.svgblock.innerHTML = `${_.join ('')
                                           (_.map ((ls: ($s: scaling) => string) => ls(this.scaling))
                                                  (this.wisdom))}`;
       this.svgblock.setAttribute("viewBox", `${l.minx} ${l.miny} ${l.width} ${l.height}`);
       this.svgblock.setAttribute("preserveAspectRatio", "xMidYMid meet");
-      
+
       await MathJax.typesetPromise();
 
       (_.each ((lf: Element) => ((lr: DOMRect) => {
@@ -101,11 +103,10 @@ export default class Render {
 
 let variables: Map<string, any> = new Map();
 
-const table = new Map<string, Function>([
-  // for jeremy
-  ["let", letlet],
+export const nameboard = new Map<string, Function>([
   //todo: get rid of randy
-  ["size", ([x,y]: Real[]) => randy.size(x.x, (y ?? x).x)],
+  ["size", ([x,y=x]: number[]) => randy.size(x, y)],
+  ["write", (s: string[]) => console.log(shed(s))],
 
   ["draw", draw],
   ["fill", fill],
@@ -113,7 +114,7 @@ const table = new Map<string, Function>([
   ["label", label],
 
   ["dot", dot],
-  ["circle", ([c,r]: [Pair, number]) => new Circle(c, r)],
+  ["circle", ([c,r]: [Pair, number]) => new Circle(c, Number(r))],
   ["dir", (p: Path | number, q?: Path) => Pair.dir(p, q)],
   ["degrees", (lz: Pair) => new Real(lz.degrees())],
   ["conjugate", (lz: Pair) => lz.conjugate()],
@@ -127,18 +128,15 @@ const table = new Map<string, Function>([
   ["cm", () => Render.CM],
   ["mm", () => Render.MM],
   ["pt", () => Render.PT],
+  defineBuiltin("+", "real(real, real)", (x, y) => x + y),
   ...penboard,
-]);
+] as [string, Function][]);
 
-function lookup(name: typeof Grapheme): any {
-  return table.has(name) ? table.get(name) : () => name;
-}
-
-function letlet([name, value]: [string, unknown]): void {
-  console.log("whats up big dog");
-  variables.set(name, () => value);
-  console.log(`added ${name}: ${value}`);
-  console.log(variables);
+function lookup(thing: Token<Keyword | Operator | Other.Identifier> | null): any {
+  if (thing === null) return;
+  return (lname => {
+    return nameboard.has(lname) ? nameboard.get(lname) : () => thing;
+  }) ("value" in thing ? thing.value as string : Tokenboard[thing.kind]);
 }
 
 function draw([path, ps]: [Path | Arc, Pen]): ($scaling: scaling) => string {
@@ -157,11 +155,6 @@ function filldraw([path, pf, ps]: [Path | Arc, Pen, Pen]): (($scaling: scaling) 
 function label([text, position, pf]: [string, Pair, Pen]): ($scaling: scaling) => string {
   return new Label(text, position).show({ fill: pf, stroke: undefined });
 }
-
-// shuffle the arguments from asy order to javascript order
-//function shuffle(f: Function): Function {
-//  return f;
-//}
 
 type Align = Pair;
 // todo: calibrate dot size

@@ -9,7 +9,7 @@ import { defaultpen } from "./pen";
 
 import { Shape } from "./seen";
 import Label from "./label";
-import { id } from "./helper";
+import { id, weep } from "./helper";
 
 class Arc extends Shape {
   center: Pair;
