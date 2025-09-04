@@ -75,4 +75,4 @@ export class Pen {
 }
 
 export const defaultpen = Pen.fromName("black");
-export const penboard: Map<string, Function> = new Map([...Color.names.entries()].map(([k,v]) => [k, () => Pen.fromColor(v)]));
+export const penboard: Map<string, Pen> = new Map([...Color.names.entries()].map(([k,v]) => [k, Pen.fromColor(v)]));

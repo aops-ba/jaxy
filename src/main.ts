@@ -1,21 +1,8 @@
-import { defineBuiltin } from "./builtins";
-
 import _ from "lodash/fp";
 import Render, { scaling } from "./render";
 
-import { Real, Pair } from "./number";
-import Path from "./path";
-
-import { Grapheme } from "./grapheme";
-import { lookup } from "./render";
-import { variables } from "./render";
-
-import { loudly, shed, weep } from "./helper";
-
-import lex from "./lexer";
-import parse from "./parser";
 import { Percy } from "./percy";
-import { Phrase, CompilationUnitPhrase } from "./model";
+import { CompilationUnitPhrase } from "./model";
 
 const asyblock = document.getElementById("asy")! as HTMLTextAreaElement;
 const svgblock = document.getElementById("svg")! as HTMLElement;

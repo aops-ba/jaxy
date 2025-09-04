@@ -1,5 +1,6 @@
 import Path from "./path";
 
+type Rimelike = bigint | number;
 type Fielded = number | Real;
 type Closed = Fielded | Pair;
 
@@ -190,6 +191,6 @@ function toRadians(r: number): number {
   return r/180*Math.PI;
 }
 
-export { Real, Fielded, Pair, Closed };
+export { Rimelike, Real, Fielded, Pair, Closed };
 export { origin, N, S, E, W };
 export { toDegrees, toRadians };

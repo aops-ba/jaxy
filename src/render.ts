@@ -4,7 +4,7 @@ import { randy } from "./main";
 
 import { Grapheme } from "./grapheme";
 
-import { Pair, Real } from "./number";
+import { Pair, Real, Rimelike } from "./number";
 import { origin, N, S, E, W } from "./number";
 
 import Path from "./path";
@@ -17,7 +17,7 @@ import { defaultpen, penboard } from "./pen";
 import Label from "./label";
 import { loudly, shed, weep } from "./helper";
 import { Keyword, Operator, Other, Token, Tokenboard } from "./tokens";
-import { defineBuiltin } from "./builtins";
+import { bake as bake, bakeboard } from "./builtins";
 
 const MathJax = window["MathJax" as keyof typeof window];
 
@@ -56,10 +56,10 @@ export default class Render {
     console.log(window.devicePixelRatio);
   }
 
-  size(x: number, y?: number): ($s: scaling) => string {
+  size(x: Rimelike, y?: Rimelike): ($s: scaling) => string {
     return ((ls: scaling) => {
-      ls.x = x/(20/3);
-      ls.y = (y ?? x)*Render.UP/(20/3);
+      ls.x = Number(x)/(20/3);
+      ls.y = Number(y ?? x)*Render.UP/(20/3);
       return "";
     });
   }
@@ -101,11 +101,8 @@ export default class Render {
   }
 }
 
-let variables: Map<string, any> = new Map();
-
-export const nameboard = new Map<string, Function>([
+export const nameboard = new Map<string, any>([
   //todo: get rid of randy
-  ["size", ([x,y=x]: number[]) => randy.size(x, y)],
   ["write", (s: string[]) => console.log(shed(s))],
 
   ["draw", draw],
@@ -118,19 +115,20 @@ export const nameboard = new Map<string, Function>([
   ["dir", (p: Path | number, q?: Path) => Pair.dir(p, q)],
   ["degrees", (lz: Pair) => new Real(lz.degrees())],
   ["conjugate", (lz: Pair) => lz.conjugate()],
-  ["unitcircle", () => unitcircle],
-  ["origin", () => origin],
-  ["N", () => N],
-  ["S", () => S],
-  ["E", () => E],
-  ["W", () => W],
-  ["inches", () => Render.INCH],
-  ["cm", () => Render.CM],
-  ["mm", () => Render.MM],
-  ["pt", () => Render.PT],
-  defineBuiltin("+", "real(real, real)", (x, y) => x + y),
+  ["unitcircle", unitcircle],
+  ["origin", origin],
+  ["N", N],
+  ["S", S],
+  ["E", E],
+  ["W", W],
+  ["inches", Render.INCH],
+  ["cm", Render.CM],
+  ["mm", Render.MM],
+  ["pt", Render.PT],
+  ["size", ([x,y=x]: Rimelike[]) => randy.size(x, y)],
   ...penboard,
-] as [string, Function][]);
+  ...bakeboard,
+] as [string, any][]);
 
 function lookup(thing: Token<Keyword | Operator | Other.Identifier> | null): any {
   if (thing === null) return;
@@ -159,7 +157,8 @@ function label([text, position, pf]: [string, Pair, Pen]): ($scaling: scaling) =
 type Align = Pair;
 // todo: calibrate dot size
 function dot([pair, pf, text, align]: [Pair, Pen, string, Pair]): ($scaling: scaling) => string {
+  console.log(pair, pf, text, align);
   return fill([new Dot(pair, text, align), pf ?? defaultpen]);
 }
 
-export { scaling, variables, lookup, Align };
+export { scaling, lookup, Align };

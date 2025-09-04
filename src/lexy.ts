@@ -471,7 +471,7 @@ class Lexy {
     // to-do: Check overflow which is an error
     return {
       kind: Other.IntegerLiteral,
-      value: value.value,
+      value: Number(value.value), // for testing… no bigints for now. 3/9/25 KB
       originalType: "decimal",
       span,
     };

@@ -11,20 +11,20 @@ import {
 import {AsyError} from "./error.ts";
 import { loudly, weep } from "./helper.ts";
 
-export type AsyReifiedType<JSTy> = {
+export type AsyType<JSType> = {
   // Readable name for this type (e.g. "real" or "real[]")
   name: string;
   // Number of array dimensions
   arrayDims: number;
   // Create a default instance of this type (e.g. 0)
-  default: () => JSTy;
+  default: () => JSType;
   // Check whether this value is of this type
-  typeck: (v: any) => v is JSTy;
+  typecheck: (v: any) => v is JSType;
   // Debug print
-  debugPrint: (v: JSTy) => string;
+  debugPrint: (v: JSType) => string;
 }
 
-export type AsyReifiedArrayType<T> = AsyReifiedType<T[]>;
+export type AsyArrayType<T> = AsyType<T[]>;
 
 //function makeReifiedArrayType<T>(ty: AsyReifiedType<T>): AsyReifiedArrayType<AsyReifiedType<T>> {
 //
@@ -44,58 +44,58 @@ export const BuiltinType = {
     name: "real",
     arrayDims: 0,
     default: () => 0.0,
-    typeck: (v: any): v is number => typeof v === "number",
+    typecheck: (v: any): v is number => typeof v === "number",
     debugPrint: (v: number) => v.toString(),
-  } as AsyReifiedType<number>,
+  } as AsyType<number>,
   "void": {
     name: "void",
     arrayDims: 0,
     default: () => undefined,
-    typeck: (v: any): v is undefined => v === undefined,
+    typecheck: (v: any): v is undefined => v === undefined,
     debugPrint: (_v: undefined) => "void",
-  } as AsyReifiedType<undefined>,
+  } as AsyType<undefined>,
   "pair": {
     name: "pair",
     arrayDims: 0,
     default: () => ({ x: 0, y: 0 }),
-    typeck: (v: any): v is Vector2 => typeof v === "object" && v !== null && typeof v.x === "number" && typeof v.y === "number",
+    typecheck: (v: any): v is Vector2 => typeof v === "object" && v !== null && typeof v.x === "number" && typeof v.y === "number",
     debugPrint: (v: Vector2) => `(${v.x}, ${v.y})`,
-  } as AsyReifiedType<Vector2>,
+  } as AsyType<Vector2>,
   "int": {
     name: "int",
     arrayDims: 0,
     default: () => 0n,
-    typeck: (v: any): v is bigint => typeof v === "bigint" && (BigInt.asIntN(64, v) === v),
+    typecheck: (v: any): v is bigint => typeof v === "bigint" && (BigInt.asIntN(64, v) === v),
     debugPrint: (v: bigint) => v.toString(),
-  } as AsyReifiedType<bigint>,
+  } as AsyType<bigint>,
   "string": {
     name: "string",
     arrayDims: 0,
     default: () => "",
-    typeck: (v: any): v is string => typeof v === "string",
+    typecheck: (v: any): v is string => typeof v === "string",
     debugPrint: escapeString,
-  } as AsyReifiedType<string>,
+  } as AsyType<string>,
   "bool": {
     name: "bool",
     arrayDims: 0,
     default: () => false,
-    typeck: (v: any): v is boolean => typeof v === "boolean",
+    typecheck: (v: any): v is boolean => typeof v === "boolean",
     debugPrint: (x: boolean) => x.toString(),
-  } as AsyReifiedType<boolean>,
+  } as AsyType<boolean>,
   "triple": {
     name: "triple",
     arrayDims: 0,
     default: () => ({ x: 0, y: 0, z: 0 }),
-    typeck: 0 as any, // TODO
+    typecheck: 0 as any, // TODO
     debugPrint: 0 as any // TODO
-  } as AsyReifiedType<Vector3>,
+  } as AsyType<Vector3>,
   "transform": {
     name: "transform",
     arrayDims: 0,
     default: () => [1,0,0,1,0,0],
-    typeck: 0 as any, // TODO
+    typecheck: 0 as any, // TODO
     debugPrint: 0 as any, // TODO
-  } as AsyReifiedType<AffineTransform>
+  } as AsyType<AffineTransform>
 } as const;
 
 //const internedTypes: Map<string, AsyReifiedType<any>> = {
@@ -126,99 +126,112 @@ function divideByZeroInt(v: bigint): bigint {
 }
 
 type BuiltinTypeKey = keyof typeof BuiltinType;
-type ToTSType0<T extends string> = T extends BuiltinTypeKey ? (typeof BuiltinType)[T] extends AsyReifiedType<infer JSTy> ? JSTy : never : never;
-type ToTSType1<T extends string> = T extends `${infer Base}[]` ? ToTSType1<Base>[] : ToTSType0<T>;
-type MapFnArgs<T extends string> = T extends `${infer Arg}, ${infer Rest}` ? [ToTSType1<Arg>, ...MapFnArgs<Rest>] : T extends "" ? [] : [ToTSType1<T>];
-type SignatureToTSType<T extends string> = T extends `${infer R}(${infer Args})` ? (...args: MapFnArgs<Args>) => ToTSType1<R> : never;
+type TSType<T extends string> = T extends BuiltinTypeKey ? (typeof BuiltinType)[T] extends AsyType<infer JSTy> ? JSTy : never : never;
+type TSArrayType<T extends string> = T extends `${infer Base}[]` ? TSArrayType<Base>[] : TSType<T>;
+type TSArgsType<T extends string> = T extends `${infer Arg}, ${infer Rest}` ? [TSArrayType<Arg>, ...TSArgsType<Rest>] : T extends "" ? [] : [TSArrayType<T>];
+type TSFunctionType<T extends string> = T extends `${infer R}(${infer Args})` ? (...args: TSArgsType<Args>) => TSArrayType<R> : never;
 
-export function defineBuiltin<Name extends string, Signature extends string>(name: Name, _: Signature, impl: SignatureToTSType<Signature>) {
-  return [name, impl];
-}
+type Functionlike = (...args: any) => any;
 
-// Casts between arrays are implicitly defined
-function defineBuiltinCast<Src extends string, Tgt extends string>(tgt: Tgt, src: Src, impl: (a: ToTSType1<Src>) => ToTSType1<Tgt>) {
-  void src;
-  void tgt;
-  void impl;
-}
+// i miss haskell
+type Forecast<T extends Functionlike> = { [Property in keyof Parameters<T>]: unknown };
 
-defineBuiltinCast("real", "int", (i) => {
-  return Number(i);
-});
-defineBuiltinCast("pair", "int", (i) => ({ x: Number(i), y: 0 }));
-defineBuiltinCast("pair", "real", (v) => ({ x: v, y: 0 }));
-defineBuiltinCast("string", "real", (v) => v.toString());
-defineBuiltinCast("string", "int", (v) => v.toString());
+export function bake<N extends string, S extends string>(name: N, _: S, spell: TSFunctionType<S>) {
+  return [name, spell];
+//  return [name, (xs: Forecast<typeof spell>) =>
+//    spell(xs.map((v: unknown, k: keyof typeof xs) => cast<Parameters<typeof spell>[typeof k]>(v)))];
+  }
 
-/** BASIC STRING BUILTINS */
-defineBuiltin("+", "string(string, string)", (x, y) => x + y);
-defineBuiltin("string", "string(int)", (x) => x.toString());
-// TODO fix
-defineBuiltin("string", "string(real, int)", (x, digits) => x.toFixed(Number(digits)));
+//function cast<T>(thing: unknown): T {
+//  return cakeboard.get(`${T}`)
+//}
+//
+//function cake<S extends string>(_: S, cast: TSCastType<S>) {
+//  return (x: Parameters<typeof cast>): ReturnType<typeof cast> => cast(x);
+//}
 
-/** BASIC REAL/INT BUILTINS **/
+//const cakeboard: TSCastType<any>[] = [
+//  cake("real(int)", i => Number(i)),
+//  cake("pair(int)", i => ({ x: Number(i), y: 0 })),
+//  cake("pair(real)", r => ({ x: r, y: 0 })),
+//  cake("string(real)", r => r.toString()),
+//  cake("string(int)", i => i.toString()),
+//];
 
-defineBuiltin("+", "real(real, real)", (x, y) => x + y);
-defineBuiltin("*", "real(real, real)", (x, y) => x * y);
-defineBuiltin("-", "real(real, real)", (x, y) => x - y);
-defineBuiltin("-", "real(real)", (x) => -x);
-defineBuiltin("/", "real(real, real)", (x, y) => x / divideByZero(y));
-defineBuiltin("+", "real(real)", (x) => x);
-defineBuiltin("abs", "real(real)", Math.abs);
+export const bakeboard: Map<string, TSFunctionType<any>> = new Map([
+  /** BASIC STRING BUILTINS */
+  bake("+", "string(string, string)", (x, y) => x + y),
+  bake("string", "string(int)", (x) => x.toString()),
+  // TODO fix
+  bake("string", "string(real, int)", (x, digits) => x.toFixed(Number(digits))),
 
-defineBuiltin("*", "int(int, int)", (x, y) => checkOverflow(x * y));
-defineBuiltin("-", "int(int, int)", (x, y) => checkOverflow(x - y));
-defineBuiltin("-", "int(int)", (x) => checkOverflow(-x));
-defineBuiltin("/", "real(int, int)", (x, y) => Number(x) / divideByZero(Number(y)));
+  /** BASIC REAL/INT BUILTINS **/
+  bake("+", "real(real, real)", (x, y) => x + y),
+  bake("*", "real(real, real)", (x, y) => x * y),
+  bake("-", "real(real, real)", (x, y) => x - y),
+  bake("-", "real(real)", (x) => -x),
+  bake("/", "real(real, real)", (x, y) => x / divideByZero(y)),
+  bake("+", "real(real)", (x) => x),
+  bake("abs", "real(real)", Math.abs),
+
+] as [string, TSFunctionType<any>][]);
+
+
+
+
+bake("*", "int(int, int)", (x, y) => checkOverflow(x * y));
+bake("-", "int(int, int)", (x, y) => checkOverflow(x - y));
+bake("-", "int(int)", (x) => checkOverflow(-x));
+bake("/", "real(int, int)", (x, y) => Number(x) / divideByZero(Number(y)));
 // check overflow because INT_MIN / -1 :)
-defineBuiltin("#", "int(int, int)", (x, y) => checkOverflow(x / divideByZeroInt(y)));
-defineBuiltin("+", "int(int)", (x) => x);
-defineBuiltin("abs", "int(int)", (x) => x < 0n ? checkOverflow(-x) : x);
-defineBuiltin("%", "int(int, int)", (x, y) => x % divideByZeroInt(y));
+bake("#", "int(int, int)", (x, y) => checkOverflow(x / divideByZeroInt(y)));
+bake("+", "int(int)", (x) => x);
+bake("abs", "int(int)", (x) => x < 0n ? checkOverflow(-x) : x);
+bake("%", "int(int, int)", (x, y) => x % divideByZeroInt(y));
 
-defineBuiltin("+", "int[](int, int[])", (x, y) => y.map((v) => checkOverflow(x + v)));
-defineBuiltin("+", "int[](int[], int)", (x, y) => x.map((v) => checkOverflow(v + y)));
-defineBuiltin("+", "real[](real[], real[])", (x, y) => {
+bake("+", "int[](int, int[])", (x, y) => y.map((v) => checkOverflow(x + v)));
+bake("+", "int[](int[], int)", (x, y) => x.map((v) => checkOverflow(v + y)));
+bake("+", "real[](real[], real[])", (x, y) => {
   if (x.length !== y.length) {
     throw new AsyError("Array size mismatch");
   }
   return x.map((v, i) => v + y[i]);
 });
-defineBuiltin("+", "real[](real, real[])", (x, y) => y.map((v) => x + v));
-defineBuiltin("+", "real[](real[], real)", (x, y) => x.map((v) => v + y));
-defineBuiltin("+", "int(int, int)", (x, y) => checkOverflow(x + y));
+bake("+", "real[](real, real[])", (x, y) => y.map((v) => x + v));
+bake("+", "real[](real[], real)", (x, y) => x.map((v) => v + y));
+bake("+", "int(int, int)", (x, y) => checkOverflow(x + y));
 
 /** SPECIAL FUNCTIONS */
 
-defineBuiltin("atanh", "real(real)", Math.atanh);
-defineBuiltin("acos", "real(real)", Math.acos);
-defineBuiltin("acosh", "real(real)", Math.acosh);
-defineBuiltin("atan", "real(real)", Math.atan);
-defineBuiltin("atan2", "real(real, real)", Math.atan2);
-defineBuiltin("asin", "real(real)", Math.asin);
-defineBuiltin("tanh", "real(real)", Math.tanh);
-defineBuiltin("cbrt", "real(real)", Math.cbrt);
-defineBuiltin("cos", "real(real)", Math.cos);
-defineBuiltin("erf", "real(real)", erf);
-defineBuiltin("erfc", "real(real)", erfc);
-defineBuiltin("exp", "real(real)", Math.exp);
-defineBuiltin("expm1", "real(real)", Math.expm1);
-defineBuiltin("gamma", "real(real)", gammaReal);
+bake("atanh", "real(real)", Math.atanh);
+bake("acos", "real(real)", Math.acos);
+bake("acosh", "real(real)", Math.acosh);
+bake("atan", "real(real)", Math.atan);
+bake("atan2", "real(real, real)", Math.atan2);
+bake("asin", "real(real)", Math.asin);
+bake("tanh", "real(real)", Math.tanh);
+bake("cbrt", "real(real)", Math.cbrt);
+bake("cos", "real(real)", Math.cos);
+bake("erf", "real(real)", erf);
+bake("erfc", "real(real)", erfc);
+bake("exp", "real(real)", Math.exp);
+bake("expm1", "real(real)", Math.expm1);
+bake("gamma", "real(real)", gammaReal);
 // TODO mark explicit
-defineBuiltin("gamma", "pair(pair)", gammaComplex);
-defineBuiltin("hypot", "real(real, real)", Math.hypot);
-defineBuiltin("isnan", "bool(real)", Number.isNaN);
-defineBuiltin("factorial", "int(int)", factorial);
-defineBuiltin("ldexp", "real(real, int)", ldexp);
-defineBuiltin("log", "real(real)", Math.log);
-defineBuiltin("log", "pair(pair)", logComplex);
-defineBuiltin("log10", "real(real)", Math.log10);
-defineBuiltin("log1p", "real(real)", Math.log1p);
-defineBuiltin("quadraticroots", "real[](real, real, real)", quadraticrootsReal);
-defineBuiltin("round", "int(real)", (x) => {
+bake("gamma", "pair(pair)", gammaComplex);
+bake("hypot", "real(real, real)", Math.hypot);
+bake("isnan", "bool(real)", Number.isNaN);
+bake("factorial", "int(int)", factorial);
+bake("ldexp", "real(real, int)", ldexp);
+bake("log", "real(real)", Math.log);
+bake("log", "pair(pair)", logComplex);
+bake("log10", "real(real)", Math.log10);
+bake("log1p", "real(real)", Math.log1p);
+bake("quadraticroots", "real[](real, real, real)", quadraticrootsReal);
+bake("round", "int(real)", (x) => {
   return checkOverflow(BigInt(Math.round(x)));
 });
-defineBuiltin("uniform", "real[](real, real, int)", (lo, hi, n) => {
+bake("uniform", "real[](real, real, int)", (lo, hi, n) => {
   if (n > 100000n) {
     throw new AsyError("Invalid argument");
   }
@@ -229,21 +242,21 @@ defineBuiltin("uniform", "real[](real, real, int)", (lo, hi, n) => {
   }
   return result;
 });
-defineBuiltin("pow10", "real(real)", x => Math.pow(10, x));
-defineBuiltin("sin", "real(real)", Math.sin);
-defineBuiltin("sqrt", "real(real)", Math.sqrt);
-defineBuiltin("tan", "real(real)", Math.tan);
-defineBuiltin("tan", "real[](real[])", (x) => x.map(Math.tan));
-defineBuiltin("xpart", "real(triple)", (t) => t.x);
-defineBuiltin("ypart", "real(triple)", (t) => t.y);
-defineBuiltin("zpart", "real(triple)", (t) => t.z);
+bake("pow10", "real(real)", x => Math.pow(10, x));
+bake("sin", "real(real)", Math.sin);
+bake("sqrt", "real(real)", Math.sqrt);
+bake("tan", "real(real)", Math.tan);
+bake("tan", "real[](real[])", (x) => x.map(Math.tan));
+bake("xpart", "real(triple)", (t) => t.x);
+bake("ypart", "real(triple)", (t) => t.y);
+bake("zpart", "real(triple)", (t) => t.z);
 // TODO: consider if we should make this optionally deterministic
-defineBuiltin("unitrand", "real(real)", Math.random);
-defineBuiltin("unit", "pair(pair)", (v) => {
+bake("unitrand", "real(real)", Math.random);
+bake("unit", "pair(pair)", (v) => {
   const d = Math.hypot(v.x, v.y);
   return { x: v.x / d, y: v.y / d };
 });
-defineBuiltin("unit", "triple(triple)", (v) => {
+bake("unit", "triple(triple)", (v) => {
   const d = Math.hypot(v.x, v.y, v.z);
   return { x: v.x / d, y: v.y / d, z: v.z / d };
 });
@@ -252,32 +265,32 @@ defineBuiltin("unit", "triple(triple)", (v) => {
 
 /** COMPLEX BUILTINS **/
 
-defineBuiltin("sin", "pair(pair)", (v) => {
+bake("sin", "pair(pair)", (v) => {
   const re = v.x, im = v.y;
   return { x: Math.sin(re) * Math.cosh(im), y: Math.cos(re) * Math.sinh(im) };
 });
-defineBuiltin("cos", "pair(pair)", (v) => {
+bake("cos", "pair(pair)", (v) => {
   const re = v.x, im = v.y;
   return { x: Math.cos(re) * Math.cosh(im), y: -Math.sin(re) * Math.sinh(im) };
 });
-defineBuiltin("*", "pair(pair, pair)", (a, b) => {
+bake("*", "pair(pair, pair)", (a, b) => {
   return { x: a.x * b.x - a.y * b.y, y: a.x * b.y + a.y * b.x };
 });
-defineBuiltin("/", "pair(pair, pair)", (a, b) => {
+bake("/", "pair(pair, pair)", (a, b) => {
   const denom = divideByZero(b.x * b.x + b.y * b.y);
   return { x: (a.x * b.x + a.y * b.y) / denom, y: (a.y * b.x - a.x * b.y) / denom };
 });
-defineBuiltin("abs", "real(pair)", (v) => Math.hypot(v.x, v.y));
-defineBuiltin("abs", "real(triple)", (v) => Math.hypot(v.x, v.y, v.z));
-defineBuiltin("abs2", "real(pair)", (v) => v.x * v.x + v.y * v.y);
-defineBuiltin("abs2", "real(triple)", (v) => v.x * v.x + v.y * v.y + v.z * v.z);
-defineBuiltin("angle", "real(pair, bool)", (v, warn = true) => {
+bake("abs", "real(pair)", (v) => Math.hypot(v.x, v.y));
+bake("abs", "real(triple)", (v) => Math.hypot(v.x, v.y, v.z));
+bake("abs2", "real(pair)", (v) => v.x * v.x + v.y * v.y);
+bake("abs2", "real(triple)", (v) => v.x * v.x + v.y * v.y + v.z * v.z);
+bake("angle", "real(pair, bool)", (v, warn = true) => {
    if (warn && v.x === 0 && v.y === 0) {
      throw new AsyError("Taking angle of (0,0)")
    }
    return Math.atan2(v.y, v.x);
 });
-defineBuiltin("angle", "real(transform)", (v) => {
+bake("angle", "real(transform)", (v) => {
   return 0; // TODO
 });
 //defineBuiltin("bezier", "pair(pair, pair, pair, pair, int)", (a, b, c, d, t) => {
@@ -286,26 +299,28 @@ defineBuiltin("angle", "real(transform)", (v) => {
 //defineBuiltin("bezier", "triple(triple, triple, triple, triple, int)", (a, b, c, d, t) => {
 //  return 0; // TODO
 //});
-defineBuiltin("azimuth", "real(triple)", (t) => {
+bake("azimuth", "real(triple)", (t) => {
   if (t.x === 0 && t.y === 0) {
     throw new AsyError("Taking angle of (0,0)")
   }
   return Math.atan2(t.y, t.x);
 });
-defineBuiltin("assert", "void(bool, string)", (cond, string) => {
+bake("assert", "void(bool, string)", (cond, string) => {
   if (!cond) {
     throw new AsyError(string);
   }
 });
-defineBuiltin("+", "pair(pair, pair)", (a, b) => {
+bake("+", "pair(pair, pair)", (a, b) => {
   return { x: a.x + b.x, y: a.y + b.y };
 });
-defineBuiltin("-", "pair(pair, pair)", (a, b) => {
+bake("-", "pair(pair, pair)", (a, b) => {
   return { x: a.x - b.x, y: a.y - b.y };
 });
-defineBuiltin("-", "pair(pair)", (a) => {
+bake("-", "pair(pair)", (a) => {
   return { x: -a.x, y: -a.y };
 });
-defineBuiltin("+", "pair(pair)", (a) => a);
-defineBuiltin("conj", "pair(pair)", (a) => ({ x: a.x, y: -a.y }));
-defineBuiltin("expi", "pair(real)", (x) => ({ x: Math.cos(x), y: Math.sin(x) }));
+bake("+", "pair(pair)", (a) => a);
+bake("conj", "pair(pair)", (a) => ({ x: a.x, y: -a.y }));
+bake("expi", "pair(real)", (x) => ({ x: Math.cos(x), y: Math.sin(x) }));
+
+export { bakeboard as builtinboard };
