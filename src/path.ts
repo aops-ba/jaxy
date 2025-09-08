@@ -1,15 +1,27 @@
-import type { Scaling } from "./randy";
-import { Shape } from "./seen";
+import { loudly, type Scaling, type Knowledge, BBox, min, max } from "./helper";
+import { Seen } from "./seen";
 
-import type { Pair } from "./number";
+import { Pair, toRadians } from "./number";
 
 import type { Pens } from "./pen";
-import { Keyword } from "./tokens";
 
-export default class Path extends Shape {
+class Path extends Seen {
+  // todo: improve this
   static cycle: "cycle";
   points: Pair[];
   cyclic: boolean;
+
+  static dir(p: Path | number, q?: Path): Pair {
+    if (p instanceof Path) {
+      if (q instanceof Path) {
+        return Path.dir(p).plus(Path.dir(q)).unit();
+      } else {
+        return Path.dir(p, new Path([new Pair(p.length(), 0)]));
+      }
+    } else {
+      return ((lr) => new Pair(Math.cos(lr), Math.sin(lr)))(toRadians(p));
+    }
+  }
 
   constructor(points?: Pair[], cyclic?: boolean) {
     super();
@@ -36,10 +48,21 @@ export default class Path extends Shape {
     return this;
   }
 
-  show(pens: Pens): ($s: Scaling) => string {
+  show(pens: Pens): Knowledge {
     return (scaling: Scaling) =>
     `<path d="${this.points.map((lpair: Pair, lindex: number): string =>
       `${lindex==0 ? 'M' : ' L'} ${scaling.x*lpair.x} ${scaling.y*lpair.y}`).join('')}
-       ${this.cyclic ? ' Z' : ''}"` + this.ink(pens)('') + ` />`;
+       ${this.cyclic ? ' Z' : ''}"` + this.ink(pens)(scaling) + ` />`;
+  }
+
+  bbox(): BBox {
+    return {
+      minx: min(...this.points.map(z => z.x)),
+      miny: min(...this.points.map(z => z.y)), 
+      width: max(...this.points.map(z => z.x))-min(...this.points.map(z => z.x)), 
+      height: max(...this.points.map(z => z.y))-min(...this.points.map(z => z.y)), 
+    };
   }
 }
+
+export { Path };

@@ -8,10 +8,10 @@ import {
   logComplex,
   quadraticrootsReal
 } from "./special_functions.ts";
-import {AsyError} from "./error.ts";
+import {AsyError} from "./helper.ts";
 import { loudly, weep } from "./helper.ts";
-import { AsyMath, Closed, Real } from "./number.ts";
-import Path from "./path.ts";
+import { AsyMath, Fielded, Real } from "./number.ts";
+import { Path } from "./path.ts";
 
 export type AsyType<JSType> = {
   // Readable name for this type (e.g. "real" or "real[]")
@@ -165,6 +165,9 @@ const bakeboard: Map<string, Functionlike> = new Map([
   ["-", AsyMath.minus],
   ["*", AsyMath.times],
   ["/", AsyMath.divide],
+  [">", AsyMath.gt],
+  ["<", AsyMath.lt],
+  ["==", AsyMath.eq],
   ["--", (x,y) => x instanceof Path ? x.add(y) : new Path([x, y])],
 ] as [string, Functionlike][]);
 

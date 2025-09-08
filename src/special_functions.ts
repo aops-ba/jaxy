@@ -1,4 +1,4 @@
-import {AsyError} from "./error.ts";
+import {AsyError} from "./helper.ts";
 
 type Vector2 = { x: number, y: number };
 

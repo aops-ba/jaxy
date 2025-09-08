@@ -1,14 +1,25 @@
-import { asyAssert } from "./error";
-import { loudly } from "./helper";
-import Path from "./path";
+import { asyAssert } from "./helper";
+import { implies, isPair } from "./helper";
 
 type Rime<T> = T | number;
 type Fielded = Real | Pair;
 
 export class AsyMath {
-  static lift(first: Rime<Fielded>, second: Rime<Fielded>): [Fielded, Fielded] {
-    return (T => [new T(first), new T(second)])
-      (first instanceof Pair || second instanceof Pair ? Pair : Real);
+  static lift(left: Rime<Fielded>, right: Rime<Fielded>): [Fielded, Fielded] {
+    return (lT => [new lT(left), new lT(right)])
+      (left instanceof Pair || right instanceof Pair ? Pair : Real);
+  }
+
+  static gt(left: Rime<Real>, right: Rime<Real>): boolean {
+    return new Real(left) > new Real(right);
+  }
+
+  static lt(left: Rime<Real>, right: Rime<Real>): boolean {
+    return new Real(left) < new Real(right);
+  }
+
+  static eq(left: Rime<Fielded>, right: Rime<Fielded>): boolean {
+    return (([ll, lr]) => ll.eq(lr))(AsyMath.lift(left, right));
   }
 
   static negate(noughth: Rime<Fielded>): Fielded {
@@ -19,26 +30,26 @@ export class AsyMath {
     return typeof noughth === "number" ? new Real(1/noughth) : noughth.invert();
   }
 
-  static plus(first: Rime<Fielded>, second: Rime<Fielded> =0): Fielded {
-    return (([lf, ls]) => lf.plus(ls))(AsyMath.lift(first, second));
+  static plus(left: Rime<Fielded>, right: Rime<Fielded>): Fielded {
+    return (([ll, lr]) => ll.plus(lr))(AsyMath.lift(left, right));
   }
 
-  static minus(first: Rime<Fielded>, second: Rime<Fielded>): Fielded {
-    return (([lf, ls]) => (([llf, lls]) => llf.minus(lls))(AsyMath.lift(lf, ls)))
-           (second ? [first, second] : [0, first]);
+  static minus(left: Rime<Fielded>, right: Rime<Fielded>): Fielded {
+    return (([ll, lr]) => (([lll, llr]) => lll.minus(llr))(AsyMath.lift(ll, lr)))
+           (right ? [left, right] : [0, left]);
   }
 
-  static times(first: Rime<Fielded>, second: Rime<Fielded>): Fielded {
-    return (([lf, ls]) => lf.times(ls))(AsyMath.lift(first, second));
+  static times(left: Rime<Fielded>, right: Rime<Fielded>): Fielded {
+    return (([ll, lr]) => ll.times(lr))(AsyMath.lift(left, right));
   }
 
-  static divide(first: Rime<Fielded>, second: Rime<Fielded>): Fielded {
-    return (([lf, ls]) => (([llf, lls]) => llf.divide(lls))(AsyMath.lift(lf, ls)))
-           (second ? [first, second] : [1, first]);
+  static divide(left: Rime<Fielded>, right: Rime<Fielded>): Fielded {
+    return (([ll, lr]) => (([lll, llr]) => lll.divide(llr))(AsyMath.lift(ll, lr)))
+           (right ? [left, right] : [1, left]);
   }
 
-  static power(first: Rime<Fielded>, second: Rime<Fielded>): Fielded {
-    return (([lf, ls]) => lf.power(ls))(AsyMath.lift(first, second));
+  static power(left: Rime<Fielded>, right: Rime<Fielded>): Fielded {
+    return (([ll, lr]) => ll.power(lr))(AsyMath.lift(left, right));
   }
 }
 
@@ -51,6 +62,10 @@ class Real {
 
   toString(): string {
     return this.x.toString();
+  }
+
+  eq(r: Real): boolean {
+    return this.x === r.x;
   }
 
   negate(): Real {
@@ -90,18 +105,6 @@ class Pair {
     return new Pair(x,y);
   }
 
-  static dir(p: Path | number, q?: Path): Pair {
-    if (p instanceof Path) {
-      if (q instanceof Path) {
-        return Pair.dir(p).plus(Pair.dir(q)).unit();
-      } else {
-        return Pair.dir(p, new Path([new Pair(p.length(), 0)]));
-      }
-    } else {
-      return ((lr) => new Pair(Math.cos(lr), Math.sin(lr)))(toRadians(p));
-    }
-  }
-
   // todo: use asserts instead
   constructor(x: Rime<Fielded>, y?: Rime<Real>) {
     if (x instanceof Pair) {
@@ -116,6 +119,10 @@ class Pair {
 
   toString(): string {
     return `(${this.x}, ${this.y})`;
+  }
+
+  eq(z: Fielded): boolean {
+    return this.x === z.x && (!isPair(z) || this.y === z.y);
   }
 
   private _length2(): number {
@@ -204,6 +211,8 @@ const S: Pair = new Pair(0,-1);
 const E: Pair = new Pair(1,0);
 const W: Pair = new Pair(-1,0);
 
+class Align extends Pair {}
+
 function toDegrees(r: number): number {
   return r*180/Math.PI;
 }
@@ -212,6 +221,7 @@ function toRadians(r: number): number {
   return r/180*Math.PI;
 }
 
-export { Real, Fielded, Pair, Fielded as Closed };
+export type { Rime };
+export { Real, Fielded, Pair, Align };
 export { origin, N, S, E, W };
 export { toDegrees, toRadians };

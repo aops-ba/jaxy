@@ -1,9 +1,8 @@
 import _ from "lodash/fp";
 
-import Percy from "./percy";
-import Randy from "./randy";
-import { Scaling } from "./randy";
-import { AllP } from "./model";
+import Percy from "./parser";
+import Randy from "./render";
+import { AllP } from "./meaner";
 
 const asyblock = document.getElementById("asy")! as HTMLTextAreaElement;
 const svgblock = document.getElementById("svg")! as HTMLElement;
@@ -55,16 +54,17 @@ function truesight(): void {
 
 // Lexy (she/they) the lexer,
 // Percy (he/they) the parser,
-// Randy (they/them) the renderer.
+// Randy (they/them) the renderer,
+// Mindy (he/she) the minder.
 
 export const randy: Randy = new Randy(svgblock);
-let tree: AllP;
+let mindy: AllP;
 
-function transpile(): void {
+async function transpile(): Promise<void> {
   try {
     console.clear();
-    tree = new Percy(asyblock.value.trim()).parse();
-    randy.update(tree.decls.map(_ => tree.understandNext()) as (($s: Scaling) => string)[]).render();
+    mindy = new Percy(asyblock.value.trim()).parse();
+    await (await randy.update(mindy.understandAll())).render();
     console.log("we did it");
   } catch (e) {
     throw new Error(`we didn't do it: ${e}`);

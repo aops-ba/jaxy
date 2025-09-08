@@ -97,3 +97,10 @@ h1 {
 .closed .otherworldly::before, .closed .otherworldly::after {
   content: '/';
 }
+
+#unseen {
+  position: fixed;
+  visibility: hidden;
+  top: 0;
+  left: 0;
+}

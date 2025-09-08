@@ -1,24 +1,21 @@
-import type { Scaling } from "./randy";
-//import { Seen } from "./render";
+import type { BBox, Scaling } from "./helper";
 
-import type { Pair } from "./number";
+import { Pair } from "./number";
 import { origin } from "./number";
 
 import type { Pens } from "./pen";
-import { defaultpen } from "./pen";
 
-import { Shape } from "./seen";
-import Label from "./label";
-import { same, weep } from "./helper";
+import { Seen } from "./seen";
+import { same } from "./helper";
 
-class Arc extends Shape {
+class Arc extends Seen {
   center: Pair;
   radius: number;
   from: number;
   to: number;
 
-  constructor(center: Pair, radius: number, from: number, to: number, label?: string, align?: Pair) {
-    super(label, align);
+  constructor(center: Pair, radius: number, from: number, to: number) {
+    super();
     this.center = center;
     this.radius = radius;
     this.from = from;
@@ -33,25 +30,27 @@ class Arc extends Shape {
 
 class Circle extends Arc {
 
-  constructor(center: Pair, radius: number, label?: string, align?: Pair) {
-    super(center, radius, 0, 360, label, align);
+  constructor(center: Pair, radius: number) {
+    super(center, radius, 0, 360);
   }
 
   show(pens: Pens): ($s: Scaling) => string {
     return (scaling: Scaling) =>
       `<circle cx="${scaling.x*this.center.x}" cy="${scaling.y*this.center.y}" r="${scaling.x*this.radius}"`
-    + `${ this.ink(pens)('')} />`
-    + `${!!this.label ? new Label(this.label!, this.center.minus(this.radius).plus((this.align ?? origin).times(12*(pens.stroke ?? defaultpen).width)))?.show(pens)({x: 1, y: 1}) : ''}`;
+    + `${this.ink(pens)(scaling)} />`
   }
-}
 
-class Dot extends Circle {
-  constructor(center: Pair, label?: string, align?: Pair) {
-    super(center, 2**-4+2**-5, label, align);
+  bbox(): BBox {
+    return {
+      width: 2*this.radius,
+      height: 2*this.radius,
+      minx: this.center.x-this.radius,
+      miny: this.center.y-this.radius,
+    }
   }
 }
 
 const unitcircle: Circle = new Circle(origin, 1);
 
-export { Arc, Circle, Dot };
+export { Arc, Circle };
 export { unitcircle };

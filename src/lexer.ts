@@ -1,10 +1,10 @@
-import { CompileError } from "./error";
-import { asyAssert, asyUnreachable } from "./error";
+import { CompileError } from "./helper";
+import { asyAssert, asyUnreachable } from "./helper";
 import { nextSuchThat } from "./helper";
 
 import { Keyword, Operator, Separator, Other, span } from "./tokens";
 
-import type { Erroneous, Token } from "./tokens";
+import type { BadToken, Token } from "./tokens";
 import { isStringKeywordOrLiteral } from "./tokens";
 import { tokenTypeToLength } from "./tokens";
 
@@ -47,7 +47,7 @@ function checkedBigInt(text: string, start: number, end: number, base: number): 
  * @returns Successful or erroneous parse, and the number of characters read.
  */
 function parseDecimalFloatSloppy(text: string, offset: number):
-  [Token<Other.FloatLiteral> | Erroneous, number] {
+  [Token<Other.FloatLiteral> | BadToken, number] {
   let i = offset;
   let hasDigits = false;
 
@@ -105,7 +105,7 @@ function processCharacterOrOctalEscape(
   text: string,
   offset: number,
   isSingleQuote: boolean
-): [number | Erroneous, number] {
+): [number | BadToken, number] {
   asyAssert(text[offset] === "\\", "processEscape precondition fail");
 
   if (!isSingleQuote) {
@@ -422,7 +422,7 @@ class Lexy {
   /**
    * Get the next normal, decimal float.
    */
-  private nextDecimalFloat(): Token<Other.FloatLiteral> | Erroneous {
+  private nextDecimalFloat(): Token<Other.FloatLiteral> | BadToken {
     return (([ltoken, leaten]) => {
       this.eatUntil(leaten);
       return ltoken;
@@ -433,7 +433,7 @@ class Lexy {
    * Get the next numeric token: integer or floating point.
    * Contract: First character must be . or 0 through 9.
    */
-  private nextNumeric(): Token<Other.IntegerLiteral | Other.FloatLiteral> | Erroneous {
+  private nextNumeric(): Token<Other.IntegerLiteral | Other.FloatLiteral> | BadToken {
     const text = this._text;
     const start = this.offset;
 
@@ -476,7 +476,7 @@ class Lexy {
     };
   }
 
-  private nextImpl(): Token<Exclude<any, Other.Comment>> | Token<Other.Comment> | null | Erroneous {
+  private nextImpl(): Token<Exclude<any, Other.Comment>> | Token<Other.Comment> | null | BadToken {
     const text = this._text,
       offset = this.offset;
     if (offset >= text.length) return null;
@@ -590,7 +590,7 @@ class Lexy {
    * Add an error with the given message, in an absolute position. Return an erroneous token
    * representing the error, and the number of characters consumed.
    */
-  private error(message: string, start: number=0, end: number=start+1): [Erroneous, number] {
+  private error(message: string, start: number=0, end: number=start+1): [BadToken, number] {
     return ((lend) => {
       this.errors.push(new CompileError(message, {start: start, end: lend}));
       return [{ kind: Other.Bad, value: this._text.slice(start, lend) }, lend-start];
@@ -599,7 +599,7 @@ class Lexy {
 
   private nextKeywordOrIdentifier():
     | Token<Keyword | Operator | Other.Identifier | Other.BooleanLiteral | Other.NullLiteral>
-    | Erroneous {
+    | BadToken {
     const text = this._text,
       offset = this.offset;
     if (isIdentifierStart(text.charCodeAt(offset) || 0)) {

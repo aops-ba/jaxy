@@ -1,3 +1,5 @@
+import { Maybe } from "./helper";
+
 export class Color {
   r: number;
   g: number;
@@ -33,32 +35,41 @@ export class Color {
   }
 }
 
-export type Pens = { fill?: Pen, stroke?: Pen };
+export type Pens = { fill: Maybe<Pen>, stroke: Maybe<Pen> };
 
 export class Pen {
+  readonly selfness: "Pen" = "Pen";
+
   static dotfactor = 6;
+  static labelmargin = 0.28;
+//  return labelmargin*fontsize(p)+0.5*linewidth(p);
+
+  labelmargin(): number {
+    return Pen.labelmargin*this.fontsize+0.5*this.linewidth;
+  }
 
   color: Color;
-  width: number;
+  linewidth: number;
+  fontsize = 12;
 
   static fromRgb(r: number, g: number, b: number) {
     return new Pen({r: r, g: g, b: b});
   };
 
   static fromColor(color: Color) {
-    return new Pen({color: color});
+    return new Pen( {color: color} );
   };
 
   static fromName(name: string) {
-    return new Pen({name: name});
+    return new Pen( {name: name} );
   };
 
   dotsize(): number {
-    return this.width/Pen.dotfactor;
+    return this.linewidth*Pen.dotfactor;
   }
 
   private constructor(options: {name?: string, color?: Color, r?: number, g?: number, b?: number}) {
-    this.width = 0.5*4; // todo: calibrate
+    this.linewidth = 0.5;
     if (options.name)
       this.color = Color.names.get(options.name)!;
     else if (options.color)
@@ -66,11 +77,6 @@ export class Pen {
     else if (options.r && options.g && options.b)
       this.color = new Color({rgb: [options.r, options.g, options.b]});
     else throw new Error(`${options} bad!`);
-  }
-
-  linewidth(n: number): Pen {
-    this.width = n;
-    return this;
   }
 }
 

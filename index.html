@@ -61,28 +61,47 @@
     </div>
     <div id="backbone">
       <div><textarea id="asy">
-size(50);
+unitsize(1*cm);
 
-filldraw(circle(origin, 2), white, black);
-fill(unitcircle, red);
-draw(circle(N, 1), blue);
-draw(circle(S, 1), blue);
-draw(circle(E, 3/2), green);
-draw(circle(W, 3/2), green);
+filldraw(circle(origin, 3), cyan, black);
+fill(circle(origin, 2), blue);
+draw(unitcircle, red);
+filldraw(circle(N, 1/2), blue);
+filldraw(circle(2*S, 3/4), green);
+filldraw(circle(E/3, 0.5), yellow);
 
-dot(origin);
-dot(3*E+N, magenta);
-dot(-E-E-E-S, cyan);
+dot("one");
+dot(4*N);
+dot(red);
+dot("two", 4*S);
+dot("three", 4*S, 4*(-E));
+dot("four", red);
+dot(5*N, green);
+dot(6*(-S), -E-E, blue);
+dot("five", 3*N+3*(-S), blue);
+dot("six", 3*S+3*(-N), -W-W-W-W, blue);
 
-label("hello friends", (0, 1+1+1), white);
-label("\( \int_0^\infty f^2(x_1, x_2)\ dx \)", 4*E);
-label("goodbye foes", (-N)+S-1+2*E+S-1-N, red);
+label("hello friends", 6*W);
+label("\( \phi, \psi \vDash \int_0^\infty (f')_i^2\langle \vec x_1, x|_2\rangle\ d\mathbf s \)", 7*E+2*N);
+label("\( \frac1{1+\frac1{1+\frac1{1+\frac1{1+\frac1{1+\frac1{1+\frac1{1+\frac1{1}}}}}}}} \)", 7*W+3*S, magenta);
 
-draw(dir(60)--2*dir(150)--3*dir(240)--4*dir(330)--cycle, yellow);
+if (1+1 == 2) {
+  label("we did it", 4*N);
+} else {
+  label("we didn't do it", 4*S);
+}
+
+draw(2.5*dir(60)--3*dir(150)--2.5*dir(210)--3*dir(300)
+   --2.5*dir(0)--3*dir(90)--2.5*dir(150)--3*dir(240)
+   --2.5*dir(300)--3*dir(30)--2.5*dir(90)--3*dir(180)
+   --2.5*dir(240)--3*dir(330)--2.5*dir(30)--3*dir(120)
+   --2.5*dir(180)--3*dir(270)--2.5*dir(330)--3*dir(60)
+   --2.5*dir(120)--3*dir(210)--2.5*dir(270)--3*dir(0)--cycle);
 </textarea></div>
       <div><svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg></div>
     </div>
   </div>
+  <div id="unseen"></div>
 </body>
 
 </html>

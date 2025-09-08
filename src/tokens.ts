@@ -253,7 +253,7 @@ export { Keyword, Operator, Separator, Other };
 export type { Span };
 export { DEFSPAN, span, allspan, rightAfter };
 
-export type { BadToken as Erroneous, Token, TokenType };
-export type { Binor, Unor, Assignor, Modifactor as Modifior, Literal };
+export type { BadToken, Token, TokenType };
+export type { Binor, Unor, Assignor, Modifactor, Literal };
 export { Tokenboard, isKeyword, isOperator, isSeparator, isStringKeywordOrLiteral };
 export { tokenTypeToLength, tokenTypeToString };

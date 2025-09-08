@@ -1,22 +1,19 @@
-import { Pair } from "./number";
+import { PT, Knowledge, weep, Scaling, BBox } from "./helper";
 import { Pens, defaultpen } from "./pen";
-import Render from "./randy";
 
-export interface Seen {
-  ink({fill, stroke}: Pens): ($s: string) => string;
-}
+export abstract class Seen {
 
-export abstract class Shape implements Seen {
-  label?: string;
-  align?: Pair;
-
-  constructor(label?: string, align?: Pair) {
-    this.label = label;
-    this.align = align;
+  ink({ fill, stroke }: Pens, text: string=""): Knowledge {
+    return (scaling) => `fill="${fill?.color ?? "none"}" stroke="${stroke?.color ?? "none"}"`
+      + ` stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"`
+      + ` stroke-width="${PT*(stroke ?? defaultpen).linewidth}"`;
   }
 
-  ink({fill, stroke}: Pens): ($s: string) => string {
-    return (_) => `fill="${fill?.color ?? "none"}" stroke="${stroke?.color ?? "none"}"`
-      + ` stroke-width="${Render.PT*(stroke ?? defaultpen).width}"`;
+  show(pens: Pens): Knowledge {
+    throw new TypeError(`${this} is too abstract to use ${pens}`);
+  }
+
+  bbox(): BBox {
+    throw new ReferenceError(`cant find a bbox for ${this} yet`);
   }
 }

@@ -1,5 +1,5 @@
-import { CompileError } from "./error.ts";
-import { asyAssert } from "./error.ts";
+import { CompileError } from "./helper.ts";
+import { asyAssert } from "./helper.ts";
 
 import { Keyword, Operator, Separator, Other } from "./tokens.ts";
 
@@ -7,19 +7,19 @@ import { allspan, rightAfter } from "./tokens.ts";
 
 import type { Token, TokenType } from "./tokens.ts";
 import { isOperator } from "./tokens.ts";
-import type { Assignor, Modifior } from "./tokens.ts";
+import type { Assignor, Modifactor } from "./tokens.ts";
 import { tokenTypeToString } from "./tokens.ts";
 
-import type { LexyOptions } from "./lexy.ts";
-import { Lexy } from "./lexy.ts";
+import type { LexyOptions } from "./lexer.ts";
+import { Lexy } from "./lexer.ts";
 
 import {
   LambdaP,
   ArrayCreationPhrase,
   ArrayInitializerList,
-  AssignorP,
+  AssignmentExpressionP,
   BinorP,
-  BlockP,
+  BlockStatementP,
   BraceAffixedExpressionPhrase,
   BreakP,
   CastP,
@@ -27,34 +27,35 @@ import {
   ContinueP,
   DowhileP,
   ForeachP,
-  ForP,
-  DeclareFunctionP,
+  ForStatementP,
+  FunctionDeclarationP,
   IdentifierP,
-  IfP,
+  IfStatementP,
   IndexExpressionPhrase,
   CallArgsP,
   CallP,
   LiteralP,
   MemberAccessPhrase,
-  SemicolonP,
+  SemicolonStatementP,
   OperatorizerP,
-  StateP,
+  StatementP,
   RoundP,
   TupleP,
-  TypedefP,
+  TypedefDeclarationP,
   TypeP,
   UnorP,
-  DeclareManyVariablesP,
-  DeclareOneVariableP,
+  ManyVariablesDeclarationP,
+  OneVariableDeclarationP,
   WhileP,
-  DeclareImportP,
-  DeclareStructP,
+  ImportDeclarationP,
+  StructDeclarationP,
   ReturnP,
   AccessP,
   DimensionsP,
   TernorP,
-  StateExpressionP
-} from "./model.ts";
+  ExpressionStatementP
+} from "./meaner.ts";
+import { aside } from "./helper.ts";
 
 export type PercyOptions = {
   // Future options go here
@@ -247,7 +248,7 @@ export default class Percy {
    */
   peek() {
     if (this.fuel++ > 1e6) {
-      console.log("Stuck tok:", this.tokens[this.currentIndex]);
+      aside(["Stuck tok:", this.tokens[this.currentIndex]], 0);
       asyAssert(false, "infinite loop");
     }
     return this.tokens[this.currentIndex]!;
@@ -364,7 +365,7 @@ export default class Percy {
     return null;
   }
 
-  consumeImportDeclaration(modifiers: Token<Modifior>[]): DeclareImportP | null {
+  consumeImportDeclaration(modifiers: Token<Modifactor>[]): ImportDeclarationP | null {
     const importToken = this.expectTT(Keyword.import);
     if (!importToken) return null;
 
@@ -372,16 +373,16 @@ export default class Percy {
     const asToken = this.maybeContextualKw("as");
     let alias = asToken ? this.expectIdent() : null;
     const semi = this.expectSemicolon();
-    return new DeclareImportP(modifiers, importToken, importName, asToken, alias, semi);
+    return new ImportDeclarationP(modifiers, importToken, importName, asToken, alias, semi);
   }
 
-  consumeStructDeclaration(modifiers: Token<Modifior>[]): DeclareStructP | null {
+  consumeStructDeclaration(modifiers: Token<Modifactor>[]): StructDeclarationP | null {
     const struct = this.expectTT(Keyword.struct);
     if (!struct) return null;
 
     const structName = this.expectIdent();
     const openBrace = this.expectTT(Separator.LCurly);
-    const decls: StateP[] = [];
+    const decls: StatementP[] = [];
     while (!this.eof() && this.peek().kind !== Separator.RCurly) {
       const decl = this.consumeDeclOrStmt();
       if (decl) {
@@ -390,7 +391,7 @@ export default class Percy {
     }
     const closeBrace = this.expectTT(Separator.RCurly);
     this.maybeTT(Separator.Semicolon); // trailing semi is optional
-    return new DeclareStructP(modifiers, struct, structName, openBrace, decls, closeBrace);
+    return new StructDeclarationP(modifiers, struct, structName, openBrace, decls, closeBrace);
   }
 
   // Either something of the form <name>=<expr> or just <expr>
@@ -402,7 +403,7 @@ export default class Percy {
     return new CallArgsP(argIsSpread, null, null, this.consumeExpression());
   }
 
-  _consumeInvocationExpressionRest(callee: StateP): CallP | null {
+  _consumeInvocationExpressionRest(callee: StatementP): CallP | null {
     const lparen = this.expectTT(Separator.LRound);
     if (!lparen) return null;
     const args: CallArgsP[] = [];
@@ -422,24 +423,24 @@ export default class Percy {
     return new CallP(callee, lparen, args, rparen);
   }
 
-  consumeBlock(): BlockP | null {
+  consumeBlock(): BlockStatementP | null {
     const openBrace = this.expectTT(Separator.LCurly);
     if (!openBrace) return null;
-    const statements: StateP[] = [];
+    const statements: StatementP[] = [];
     while (!this.eof() && this.peek().kind !== Separator.RCurly) {
       const stmt = this.consumeDeclOrStmt();
       if (stmt) statements.push(stmt);
     }
     const closeBrace = this.expectTT(Separator.RCurly);
-    return new BlockP(openBrace, statements, closeBrace);
+    return new BlockStatementP(openBrace, statements, closeBrace);
   }
 
-  consumeBlockOrSemicolon(): BlockP | Token<Separator.Semicolon> | null {
+  consumeBlockOrSemicolon(): BlockStatementP | Token<Separator.Semicolon> | null {
     return this.maybeTT(Separator.Semicolon) ?? this.consumeBlock();
   }
 
-  _consumeFunctionDeclarationRest(): { list: DeclareManyVariablesP[], lastParamIsRest: Token<Separator.DotDotDot> | null } {
-    const vars: DeclareManyVariablesP[] = [];
+  _consumeFunctionDeclarationRest(): { list: ManyVariablesDeclarationP[], lastParamIsRest: Token<Separator.DotDotDot> | null } {
+    const vars: ManyVariablesDeclarationP[] = [];
     let lastParamIsRest: Token<Separator.DotDotDot> | null = null;
     while (this.peek().kind !== Separator.RRound && !this.eof()) {
       const ellipsis = this.maybeTT(Separator.DotDotDot);
@@ -450,7 +451,7 @@ export default class Percy {
       const modifiers = this._consumeModifiers();
       const type = this.consumeType();
       if (!type) break;
-      const varDecl = new DeclareManyVariablesP(modifiers, type, [], null);
+      const varDecl = new ManyVariablesDeclarationP(modifiers, type, [], null);
       if (this.peek().kind === Other.Identifier) {
         // Example taken: f(real a);
         // Example not taken: f(real);
@@ -480,7 +481,7 @@ export default class Percy {
     return null;
   }
 
-  consumeFunctionOrVariableDeclaration(type: TypeP | null, modifiers: Token<Modifior>[]): DeclareFunctionP | DeclareManyVariablesP | null {
+  consumeFunctionOrVariableDeclaration(type: TypeP | null, modifiers: Token<Modifactor>[]): FunctionDeclarationP | ManyVariablesDeclarationP | null {
     const isOperator = this.maybeTT(Keyword.operator);
     const name = isOperator ? this.expectOperatorName() : this.expectTT(Other.Identifier);
     if (!name) return null;
@@ -492,7 +493,7 @@ export default class Percy {
       const rparen = this.expectTT(Separator.RRound);
 
       const eq = this.maybeTT(Operator.Eq);
-      let body: StateP | Token<Separator.Semicolon> | null = null;
+      let body: StatementP | Token<Separator.Semicolon> | null = null;
       if (eq) {
         // Initializer for function type
         body = this.consumeExpression();
@@ -501,12 +502,12 @@ export default class Percy {
         body = this.consumeBlockOrSemicolon();
       }
 
-      return new DeclareFunctionP(modifiers, type, isOperator, name, lparen, list, lastParamIsRest, rparen, body);
+      return new FunctionDeclarationP(modifiers, type, isOperator, name, lparen, list, lastParamIsRest, rparen, body);
     case Separator.Semicolon:
     case Separator.LSquare:  // e.g., real a[];
     case Separator.Comma:  // e.g. pair A, B;
     case Operator.Eq:
-      const tree = new DeclareManyVariablesP(modifiers, type, [], null);
+      const tree = new ManyVariablesDeclarationP(modifiers, type, [], null);
       this.rollback(this.currentIndex - 1);  // step to before the name
       return this._consumeVariableDeclListRest(tree);
     default:
@@ -528,7 +529,7 @@ export default class Percy {
    */
   _consumeParenthesizedCondition(): {
     openParen: Token<Separator.LRound> | null;
-    condition: StateP | null;
+    condition: StatementP | null;
     closeParen: Token<Separator.RRound> | null;
   } {
     const openParen = this.expectTT(
@@ -544,7 +545,7 @@ export default class Percy {
     return {openParen, condition, closeParen};
   }
 
-  consumeIfStatement(): IfP | null {
+  consumeIfStatement(): IfStatementP | null {
     const ifToken = this.expectTT(Keyword.if);
     if (ifToken === null) return null;
 
@@ -554,7 +555,7 @@ export default class Percy {
     const elseToken = this.maybeTT(Keyword.else);
     const elseStatement = elseToken ? this.consumeStatement() : null;
 
-    return new IfP(
+    return new IfStatementP(
       ifToken,
       openParen,
       condition,
@@ -565,8 +566,8 @@ export default class Percy {
     );
   }
 
-  consumeExpressionList(): StateP[] {
-    const exprs: StateP[] = [];
+  consumeExpressionList(): StatementP[] {
+    const exprs: StatementP[] = [];
     while (SyntaxFacts.StmtExpressionStart.has(this.peek().kind)) {
       const expr = this.consumeExpression();
       if (expr) {
@@ -581,7 +582,7 @@ export default class Percy {
     return exprs;
   }
 
-  consumeForOrEnhancedForStatement(): StateP | null {
+  consumeForOrEnhancedForStatement(): StatementP | null {
     const forToken = this.expectTT(Keyword.for);
     if (forToken === null) return null;
     const openParen = this.expectTT(Separator.LRound, false);
@@ -593,8 +594,8 @@ export default class Percy {
     });
 
     let init:
-      | DeclareManyVariablesP
-      | StateP[]
+      | ManyVariablesDeclarationP
+      | StatementP[]
       | null = null;
     if (ty !== null) {
       // for (int pox : b)
@@ -633,7 +634,7 @@ export default class Percy {
           }
 
           // Local variable declaration list
-          init = this._consumeVariableDeclListRest(new DeclareManyVariablesP([], ty, [], null));
+          init = this._consumeVariableDeclListRest(new ManyVariablesDeclarationP([], ty, [], null));
           // We ate a semi colon, step back one
           if (init.semicolonToken) {
             init.semicolonToken = null;
@@ -680,7 +681,7 @@ export default class Percy {
         : this.consumeExpressionList();
     const closeParen = this.expectTT(Separator.RRound, false);
 
-    return new ForP(
+    return new ForStatementP(
       forToken,
       openParen,
       init,
@@ -732,12 +733,12 @@ export default class Percy {
     );
   }
 
-  consumeNakedSemicolon(): SemicolonP | null {
+  consumeNakedSemicolon(): SemicolonStatementP | null {
     const semicolon = this.expectTT(Separator.Semicolon);
-    return semicolon ? new SemicolonP(semicolon) : null;
+    return semicolon ? new SemicolonStatementP(semicolon) : null;
   }
 
-  consumeStatement(modifiers: Token<Modifior>[] = [], overrideError?: string): StateP | null {
+  consumeStatement(modifiers: Token<Modifactor>[] = [], overrideError?: string): StatementP | null {
     const tok = this.peek();
     switch (tok.kind) {
       case Separator.LCurly: {
@@ -780,7 +781,7 @@ export default class Percy {
           case Operator.Eq: {
             // x;  (expression)  or   private x;   (variable declaration, no type)
             if (modifiers.length > 0) {
-              return this._consumeVariableDeclListRest(new DeclareManyVariablesP(modifiers, /*type=*/null, [], null));
+              return this._consumeVariableDeclListRest(new ManyVariablesDeclarationP(modifiers, /*type=*/null, [], null));
             } else {
               return this.consumeExpressionStatement();
             }
@@ -817,7 +818,7 @@ export default class Percy {
     }
   }
 
-  consumeTypedef(modifiers: Token<Modifior>[]): TypedefP | null {
+  consumeTypedef(modifiers: Token<Modifactor>[]): TypedefDeclarationP | null {
     const typedefToken = this.expectTT(Keyword.typedef);
     if (!typedefToken) return null;
 
@@ -825,10 +826,10 @@ export default class Percy {
     const decl = this.consumeFunctionOrVariableDeclaration(type, modifiers);
 
     // TODO: Disallow various stuff in the decl
-    return new TypedefP(typedefToken, decl);
+    return new TypedefDeclarationP(typedefToken, decl);
   }
 
-  consumeAccessDeclaration(modifiers: Token<Modifior>[]): AccessP | null {
+  consumeAccessDeclaration(modifiers: Token<Modifactor>[]): AccessP | null {
     const access = this.expectTT(Keyword.access);
     if (!access) return null;
 
@@ -838,7 +839,7 @@ export default class Percy {
   }
 
 
-  consumeDeclOrStmt(): StateP | null {
+  consumeDeclOrStmt(): StatementP | null {
     const modifiers = this._consumeModifiers();
     let tok = this.peek();
 
@@ -858,7 +859,7 @@ export default class Percy {
   }
 
   parse() {
-    const decls: StateP[] = [];
+    const decls: StatementP[] = [];
     while (!this.eof()) {
       const decl = this.consumeDeclOrStmt();
       if (decl)
@@ -883,7 +884,7 @@ export default class Percy {
     return brackets.length ? new DimensionsP(brackets) : null;
   }
 
-  _consumeVariableDeclListRest(tree: DeclareManyVariablesP, parsingFnArgument: boolean = false): DeclareManyVariablesP {
+  _consumeVariableDeclListRest(tree: ManyVariablesDeclarationP, parsingFnArgument: boolean = false): ManyVariablesDeclarationP {
     // Starting from the first name in a variable declaration, parse the rest of the declaration, including
     // initializers and the trailing semicolon.
     a: while (true) {
@@ -892,11 +893,11 @@ export default class Percy {
 
       const brackets = this.consumeOptionalBrackets();
       const follows = this.peek();
-      let initializer: StateP | null = null;
+      let initializer: StatementP | null = null;
       let eq: Token<Operator.Eq> | null = null;
       let lparen: Token<Separator.LRound> | null = null;
       let rparen: Token<Separator.RRound> | null = null;
-      let args: DeclareManyVariablesP[] | null = null;
+      let args: ManyVariablesDeclarationP[] | null = null;
       let lastParamIsRest: Token<Separator.DotDotDot> | null = null;
 
       switch (follows.kind) {
@@ -931,7 +932,7 @@ export default class Percy {
         }
       }
 
-      tree.decls.push(new DeclareOneVariableP(name, brackets, lparen, args, lastParamIsRest, rparen, eq, initializer));
+      tree.decls.push(new OneVariableDeclarationP(name, brackets, lparen, args, lastParamIsRest, rparen, eq, initializer));
 
       const kind = this.peek().kind;
       if (kind === Separator.Comma) {
@@ -948,7 +949,7 @@ export default class Percy {
     return tree;
   }
 
-  consumeConditionalExpression(): StateP | null {
+  consumeConditionalExpression(): StatementP | null {
     // Conditional expressions are at their own level; repeatedly parse a lower-precedence expression and then
     // look for a ? : sequence
 
@@ -975,14 +976,14 @@ export default class Percy {
     return lhs;
   }
 
-  consumeExpression(): StateP | null {
+  consumeExpression(): StatementP | null {
     let lhs = this.consumeConditionalExpression();
     const curr = this.peek();
     if (lhs && isAssignmentOrCompoundAssignment(curr.kind)) {
       // TODO: Check valid LHS
       this.next();
       const rhs = this.consumeExpressionOrArrayInitializer();
-      return new AssignorP(lhs, curr as Token<Assignor>, rhs);
+      return new AssignmentExpressionP(lhs, curr as Token<Assignor>, rhs);
     }
     while (lhs && curr.kind == Separator.LRound) {
       lhs = this._consumeInvocationExpressionRest(lhs);
@@ -991,11 +992,11 @@ export default class Percy {
   }
 
   // Note that array initializers are only allowed on the right hand side of an assignment
-  consumeExpressionOrArrayInitializer(): StateP | null {
+  consumeExpressionOrArrayInitializer(): StatementP | null {
     if (this.peek().kind === Separator.LCurly) {
       // Array initializer
       const openBrace = this.expectTT(Separator.LCurly)!;
-      const elements: StateP[] = [];
+      const elements: StatementP[] = [];
       while (!this.eof() && this.peek().kind !== Separator.RCurly) {
         // Array initializers can nest
         const expr = this.consumeExpressionOrArrayInitializer();
@@ -1014,7 +1015,7 @@ export default class Percy {
     const expr = this.consumeExpression();
     const semicolon = this.expectSemicolon();
 
-    return new StateExpressionP(expr, semicolon);
+    return new ExpressionStatementP(expr, semicolon);
   }
 
   captureErrors<T>(callback: () => T): {errs: CompileError[]; result: T} {
@@ -1025,7 +1026,7 @@ export default class Percy {
     return {errs: newErrors, result};
   }
 
-  consumePrimaryOrUnaryExpression(): StateP | null {
+  consumePrimaryOrUnaryExpression(): StatementP | null {
     const tok = this.peek();
 
     switch (tok.kind) {
@@ -1082,14 +1083,14 @@ export default class Percy {
     }
   }
 
-  consumeNewExpression(): StateP | null {
+  consumeNewExpression(): StatementP | null {
     const newToken = this.expectTT(Keyword.new);
     if (!newToken) return null;
 
     const type = this.consumeType(/*noBrackets=*/true);
     if (!type) return null;
 
-    const bracketArgs: StateP[] = [];
+    const bracketArgs: StatementP[] = [];
     while (this.peek().kind === Separator.LSquare && this.ahead(1).kind !== Separator.RSquare) {
       this.expectTT(Separator.LSquare);
       const expr = this.consumeExpression();
@@ -1125,11 +1126,11 @@ export default class Percy {
     return new ArrayCreationPhrase(newToken, type, bracketArgs, init);
   }
 
-  consumeParenthesizedExpressionOrTuple(): StateP | null {
+  consumeParenthesizedExpressionOrTuple(): StatementP | null {
     const lparen = this.expectTT(Separator.LRound);
     if (!lparen) return null;
 
-    const exprs: (StateP | null)[] = [];
+    const exprs: (StatementP | null)[] = [];
 
     while (true) {
       exprs.push(this.consumeExpression());
@@ -1160,7 +1161,7 @@ export default class Percy {
     return null;
   }
 
-  _consumeIndexExpression(tree: StateP) {
+  _consumeIndexExpression(tree: StatementP) {
     const lbracket = this.expectTT(Separator.LSquare)!;
     if (!lbracket) return null;
 
@@ -1178,11 +1179,11 @@ export default class Percy {
     return new UnorP(curl, expr, /*prefix=*/true);
   }
 
-  _consumeBraceSuffixedExpression(tree: StateP): BraceAffixedExpressionPhrase {
+  _consumeBraceSuffixedExpression(tree: StatementP): BraceAffixedExpressionPhrase {
     const lbrace = this.expectTT(Separator.LCurly);
     asyAssert(lbrace !== null, "_consumeBraceSuffixedExpression precondition");
 
-    let suffix: StateP | null = null;
+    let suffix: StatementP | null = null;
     switch (this.peek().kind) {
       case Keyword.curl: {
         suffix = this.consumeCurlExpression();
@@ -1202,7 +1203,7 @@ export default class Percy {
     return new BraceAffixedExpressionPhrase(tree, lbrace, suffix, rbrace, /*isSuffix=*/true);
   }
 
-  _consumePrimaryExpressionRest(tree: StateP): StateP {
+  _consumePrimaryExpressionRest(tree: StatementP): StatementP {
     switch (this.peek().kind) {
     case Separator.Dot:
       tree = new MemberAccessPhrase(tree, this.expectTT(Separator.Dot)!, this.expectIdent());
@@ -1240,9 +1241,9 @@ export default class Percy {
     return this.lexy.lineOf(offset);
   }
 
-  consumePrimaryExpression(): StateP | null {
+  consumePrimaryExpression(): StatementP | null {
     const tok = this.peek();
-    let lhs: StateP | null = null;
+    let lhs: StatementP | null = null;
     switch (tok.kind) {
     case Keyword.new:
       lhs = this.consumeNewExpression();
@@ -1328,10 +1329,10 @@ export default class Percy {
     };
 
   consumeExpressionOperatorPrecedence(
-    lhs: StateP,
+    lhs: StatementP,
     minPrecedence: number
-  ): StateP | null {
-    const exprStack: (StateP | null)[] = [lhs];
+  ): StatementP | null {
+    const exprStack: (StatementP | null)[] = [lhs];
     const os: Token<any>[] = []; // operator stack
 
     function binaryPrecedence(tok: TokenType): number {
@@ -1375,9 +1376,9 @@ export default class Percy {
           const exprLhs = exprStack.pop() ?? null;
           exprStack.push(
             new BinorP(
-              exprLhs as StateP,
+              exprLhs as StatementP,
               op as Token<Operator>,
-              exprRhs as StateP
+              exprRhs as StatementP
             )
           );
         } else {
@@ -1387,7 +1388,7 @@ export default class Percy {
       }
     }
 
-    return exprStack[0]! as StateP;
+    return exprStack[0]! as StatementP;
   }
 
   private _consumeCast(openParen: Token<Separator.LRound>, type: TypeP, closeParen: Token<Separator.RRound> | null) {
@@ -1395,8 +1396,8 @@ export default class Percy {
     return new CastP(openParen, type, closeParen, expr)
   }
 
-  private _consumeModifiers(): Token<Modifior>[] {
-    let modifiers: Token<Modifior>[] = [];
+  private _consumeModifiers(): Token<Modifactor>[] {
+    let modifiers: Token<Modifactor>[] = [];
     let tok = this.peek();
     // TODO pull out into helper
     while (tok.kind === Keyword.private || tok.kind === Keyword.public || tok.kind === Keyword.static ||
