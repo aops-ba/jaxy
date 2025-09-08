@@ -17,7 +17,7 @@ import Label from "./label";
 import { CM, INCH, isAlign, isPair, isPathlike, isPen, isString, Maybe, MM, PT, Scaling, shed, underload, Knowledge, loudly, BBox } from "./helper";
 import { Keyword, Operator, Other, Token, Tokenboard } from "./tokens";
 import { bakeboard } from "./builtins";
-import { asyAssert } from "./helper";
+import { assertively } from "./helper";
 import { Seen } from "./seen";
 
 const MathJax = window["MathJax" as keyof typeof window];
@@ -39,7 +39,7 @@ export default class Render {
 
     this.wisdom = [];
     this.scaling = { x: 0, y: 0 };
-    console.log(window.devicePixelRatio);
+    loudly(window.devicePixelRatio);
   }
 
 //  size(x: number, y?: number): Knowledge {
@@ -162,12 +162,12 @@ function lookup(thing: Token<Keyword | Operator | Other.Identifier> | null): any
 }
 
 function draw([L, g, align, p]: [Maybe<Pair>, Seen, Maybe<Pair>, Maybe<Pen>]): Knowledge[] {
-  asyAssert(g !== null);
+  assertively(g !== null);
   return _.flatten ([g.show({ fill: null, stroke: p ?? defaultpen })]);
 }
 
 function fill([g, p]: [Seen, Maybe<Pen>]): Knowledge[] {
-  asyAssert(g !== null);
+  assertively(g !== null);
   return _.flatten ([g.show({ fill: p ?? defaultpen, stroke: null })]);
 }
 
@@ -179,7 +179,7 @@ function filldraw([g, fillpen, drawpen]: [Seen, Maybe<Pen>, Maybe<Pen>]): Knowle
 // todo: calibrate label appearance
 // todo: lots of redundancy with type checking / guarding
 function label([s, position, align, p]: [string, Maybe<Pair>, Maybe<Pair>, Maybe<Pen>]): Knowledge[] {
-  asyAssert(s !== null);
+  assertively(s !== null);
   return _.flatten ([(lscaling: Scaling) => new Label(s, position ?? origin, descale(new Align(align ?? origin), lscaling)).show({ fill: p ?? defaultpen, stroke: null })(lscaling)]);
 }
 

@@ -3,6 +3,7 @@ import _ from "lodash/fp";
 import Percy from "./parser";
 import Randy from "./render";
 import { AllP } from "./piler";
+import { loudly, roughly } from "./helper";
 
 const asyblock = document.getElementById("asy")! as HTMLTextAreaElement;
 const svgblock = document.getElementById("svg")! as unknown as SVGGraphicsElement;
@@ -67,8 +68,8 @@ async function transpile(): Promise<void> {
     console.clear();
     mindy = new Percy(asyblock.value.trim()).parse();
     await randy.update(await mindy.understandAll()).render();
-    console.log("we did it");
+    loudly("we did it");
   } catch (e) {
-    throw new Error(`we didn't do it: ${e}`);
+    roughly(`we didn't do it: ${e}`);
   }
 }

@@ -1,5 +1,5 @@
-import { asyAssert } from "./helper";
-import { implies, isPair } from "./helper";
+import { assertively } from "./helper";
+import { isPair } from "./helper";
 
 type Rime<T> = T | number;
 type Fielded = Real | Pair;
@@ -108,7 +108,7 @@ class Pair {
   // todo: use asserts instead
   constructor(x: Rime<Fielded>, y?: Rime<Real>) {
     if (x instanceof Pair) {
-      asyAssert(!y);
+      assertively(!y);
       this.x = x.x;
       this.y = x.y;
     } else {

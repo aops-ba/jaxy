@@ -1,5 +1,5 @@
-import { CompileError } from "./helper";
-import { asyAssert, asyUnreachable } from "./helper";
+import { CompileError, LOUDNESS, unreachably } from "./helper";
+import { assertively } from "./helper";
 import { nextSuchThat } from "./helper";
 
 import { Keyword, Operator, Separator, Other, span } from "./tokens";
@@ -9,7 +9,7 @@ import { isStringKeywordOrLiteral } from "./tokens";
 import { tokenTypeToLength } from "./tokens";
 
 function isHex(c: string): boolean {
-  asyAssert(c.length === 1, `${c} is of length 1`);
+  assertively(c.length === 1, `${c} is of length 1`, LOUDNESS.Lexer);
   return ((c >= "0" && c <= "9")
        || (c >= "a" && c <= "f")
        || (c >= "A" && c <= "F"));
@@ -27,7 +27,7 @@ type BigIntParseResult = {
  * @returns the base-`base` integer at `text[start:end]`.
  */
 function checkedBigInt(text: string, start: number, end: number, base: number): BigIntParseResult {
-  asyAssert([2, 8, 10, 16].includes(base), `${base} is a supported base`);
+  assertively([2, 8, 10, 16].includes(base), `${base} is a supported base`, LOUDNESS.Lexer);
 
   try {
     return {
@@ -106,7 +106,7 @@ function processCharacterOrOctalEscape(
   offset: number,
   isSingleQuote: boolean
 ): [number | BadToken, number] {
-  asyAssert(text[offset] === "\\", "processEscape precondition fail");
+  assertively(text[offset] === "\\", "processEscape precondition fail", LOUDNESS.Lexer);
 
   if (!isSingleQuote) {
     // Only escapes are \\ -> \\ and \" -> ".
@@ -117,7 +117,7 @@ function processCharacterOrOctalEscape(
         return [{kind: Other.Bad, value: "Unterminated escape sequence"
         }, 1];
       case "\\":
-        asyUnreachable("Should have been handled outside");
+        unreachably("Should have been handled outside");
       // fallthrough
       default: // just process as a slash
         return [92, 1];
@@ -284,7 +284,7 @@ class Lexy {
 
       if (token.kind === Other.Bad) {
         this.error(token.value as string, lastOffset, this.offset);
-        asyAssert(this.offset > lastOffset, "Did not advance after erroneous");
+        assertively(this.offset > lastOffset, "Did not advance after erroneous", LOUDNESS.Lexer);
         continue;
       }
 
@@ -303,12 +303,12 @@ class Lexy {
   }
 
   private eat(howmany: number) {
-    asyAssert(howmany !== 0, "we ate at least one bite");
+    assertively(howmany !== 0, "we ate at least one bite", LOUDNESS.Lexer);
     this.offset += howmany;
   }
 
   private eatUntil(newOffset: number) {
-    asyAssert(newOffset > this.offset, "we ate forwards");
+    assertively(newOffset > this.offset, "we ate forwards", LOUDNESS.Lexer);
     this.offset = newOffset;
   }
 
@@ -322,7 +322,7 @@ class Lexy {
     const text = this._text;
     const char = text[this.offset];
     const isSingleQuoted = char === "'";  // escape algorithm for single quoted strings is different than double quoted!
-    asyAssert(char === '"' || isSingleQuoted, "nextString precondition");
+    assertively(char === '"' || isSingleQuoted, "nextString precondition", LOUDNESS.Lexer);
 
     const INVAL = "?"; // character substituted for invalid escape sequences
 
@@ -384,7 +384,7 @@ class Lexy {
   }
 
   private nextInlineComment(): Token<Other.Comment> {
-    asyAssert(this._text.startsWith("//", this.offset), `this line begins with "//")`);
+    assertively(this._text.startsWith("//", this.offset), `this line begins with "//")`, LOUDNESS.Lexer);
 
     return ((lindex) => {
       this.eatUntil(lindex);
@@ -397,7 +397,7 @@ class Lexy {
   }
 
   private nextBlockComment(): Token<Other.Comment> {
-    asyAssert(this._text.startsWith("/*", this.offset), `this line begins with "/*"`);
+    assertively(this._text.startsWith("/*", this.offset), `this line begins with "/*"`, LOUDNESS.Lexer);
 
     return ((lindex) => {
       if (lindex === -1) { // missing "*/"
@@ -437,9 +437,10 @@ class Lexy {
     const text = this._text;
     const start = this.offset;
 
-    asyAssert(
+    assertively(
       text[start] === "." || (text[start]! >= "0" && text[start]! <= "9"),
       "nextNumeric precondition"
+      ,0
     );
 
     if (text[start] === ".") {

@@ -1,4 +1,4 @@
-import { asyAssert, asyUnreachable, same } from "./helper";
+import { assertively, LOUDNESS, roughly } from "./helper";
 
 import type { Binor, Unor, Assignor, Modifactor, Literal } from "./tokens";
 import { Keyword, Operator, Separator, Other, DEFSPAN } from "./tokens";
@@ -9,7 +9,7 @@ import { span } from "./tokens";
 import type { Token } from "./tokens";
 import { tokenTypeToString } from "./tokens";
 
-import { aside, Maybe, maybeArray, weep, Knowledge, unspell, loudly, isBoolean } from "./helper";
+import { Maybe, maybeArray, weep, Knowledge, unspell, loudly, isBoolean } from "./helper";
 import { lookup, remember } from "./render";
 import { Pair } from "./number";
 import merx from "./merx";
@@ -118,8 +118,8 @@ export class Phrase {
     }
 
     this.setSpan(span(min, max));
-    asyAssert(-1 < this.span.start && this.span.start < this.span.end,
-      [`[${this.span.start}, ${this.span.end}]`, "is a good span."]);
+    assertively(-1 < this.span.start && this.span.start < this.span.end,
+      [`[${this.span.start}, ${this.span.end}]`, "is a good span."], LOUDNESS.Spanner);
   }
 
   /**
@@ -612,9 +612,9 @@ export class LiteralP extends ExpressionP {
       case Other.IntegerLiteral: return this.token.value + "";
       case Other.BooleanLiteral: return this.token.value + "";
       case Other.StringLiteral: return `"${this.token.value}"`;
-      case Other.NullLiteral: return "null";
+      case Other.NullLiteral:
+      default: return "null";
     }
-    asyUnreachable();
   }
 }
 
@@ -661,7 +661,7 @@ export class AllP extends Phrase {
   }
 
   understand(t: Maybe<Phrase>): unknown {
-    aside(["It's time to understand", t]);
+    loudly(["It's time to understand", t]);
     if (t === null) {
       return;
 
@@ -671,18 +671,18 @@ export class AllP extends Phrase {
         return t.decls.map(x => this.understand(x));
       } else if (t instanceof ImportDeclarationP) {
         if (t.importTarget instanceof IdentifierP) {
-          aside(["Time to import stuff", t]);
-          return merx(t.importTarget.getName());
+          loudly(["Time to import stuff", t]);
+          return await merx(t.importTarget.getName());
         } else {
-          return merx(t.importTarget?.value ?? "");
+          return await merx(t.importTarget?.value ?? "");
         }
       } else if (t instanceof OneVariableDeclarationP) {
         return ((lname, lvalue) => {
-          aside(`Initializing ${lname} as ${lvalue}.`);
+          loudly(`Initializing ${lname} as ${lvalue}.`);
           return remember(lname, lvalue);
         }) (t.name.getName(), this.understand(t.initializer));
       } else {
-        console.log(`wah im a declare ${t.constructor.name}`, t);
+        roughly(`wah im a declare ${t.constructor.name}`, t);
       }
 
 
@@ -695,11 +695,11 @@ export class AllP extends Phrase {
         return;
       } else if (t instanceof IfStatementP) {
         return ((lif, lthen, lelse) => {
-          asyAssert(isBoolean(lif)); // todo: think about how to make this kind of castblocking more robust?
+          assertively(isBoolean(lif)); // todo: think about how to make this kind of castblocking more robust?
           return lif ? lthen : lelse;
       }) (this.understand(t.condition), this.understand(t.thenStatement), this.understand(t.elseStatement));
       } else {
-        console.log(`wah im a statement ${t.constructor.name}`, t);
+        roughly(`wah im a statement ${t.constructor.name}`, t);
       }
 
 
@@ -709,20 +709,20 @@ export class AllP extends Phrase {
       } else if (t instanceof BinorP) {
         return (lookup(t.operator)) (this.understand(t.left), this.understand(t.right));
       } else {
-        console.log(`wah im an operator ${t.constructor.name}`, t);
+        roughly(`wah im an operator ${t.constructor.name}`, t);
       }
 
 
     } else if (t instanceof ExpressionP) {
       if (t instanceof AssignmentExpressionP) {
         return ((lname, lvalue) => {
-          asyAssert(lname instanceof IdentifierP);
-          aside(`Assigning ${lvalue} to ${lname}.`);
+          assertively(lname instanceof IdentifierP);
+          loudly(`Assigning ${lvalue} to ${lname}.`);
           return remember(lname.getName(), lvalue);
         }) (t.left, this.understand(t.right));
       } else if (t instanceof CallP) {
         return ((lcall, largs) => {
-          aside([`Calling ${t.caller} on`, largs, "."]);
+          loudly([`Calling ${t.caller} on`, largs, "."]);
           return (lcall as Function) (largs);
         }) (this.understand(t.caller), t.args.map(x => this.understand(x)));
       } else if (t instanceof RoundP) {
@@ -743,10 +743,10 @@ export class AllP extends Phrase {
           default: weep();
         }
       } else {
-        console.log(`wah im an expression ${t.constructor.name}`, t);
+        roughly(`wah im an expression ${t.constructor.name}`, t);
       }
     } else {
-      console.log(`wah im a nothing ${t.constructor.name}`, t);
+      roughly(`wah im a nothing ${t.constructor.name}`, t);
     }
     return;
   }

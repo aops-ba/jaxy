@@ -7,14 +7,43 @@ import { Path } from "./path";
 export type { Scaling, Knowledge };
 export { unspell };
 
-const MADNESS = 0;
+/** For debugging **/
 
-// updates at 0
-// asserts at 1
-
-function aside(message: unknown, madness: number=2): void {
-  if (madness >= MADNESS) console.log(...shell(message));
+enum LOUDNESS {
+  Lexer,
+  Parser,
+  Spanner,
+  Piler,
+  Assert,
+  Loudly,
 }
+
+const UTLOUD = LOUDNESS.Assert;
+
+function weep(first: unknown ="wah", ...rest: unknown[]): void {
+  console.log(first, ...rest);
+}
+
+function loudly<T>(thing: T, loudness: number=LOUDNESS.Loudly): T {
+  if (loudness >= UTLOUD) weep(...shell(thing));
+  return thing;
+}
+
+function roughly(first: unknown, ...rest: unknown[]): never {
+  weep(first, ...rest);
+  throw new Error();
+}
+
+function assertively(condition: boolean, message: unknown ="", loudness: number=LOUDNESS.Assert): asserts condition {
+  if (!condition) roughly(`I can't assert ${message ? `that ${message}` : "this"}…`);
+  else if (message) loudly(message, loudness);
+}
+
+function unreachably(first: unknown, ...rest: unknown[]): never {
+  roughly("Unreachable", first, ...rest);
+}
+
+/** For measuring **/
 
 const PT = 1; // 1pt = 1pt
 const PX = 4/3; // 3px = 4pt
@@ -46,7 +75,7 @@ function max(...xs: number[]): number {
 }
 
 function only<T>(thing: T[]): T {
-  asyAssert(thing.length === 1);
+  assertively(thing.length === 1);
   return thing[0];
 }
 
@@ -92,17 +121,6 @@ function nextSuchThat(text: string, condition: ($s: string) => boolean, start: n
          ?? text.length;
 }
 
-/** For debugging **/
-
-function weep(tears: string = "wah"): void {
-  console.log(tears);
-}
-
-function loudly<T>(thing: T): T {
-  console.log(thing);
-  return thing;
-}
-
 function timely<T,U>(work: ($T: T) => U=same, iterations: number=1): ($T: T) => U {
   const t = Date.now();
   Array(iterations).forEach(work);
@@ -110,27 +128,27 @@ function timely<T,U>(work: ($T: T) => U=same, iterations: number=1): ($T: T) => 
   return work;
 }
 
-function implies(fore: boolean): ($after: boolean) => boolean {
-  if (fore) {
-    asyAssert(fore);
-    return (lafter) => lafter;
-  } else {
-    return (lafter) => true;
-  }
-}
+//function implies(fore: boolean): ($after: boolean) => boolean {
+//  if (fore) {
+//    asyAssert(fore);
+//    return (lafter) => lafter;
+//  } else {
+//    return (lafter) => true;
+//  }
+//}
 
 // lots of todos, this is just a temporary implementation
 // make it upcast-safe is the big one
 function underload(f: Functionlike<any>, checks: Functionlike<boolean>[], args: unknown[]): ReturnType<typeof f> {
-  aside([f, checks, args]);
+  loudly([f, checks, args], 0);
   if (args.length === 0) {
-    aside("got em all", 0);
+    loudly("got em all", 0);
     return f([]);
   } else if (checks[0](args[0])) {
-    aside("this ones good", 0);
+    loudly("this ones good", 0);
     return underload((lrest) => f([args[0], ...lrest]), checks.slice(1), args.slice(1));
   } else {
-    aside("this ones bad", 0);
+    loudly("this ones bad", 0);
     return underload((lrest) => f([null, ...lrest]), checks.slice(1), args);
   }
 }
@@ -203,19 +221,8 @@ class AsyError extends Error {
   }
 }
 
-function asyAssert(condition: boolean, message?: unknown): asserts condition {
-  if (!condition) throw new Error(`I can't assert ${message ? `that ${message}` : "this"}…`);
-  else aside(message, 1);
-}
-
-function asyUnreachable(message: string = ""): never {
-  throw new Error(`Unreachable: ${message}`);
-}
-
 export type { Badness };
 export { CompileError, AsyError };
-export { asyAssert, asyUnreachable };
-
 export { PT, PX, INCH, CM, MM };
 
 export { min, max, shed, shell };
@@ -226,6 +233,7 @@ export { enumNames, nextSuchThat };
 
 export { underload, isAlign, isBoolean, isNumber, isPair, isPen, isString, isPathlike };
 
-export { aside, weep, loudly, timely, repeatedly, same, implies };
+export { LOUDNESS };
+export { weep, loudly, timely, repeatedly, same, roughly, assertively, unreachably };
 
 export { underloadTests };

@@ -6,3 +6,4 @@
 - consolidate all the scatteredness in `render`
 - reify aligns
 - implement more structure (consider monads for state)
+- async first load

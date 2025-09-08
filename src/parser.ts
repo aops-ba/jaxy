@@ -1,5 +1,5 @@
-import { CompileError } from "./helper.ts";
-import { asyAssert } from "./helper.ts";
+import { CompileError, loudly, LOUDNESS } from "./helper.ts";
+import { assertively } from "./helper.ts";
 
 import { Keyword, Operator, Separator, Other } from "./tokens.ts";
 
@@ -55,7 +55,6 @@ import {
   TernorP,
   ExpressionStatementP
 } from "./piler.ts";
-import { aside } from "./helper.ts";
 
 export type PercyOptions = {
   // Future options go here
@@ -248,8 +247,8 @@ export default class Percy {
    */
   peek() {
     if (this.fuel++ > 1e6) {
-      aside(["Stuck tok:", this.tokens[this.currentIndex]], 0);
-      asyAssert(false, "infinite loop");
+      loudly(["Stuck tok:", this.tokens[this.currentIndex]], 0);
+      assertively(false, "infinite loop", LOUDNESS.Parser);
     }
     return this.tokens[this.currentIndex]!;
   }
@@ -284,9 +283,10 @@ export default class Percy {
    * @param index Token index to move to. Usually used in conjunction with a previous value of `this.currentIndex`.
    */
   rollback(index: number) {
-    asyAssert(
+    assertively(
       index >= 0 && index < this.tokens.length,
-      "Invalid rollback index"
+      "rollback index check"
+      ,LOUDNESS.Parser
     );
     this.currentIndex = index;
   }
@@ -1181,7 +1181,7 @@ export default class Percy {
 
   _consumeBraceSuffixedExpression(tree: StatementP): BraceAffixedExpressionPhrase {
     const lbrace = this.expectTT(Separator.LCurly);
-    asyAssert(lbrace !== null, "_consumeBraceSuffixedExpression precondition");
+    assertively(lbrace !== null, "_consumeBraceSuffixedExpression precondition", LOUDNESS.Parser);
 
     let suffix: StatementP | null = null;
     switch (this.peek().kind) {

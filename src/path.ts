@@ -1,4 +1,4 @@
-import { loudly, type Scaling, type Knowledge, BBox, min, max } from "./helper";
+import { type Scaling, type Knowledge, BBox, min, max } from "./helper";
 import { Seen } from "./seen";
 
 import { Pair, toRadians } from "./number";
