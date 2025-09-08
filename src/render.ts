@@ -58,8 +58,8 @@ export default class Render {
     };
   }
 
-  async update(knowledge: Knowledge[]): Promise<Render> {
-    this.wisdom = [this.unitsize(Render.DEFSCALE.x, Render.DEFSCALE.y)].concat(_.compact (_.flattenDeep (await Promise.all(knowledge))));
+  update(knowledge: Knowledge[]): Render {
+    this.wisdom = [this.unitsize(Render.DEFSCALE.x, Render.DEFSCALE.y)].concat(_.compact (_.flattenDeep (knowledge)));
     return this;
   }
 

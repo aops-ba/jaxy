@@ -650,13 +650,13 @@ export class AllP extends Phrase {
     private step: number = 0,
   ) { super(); }
 
-  understandAll(): Knowledge[] {
-    return this.decls.map(_ => this.understandNext());
+  async understandAll(): Promise<Knowledge[]> {
+    return await Promise.all(this.decls.map(async _ => await this.understandNext()));
   }
 
-  understandNext(): Knowledge {
+  async understandNext(): Promise<Knowledge> {
     return (this.step < this.decls.length)
-    ? this.understand(this.decls[this.step++]) as Knowledge
+    ? await this.understand(this.decls[this.step++]) as Knowledge
     : unspell;
   }
 
@@ -723,8 +723,8 @@ export class AllP extends Phrase {
       } else if (t instanceof CallP) {
         return ((lcall, largs) => {
           aside([`Calling ${t.caller} on`, largs, "."]);
-          return (lcall) (largs);
-        }) (this.understand(t.caller) as Function, t.args.map(x => this.understand(x)));
+          return (lcall as Function) (largs);
+        }) (this.understand(t.caller), t.args.map(x => this.understand(x)));
       } else if (t instanceof RoundP) {
         return this.understand(t.expr);
       } else if (t instanceof CallArgsP) {

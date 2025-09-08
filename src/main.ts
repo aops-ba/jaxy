@@ -66,7 +66,7 @@ async function transpile(): Promise<void> {
   try {
     console.clear();
     mindy = new Percy(asyblock.value.trim()).parse();
-    await (await randy.update(mindy.understandAll())).render();
+    await randy.update(await mindy.understandAll()).render();
     console.log("we did it");
   } catch (e) {
     throw new Error(`we didn't do it: ${e}`);
