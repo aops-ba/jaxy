@@ -2,18 +2,18 @@ import _ from "lodash/fp";
 
 import Percy from "./parser";
 import Randy from "./render";
-import { AllP } from "./meaner";
+import { AllP } from "./piler";
 
 const asyblock = document.getElementById("asy")! as HTMLTextAreaElement;
-const svgblock = document.getElementById("svg")! as HTMLElement;
-const ight = document.getElementById("ight")! as HTMLSpanElement;
-const thgi = document.getElementById("thgi")! as HTMLSpanElement;
+const svgblock = document.getElementById("svg")! as unknown as SVGGraphicsElement;
+const eyes = document.getElementById("eyes")! as HTMLSpanElement;
+const ears = document.getElementById("ears")! as HTMLSpanElement;
 
 window.onload = function() {
   asyblock.addEventListener("input", () => transpile());
   window.addEventListener("resize", () => randy.render());
-  ight.addEventListener("click", () => twilight());
-  thgi.addEventListener("click", () => truesight());
+  eyes.addEventListener("click", () => twilight());
+  ears.addEventListener("click", () => truesight());
 
   twilight();
   truesight();
@@ -26,14 +26,14 @@ function twilight(): void {
   ((lwhich: boolean) =>
   ((light: string) =>
   ((lhues: string[]) => {
-    ight.innerHTML = light;
+    eyes.innerHTML = light;
     _.each ((lxx: [string, string]) => document.body.style.setProperty(lxx[0], lxx[1]))
            (_.zip (["--bg", "--mg", "--fg", "--shadow"])
                   (lhues));
   }
   ) (lwhich ? ["dimgrey", "black", "white", "blue"] : ["lightgrey", "white", "black", "red"])
   ) (lwhich ? lmoon : lsun)
-  ) (ight.innerHTML === lsun || (ight.innerHTML === "" && Math.abs(ldate.getHours()-12) > 6))
+  ) (eyes.innerHTML === lsun || (eyes.innerHTML === "" && Math.abs(ldate.getHours()-12) > 6))
   ) ('☉', ldate.getDate() < 15 ? '☽' : '☾')
   ) (new Date())
   ;
@@ -45,17 +45,19 @@ function truesight(): void {
   _.map (([lwhich, ly, ln]: string[]) => {
     _.each ((le: HTMLElement) => le.style.setProperty("display", lasleep ? ly : ln))
            (document.getElementsByClassName(lwhich));
-    thgi.innerHTML = lasleep ? lopen : lclosed;
+    ears.innerHTML = lasleep ? lopen : lclosed;
   }
   ) ([["open", "block", "none"], ["closed", "none", "block"]])
-  ) (thgi.innerHTML === lclosed)
+  ) (ears.innerHTML === lclosed)
   ) ('ɮ', 'ɬ');
 }
 
 // Lexy (she/they) the lexer,
 // Percy (he/they) the parser,
 // Randy (they/them) the renderer,
-// Mindy (he/she) the minder.
+// Mindy (he/she) the minder/piler/understander.
+// the merx
+// we all live together in a happy world
 
 export const randy: Randy = new Randy(svgblock);
 let mindy: AllP;

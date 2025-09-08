@@ -54,7 +54,7 @@ import {
   DimensionsP,
   TernorP,
   ExpressionStatementP
-} from "./meaner.ts";
+} from "./piler.ts";
 import { aside } from "./helper.ts";
 
 export type PercyOptions = {

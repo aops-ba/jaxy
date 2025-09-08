@@ -28,13 +28,13 @@ h1 {
   flex-direction: column;
 }
 
-#eyes {
+#gaze {
   padding: 1px;
   font-family: var(--inconsolata);
   font-size: xx-large;
 }
 
-#ight:hover, #thgi:hover {
+#eyes:hover, #ears:hover {
   cursor: pointer;
   color: var(--shadow);
   filter: drop-shadow(0 0 5px var(--shadow));

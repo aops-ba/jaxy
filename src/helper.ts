@@ -7,7 +7,7 @@ import { Path } from "./path";
 export type { Scaling, Knowledge };
 export { unspell };
 
-const MADNESS = 4;
+const MADNESS = 0;
 
 // updates at 0
 // asserts at 1

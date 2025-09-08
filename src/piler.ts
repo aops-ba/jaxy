@@ -661,7 +661,7 @@ export class AllP extends Phrase {
   }
 
   understand(t: Maybe<Phrase>): unknown {
-    aside(["Time to understand", t]);
+    aside(["It's time to understand", t]);
     if (t === null) {
       return;
 
@@ -671,6 +671,7 @@ export class AllP extends Phrase {
         return t.decls.map(x => this.understand(x));
       } else if (t instanceof ImportDeclarationP) {
         if (t.importTarget instanceof IdentifierP) {
+          aside(["Time to import stuff", t]);
           return merx(t.importTarget.getName());
         } else {
           return merx(t.importTarget?.value ?? "");
@@ -704,7 +705,6 @@ export class AllP extends Phrase {
 
     } else if (t instanceof OperatorP) {
       if (t instanceof UnorP) {
-        console.log(t.toString());
         return (lookup(t.operator)) (this.understand(t.operand));
       } else if (t instanceof BinorP) {
         return (lookup(t.operator)) (this.understand(t.left), this.understand(t.right));
