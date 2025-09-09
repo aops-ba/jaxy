@@ -1,4 +1,4 @@
-import { BakedPair } from "./bake";
+//import { BakedPair } from "./bake";
 import { assertively, loudly } from "./helper";
 
 type Fielded = Real | Pair;
@@ -7,13 +7,13 @@ type Rime<T> = T | number;
 type Unclosed = Exclude<Rime<Ringed>, Pair>;
 
 // todo: test this out
-class _Ringed { constructor(public x: number) {} };
-class _Fielded extends _Ringed { stuff() {} }//{ constructor(public x: number) {super(x)} };
-class _Closed extends _Fielded { constructor(public x: number, public y: number) {super(x)} };
-type _Int = Exclude<_Ringed, _Fielded>;
-type _Real = Exclude<_Fielded, _Closed>;
-type _Pair = _Closed;
-let x: _Int = 5;
+//class _Ringed { constructor(public x: number) {} };
+//class _Fielded extends _Ringed { stuff() {} }//{ constructor(public x: number) {super(x)} };
+//class _Closed extends _Fielded { constructor(public x: number, public y: number) {super(x)} };
+//type _Int = Exclude<_Ringed, _Fielded>;
+//type _Real = Exclude<_Fielded, _Closed>;
+//type _Pair = _Closed;
+//let x: _Int = 5;
 
 export class AsyMath {
   static lift(left: Rime<Ringed>, right: Rime<Ringed>): [Ringed, Ringed] {

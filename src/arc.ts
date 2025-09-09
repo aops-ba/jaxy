@@ -1,12 +1,9 @@
-import type { BBox, Knowledge, Scaling } from "./helper";
+import type { BBox } from "./helper";
 
 import { Pair } from "./number";
 import { origin } from "./number";
 
-import type { Pens } from "./pen";
-
 import { Seen } from "./seen";
-import { same } from "./helper";
 
 class Arc extends Seen {
   center: Pair;
@@ -22,23 +19,12 @@ class Arc extends Seen {
     this.to = to;
   }
 
-  show(pens: Pens): ($s: Scaling) => string {
-    same(pens);
-    throw new TypeError("cant draw arcs yet lol");
-  }
 }
 
 class Circle extends Arc {
 
   constructor(center: Pair, radius: number) {
     super(center, radius, 0, 360);
-  }
-
-  show(pens: Pens): Knowledge {
-    return Object.assign((scaling: Scaling) =>
-      `<circle cx="${scaling.x*this.center.x}" cy="${scaling.y*this.center.y}" r="${scaling.x*this.radius}"`
-      + `${this.ink(pens)(scaling)} />`,
-      { kind: "show circle" });
   }
 
   bbox(): BBox {

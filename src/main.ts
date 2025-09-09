@@ -64,8 +64,11 @@ export const randy: Randy = new Randy(svgblock);
 
 async function transpile(): Promise<void> {
   console.clear();
+  randy.forget();
   try {
-    (await randy.update(new Percy(asyblock.value.trim()).parse().understandAll())).render();
+    new Percy(asyblock.value.trim()).parse().understandAll();
+    await randy.render();
+//    (await randy.update(new Percy(asyblock.value.trim()).parse().understandAll())).render();
     loudly("we did it");
   } catch (e) {
     roughly(`we didn't do it: ${e}`);

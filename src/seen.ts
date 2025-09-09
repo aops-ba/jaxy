@@ -1,20 +1,9 @@
-import { PT, Knowledge, weep, Scaling, BBox } from "./helper";
-import { Pens, defaultpen } from "./pen";
+import { BBox } from "./helper";
 
 export abstract class Seen {
-
-  ink({ fill, stroke }: Pens, text: string=""): Knowledge {
-    return Object.assign((scaling: Scaling) => `fill="${fill?.color ?? "none"}" stroke="${stroke?.color ?? "none"}"`
-      + ` stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"`
-      + ` stroke-width="${PT*(stroke ?? defaultpen).linewidth}"`,
-      { kind: "ink ink ink" });
-  }
-
-  show(pens: Pens): Knowledge {
-    throw new TypeError(`${this} is too abstract to use ${pens}`);
-  }
 
   bbox(): BBox {
     throw new ReferenceError(`cant find a bbox for ${this} yet`);
   }
+
 }

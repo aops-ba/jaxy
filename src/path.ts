@@ -1,10 +1,7 @@
-import { type Scaling, type Knowledge, BBox, min, max } from "./helper";
+import { BBox, min, max } from "./helper";
 import { Seen } from "./seen";
 
 import { Pair, toRadians } from "./number";
-
-import type { Pens } from "./pen";
-import { BakedPair } from "./bake";
 
 class Path extends Seen {
   // todo: improve this
@@ -27,8 +24,8 @@ class Path extends Seen {
   // todo: this is actually redundant because of upcasting
   static make(left: Path | Pair, right: Pair | "cycle"): Path {
     if (left instanceof Path && right === "cycle") return left.becycle();
-    else if (left instanceof Path && BakedPair.is(right)) return left.add(right);
-    else if (BakedPair.is(left) && BakedPair.is(right)) return new Path([left as Pair, right as Pair]);
+    else if (left instanceof Path && right instanceof Pair) return left.add(right);
+    else if (left instanceof Pair && right instanceof Pair) return new Path([left as Pair, right as Pair]);
     else throw new Error("bad path");
   }
 
@@ -55,14 +52,6 @@ class Path extends Seen {
       this.points.push(p);
     }
     return this;
-  }
-
-  show(pens: Pens): Knowledge {
-    return Object.assign((scaling: Scaling) =>
-    `<path d="${this.points.map((lpair: Pair, lindex: number): string =>
-      `${lindex==0 ? 'M' : ' L'} ${scaling.x*lpair.x} ${scaling.y*lpair.y}`).join('')}
-       ${this.cyclic ? ' Z' : ''}"` + this.ink(pens)(scaling) + ` />`,
-      { kind: "show a… path!!" });
   }
 
   bbox(): BBox {

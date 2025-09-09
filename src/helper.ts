@@ -1,7 +1,5 @@
 /** For sundries **/
 
-import { BakedBool, BakedReal, BakedString } from "./bake";
-
 type Maybe<T> = NonNullable<T> | null;
 type MaybeOrNot<T> = Maybe<T> | undefined;
 type Enumlike = { [key: number]: string };
@@ -21,7 +19,7 @@ enum LOUDNESS {
   Loudly,
 }
 
-const UTLOUD = 99;//LOUDNESS.Loudly;
+const UTLOUD = LOUDNESS.Loudly;
 
 function weep(): void {
   console.log("wah");
@@ -176,20 +174,20 @@ function eff([a, b, c]: [Maybe<boolean>, Maybe<number>, Maybe<string>] ): string
   return `${a ?? true} ... ${b ?? 1} ... ${c ?? "T"}`;
 }
 
-function underloadTests() {
-  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], []));
-  console.log("first");
-  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], [false]));
-  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], [-1]));
-  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], ["hoynos"]));
-  console.log("second");
-  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], [false, -2]));
-  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], [false, "dwoh"]));
-  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], [-2, "dwoh"]));
-  console.log("third");
-  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], [false, -3, "treyes"]));
-  console.log("fourth");
-}
+//function underloadTests() {
+//  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], []));
+//  console.log("first");
+//  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], [false]));
+//  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], [-1]));
+//  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], ["hoynos"]));
+//  console.log("second");
+//  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], [false, -2]));
+//  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], [false, "dwoh"]));
+//  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], [-2, "dwoh"]));
+//  console.log("third");
+//  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], [false, -3, "treyes"]));
+//  console.log("fourth");
+//}
 
 function hasTex(s: string): boolean {
   return (s.includes('\\(') && s.includes('\\)'))
@@ -207,7 +205,7 @@ export type { BBox, Scaling, Knowledge };
 export { PT, PX, INCH, CM, MM, unspell };
 export { hasTex };
 
-export type { Maybe, Enumlike, Functionlike, Curried };
+export type { Maybe, MaybeOrNot, Enumlike, Functionlike, Curried };
 export { min, max, only, peel, shed, shell, flight, toEach, withEach, maybeArray, enumNames, nextSuchThat };
 
 export { underload };

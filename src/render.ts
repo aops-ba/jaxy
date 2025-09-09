@@ -10,10 +10,10 @@ import { Path } from "./path";
 import { Circle } from "./arc";
 import { unitcircle } from "./arc";
 
-import type { Pen } from "./pen";
+import type { Pen, Pens } from "./pen";
 import { defaultpen, penboard } from "./pen";
 import Label from "./label";
-import { CM, INCH, Maybe, MM, PT, Scaling, shed, underload, Knowledge, loudly, BBox, LOUDNESS, hasTex as hasTex } from "./helper";
+import { CM, INCH, Maybe, MM, PT, Scaling, shed, underload, loudly, BBox, LOUDNESS, hasTex as hasTex, only } from "./helper";
 import { Keyword, Operator, Other, Token, Tokenboard } from "./tokens";
 import { bakeboard, BakedPair, BakedString, isAlign, isPathlike, isPen } from "./bake";
 import { assertively } from "./helper";
@@ -21,12 +21,17 @@ import { Seen } from "./seen";
 
 const MathJax = window["MathJax" as keyof typeof window];
 
+type Knowledge = {
+  sight: Seen,
+  pens: Pens,
+}
+
 export default class Render {
   static UP = -1; // asy up = svg down
-  static DEFSCALE: Scaling = { x: 100, y: 100 };
+  static DEFSCALE: Scaling = { x: 100, y: 100*Render.UP };
 
   svgblock: SVGGraphicsElement;
-  wisdom: (($s: Scaling) => string)[];
+  wisdom: Knowledge[];
   scaling: Scaling;
 
   constructor(svgblock: SVGGraphicsElement) {
@@ -37,64 +42,92 @@ export default class Render {
     })(this.greatbox());
 
     this.wisdom = [];
-    this.scaling = { x: 0, y: 0 };
+    this.scaling = Render.DEFSCALE;
     //loudly(window.devicePixelRatio);
   }
 
-  // this wont work because the bbox reckoning is based on the sizes
-  size(x: number, y: number =x): Knowledge {
-    return ((lb) => (ls: Scaling) => {
-      ls.x = x/lb.width;
-      ls.y = y/lb.height*Render.UP;
-      return "";
-    })(this.svgblock.getBBox());
-  }
-
-  unitsize(x: number, y: number =x): Knowledge {
-    return (ls: Scaling) => {
-      ls.x = x;
-      ls.y = y*Render.UP;
-      return "";
-    };
-  }
-
-  async update(knowledge: Knowledge[]): Promise<Render> {
-    this.wisdom = [this.size(200, 200)]
-//    this.wisdom = [this.unitsize(Render.DEFSCALE.x, Render.DEFSCALE.y)]
-      .concat(_.compact (_.flattenDeep (knowledge)))
-      .filter(x => typeof x === "function")
+  size(x: number, y: number =x): Render {
+    //todo
     return this;
+  }
+
+  unitsize(x: number, y: number): Render {
+    this.scaling = { x: x, y: y*Render.UP };
+    return this;
+  }
+
+  learn(knowledge: Knowledge): Render {
+    this.wisdom.push(knowledge);
+    return this;
+  }
+
+  forget(): Render {
+    this.wisdom = [];
+    return this;
+  }
+
+  sketch(knowledge: Knowledge | string): string {
+    if (typeof knowledge === "string") return knowledge;
+
+    if (knowledge.sight instanceof Path) {
+      return ((lx: Path) => (ls: Scaling) => `<path d="${lx.points.map((lpair: Pair, lindex: number): string =>
+        `${lindex==0 ? 'M' : ' L'} ${ls.x*lpair.x} ${ls.y*lpair.y}`).join('')}`
+      + `${lx.cyclic ? ' Z' : ''}" ` + this.ink(knowledge) + ` />`)(knowledge.sight)(this.scaling);
+    } else if (knowledge.sight instanceof Circle) {
+      return ((lx: Circle) => (ls: Scaling) =>
+        `<circle cx="${ls.x*lx.center.x}" cy="${ls.y*lx.center.y}" r="${ls.x*lx.radius}"`
+        + `${this.ink(knowledge)} />`)(knowledge.sight)(this.scaling);
+    } else if (knowledge.sight instanceof Label) {
+      return ((lx: Label) => (ls: Scaling) =>
+        `<foreignObject x="${ls.x*(lx.position.x+Label.SF*lx.align.x)}" y="${ls.y*(lx.position.y+Label.SF*lx.align.y)}"`
+        + `style="overflow: visible;">`
+        + this.ink(knowledge) + `</foreignObject>`)(knowledge.sight)(this.scaling);
+    } else {
+      throw new Error("idk how to draw this");
+    }
+  }
+
+  ink(knowledge: Knowledge): string {
+    if (knowledge.sight instanceof Label) {
+      return `\\(\\textcolor[RGB]{` + ((lc) => `${lc.r},${lc.g},${lc.b}`)(knowledge.pens.fill!.color) + `}`
+      + `{${`${_.replace (/\\text{}|\\\(|\\\)/gm) ('') (`\\text{${
+              _.replace (/\\\(/gm) ('}\\(') (
+              _.replace (/\\\)/gm) ('\\)\\text{') (knowledge.sight.text))}}}`)}\\)`}`;
+    } else {
+      return (({fill, stroke}) => `fill="${fill?.color ?? "none"}" stroke="${stroke?.color ?? "none"}"`
+        + ` stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"`
+        + ` stroke-width="${PT*(stroke ?? defaultpen).linewidth}"`)(knowledge.pens);
+    }
   }
 
   // todo: should these promises resolve all at render time or eachwise at read time?
   async render(): Promise<void> {
-    // this should really be outpulling all the size setters and applying only the last one
     await (async (l): Promise<void> => {
       this.svgblock.innerHTML = `${
         (await Promise.all(this.wisdom.map(async (lk: Knowledge) => await this.mete(lk)))
-          .then((results) => _.flatten(results).map((lk: Knowledge) => lk(this.scaling))))
+          .then((outcome) => outcome.flat().map((lk: Knowledge | string) => this.sketch(lk))))
       .join('')}`;
       this.svgblock.setAttribute("viewBox", `${l.minx} ${l.miny} ${l.width} ${l.height}`);
       this.svgblock.setAttribute("preserveAspectRatio", "xMidYMid meet");
     })(this.greatbox());
   }
 
-  async mete(k: Knowledge): Promise<Knowledge[]> {
-//    loudly(k, LOUDNESS.Spanner);
-    return !hasTex(k(this.scaling))
-      ? [k]
+  async mete(k: Knowledge): Promise<Knowledge | string> {
+    return !(k.sight instanceof Label)
+      ? k
       : (async (le: HTMLElement) => {
-          document.getElementById("unseen")!.appendChild(le).innerHTML = k(this.scaling);
+          document.getElementById("unseen")!.appendChild(le).innerHTML = this.sketch(k);
           await MathJax.typesetPromise([le]);
 
-          return [...le.getElementsByTagName("foreignObject")].map((lf: SVGForeignObjectElement) => (((lr: DOMRect): Knowledge => {
+          return ((lf: SVGForeignObjectElement) => (((lr: DOMRect): string => {
             lf.setAttribute("x", `${Number(lf.getAttribute("x"))-lr.width/2}`);
             lf.setAttribute("y", `${Number(lf.getAttribute("y"))-lr.height/2}`);
             lf.setAttribute("width", ''+lr.width);
             lf.setAttribute("height", ''+lr.height);
             document.getElementById("unseen")!.removeChild(le);
-            return () => lf.outerHTML;
-          }) (lf.firstElementChild!.getBoundingClientRect())));
+            return lf.outerHTML;
+          }) (lf.firstElementChild!.getBoundingClientRect())))
+             (only([...le.getElementsByTagName("foreignObject")]));
         }) (document.createElement("svg"));
   }
 
@@ -138,7 +171,7 @@ export const nameboard = new Map<string, any>([
   ["mm", MM],
   ["pt", PT],
 //  ["size", ([x,y=x]: number[]) => randy.size(x, y)],
-  ["unitsize", ([x,y=x]: number[]) => randy.unitsize(x, y)],
+  ["unitsize", ([x, y=x]: [number, number]) => randy.unitsize(x, y)],
   ...penboard,
   ...bakeboard,
 ] as [string, any][]);
@@ -165,44 +198,49 @@ function lookup(thing: Maybe<Token<Keyword | Operator | Other.Identifier>>): any
   }) ("value" in thing ? thing.value as string : Tokenboard[thing.kind]);
 }
 
-function draw([L, g, align, p]: [Maybe<Pair>, Seen, Maybe<Pair>, Maybe<Pen>]): Knowledge[] {
+function draw([L, g, align, p]: [Maybe<Pair>, Seen, Maybe<Pair>, Maybe<Pen>]): void {
   assertively(g !== null);
-  return _.flatten ([g.show({ fill: null, stroke: p ?? defaultpen })]);
+  randy.learn({ sight: g, pens: { fill: null, stroke: p ?? defaultpen } });//_.flatten ([g.show({ fill: null, stroke: p ?? defaultpen })]);
 }
 
-function fill([g, p]: [Seen, Maybe<Pen>]): Knowledge[] {
+function fill([g, p]: [Seen, Maybe<Pen>]): void {
   assertively(g !== null);
-  return _.flatten ([g.show({ fill: p ?? defaultpen, stroke: null })]);
+  randy.learn({ sight: g, pens: { fill: p ?? defaultpen, stroke: null } });
 }
 
-function filldraw([g, fillpen, drawpen]: [Seen, Maybe<Pen>, Maybe<Pen>]): Knowledge[] {
-  return _.flatten ([nameboard.get("draw")([g, drawpen ?? defaultpen]),
-                     nameboard.get("fill")([g, fillpen ?? defaultpen])]);
+function filldraw([g, fillpen, strokepen]: [Seen, Maybe<Pen>, Maybe<Pen>]): void {
+  assertively(g !== null);
+  randy.learn({ sight: g, pens: { fill: fillpen ?? defaultpen, stroke: null } });
+  randy.learn({ sight: g, pens: { fill: null, stroke: strokepen ?? defaultpen } });
 }
 
 // todo: calibrate label appearance
 // todo: lots of redundancy with type checking / guarding
-function label([s, position, align, p]: [string, Maybe<Pair>, Maybe<Pair>, Maybe<Pen>]): Knowledge[] {
+function label([s, position, align, p]: [string, Maybe<Pair>, Maybe<Pair>, Maybe<Pen>]): void {
   assertively(s !== null);
-  return _.flatten ([(lscaling: Scaling) => new Label(s, position ?? origin, descale(new Align(align ?? origin), lscaling)).show({ fill: p ?? defaultpen, stroke: null })(lscaling)]);
+  randy.learn({
+    sight: new Label(s, position ?? origin, align ?? origin),
+    pens: { fill: p ?? defaultpen, stroke: null },
+  });
 }
 
 // todo: calibrate dot size
 // todo: L should be Label instead of string, cf. upcasting
-function dot([L, z, align, p]: [Maybe<string>, Maybe<Pair>, Maybe<Align>, Maybe<Pen>]): Knowledge[] {
-  return _.flatten ([(lscaling: Scaling) => (shed(fill([new Circle(z ?? origin, descale(1/2*defaultpen.dotsize(), lscaling)), p ?? defaultpen])) as Knowledge)(lscaling),
-                     label([L ?? "", z, align ?? E, p])]);
+function dot([L, z, align, p]: [Maybe<string>, Maybe<Pair>, Maybe<Align>, Maybe<Pen>]): void {
+  console.log("wah");
+  randy.learn({ sight: loudly(new Circle(z ?? origin, descale(1/2*defaultpen.dotsize()))), pens: { fill: p ?? defaultpen, stroke: null } });
+  label([L ?? "", z, align ?? E, p]);
 }
 
 // carafes go here
-function descale<T extends Rime<Fielded>>(z: T, scaling: Scaling): T {
+function descale<T extends Rime<Fielded>>(z: T): T {
   return z instanceof Align
-    ? new Align(z.x / scaling.x, z.y / Render.UP / scaling.y) as T
+    ? new Align(z.x / randy.scaling.x, z.y / Render.UP / randy.scaling.y) as T
     : z instanceof Pair
-      ? new Pair(z.x / scaling.x, z.y / Render.UP / scaling.y) as T
+      ? new Pair(z.x / randy.scaling.x, z.y / Render.UP / randy.scaling.y) as T
       : z instanceof Real
-        ? new Real(z.x / scaling.x) as T
-        : (z as number) / scaling.x as T;
+        ? new Real(z.x / randy.scaling.x) as T
+        : (z as number) / randy.scaling.x as T;
 }
 
 export { lookup, descale, remember, recall };

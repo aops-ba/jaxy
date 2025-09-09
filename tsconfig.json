@@ -22,5 +22,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src", "src/.grapheme.ts", "src/.morpheme.ts", "src/.phrase.ts"]
+  "include": ["src", "src/.grapheme.ts", "src/.morpheme.ts", "src/.phrase.ts", "src/.number.ts", "src/number.ts"]
 }

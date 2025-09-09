@@ -1,4 +1,4 @@
-import { Maybe } from "./helper";
+import { Maybe, MaybeOrNot } from "./helper";
 
 export class Color {
   r: number;
@@ -53,15 +53,15 @@ export class Pen {
   fontsize = 12;
 
   static fromRgb(r: number, g: number, b: number) {
-    return new Pen({r: r, g: g, b: b});
+    return new Pen({r, g, b});
   };
 
   static fromColor(color: Color) {
-    return new Pen( {color: color} );
+    return new Pen({color});
   };
 
   static fromName(name: string) {
-    return new Pen( {name: name} );
+    return new Pen({name});
   };
 
   dotsize(): number {

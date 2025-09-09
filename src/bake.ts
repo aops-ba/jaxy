@@ -4,6 +4,17 @@ import { Real, Pair, AsyMath, Align, Int } from "./number";
 import { Path } from "./path";
 import { Pen } from "./pen";
 
+/**
+ * The baked types of Asymptote are `void`, `bool`, `int`, `real`, and so on.
+ * The baked types of TypeScript are `undefined`, `boolean`, `bigint`, `number`, and so on.
+ * Each type `Baked<T>` represents the Asymptote implementation of the TypeScript type `T`,
+ *   and `BakedTypes` is the warehouse thereof.
+ * A TypeScript primitive of type `T` is to be wrapped inside
+ *   a Jaxy class using the information in `Baked<T>`.
+ * For example, the TS primitive `0.1` (: number) is to be typechecked using `BakedReal.is`,
+ *   and then used as `new Real(0.1)`,
+**/
+
 type Baked<T> = {
   name: string;
   dimensions: number;

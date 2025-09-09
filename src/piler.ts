@@ -767,7 +767,8 @@ export class AllP extends Phrase {
         // todo: why does this hate asyncs
         // todo: 3 dimensions
         assertively(t.exprs.length === 2);
-        return new Pair(...t.exprs.map(x => this.understand(x)) as [Rime<Fielded>, Rime<Fielded>]);
+        return (([x, y]) => ({ x, y }))(t.exprs.map(x => this.understand(x)));// as [Rime<Fielded>, Rime<Fielded>]);
+        //return (lz => { x: lz.x, y: lz.y })(new Pair(...t.exprs.map(x => this.understand(x)) as [Rime<Fielded>, Rime<Fielded>]);
       } else if (t instanceof IdentifierP) {
         return lookup(t.name);
       } else if (t instanceof LiteralP) {
