@@ -1,5 +1,5 @@
 import type { Enumlike } from "./helper";
-import { enumNames, repeatedly } from "./helper";
+import { enumNames, toEach } from "./helper";
 import { max, min, peel} from "./helper";
 
 type Span = { start: number; end: number };
@@ -208,7 +208,7 @@ function isOperator(e: number): e is Operator {
 }
 
 // List of all keywords and literals (true/false/null), as strings, to distinguish them from identifiers
-const keywordSet: Set<string> = repeatedly(new Set(peel(enumNames(Keyword))),
+const keywordSet: Set<string> = toEach(new Set(peel(enumNames(Keyword))),
                                            (x,y) => x.add(y),
                                            ["true", "false", "null", "and"]);
 
@@ -233,6 +233,7 @@ function tokenTypeToLength(tt: Operator | Separator): number {
 // the suffix "-or" is pronounced /-ɔr/ with an irreducible vowel
 type Unor = Operator.Plus | Operator.Minus
   | Operator.Bang | Operator.Twiddle
+// danger: ++ and -- are both unors and assignors; this may be unsafe
   | Operator.PlusPlus | Operator.MinusMinus
   | Keyword.tension | Keyword.controls | Keyword.curl | Keyword.atleast;
 
@@ -243,7 +244,9 @@ type Modifactor = Keyword.private | Keyword.public | Keyword.restricted
 
 type Assignor = Operator.Eq
   | Operator.PlusEq | Operator.MinusEq | Operator.StarEq | Operator.SlashEq
-  | Operator.PercentEq | Operator.CaretEq | Operator.HashEq;
+  | Operator.HashEq | Operator.PercentEq | Operator.CaretEq
+// danger: ++ and -- are both unors and assignors; this may be unsafe
+  | Operator.PlusPlus | Operator.MinusMinus;
 
 type Literal = Other.IntegerLiteral | Other.FloatLiteral
   | Other.StringLiteral | Other.BooleanLiteral | Other.NullLiteral;

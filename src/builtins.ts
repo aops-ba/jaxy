@@ -8,22 +8,17 @@ import {
   logComplex,
   quadraticrootsReal
 } from "./special_functions.ts";
-import {AsyError} from "./helper.ts";
+import {AsyError, Functionlike} from "./helper.ts";
 import { loudly, weep } from "./helper.ts";
 import { AsyMath, Fielded, Real } from "./number.ts";
 import { Path } from "./path.ts";
 
 export type AsyType<JSType> = {
-  // Readable name for this type (e.g. "real" or "real[]")
   name: string;
-  // Number of array dimensions
-  arrayDims: number;
-  // Create a default instance of this type (e.g. 0)
+  dimensions: number;
   default: () => JSType;
-  // Check whether this value is of this type
-  typecheck: (v: any) => v is JSType;
-  // Debug print
-  debugPrint: (v: JSType) => string;
+  typecheck: (thing: unknown) => thing is JSType;
+  toString: (x: JSType) => string;
 }
 
 export type AsyArrayType<T> = AsyType<T[]>;
@@ -41,59 +36,59 @@ function escapeString(str: string): string {
   return `"${str.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t")}"`;
 }
 
-export const BuiltinType = {
+export const BakedType = {
   "real": {
     name: "real",
-    arrayDims: 0,
+    dimensions: 0,
     default: () => 0.0,
     typecheck: (v: any): v is number => typeof v === "number",
     debugPrint: (v: number) => v.toString(),
   } as AsyType<number>,
   "void": {
     name: "void",
-    arrayDims: 0,
+    dimensions: 0,
     default: () => undefined,
     typecheck: (v: any): v is undefined => v === undefined,
     debugPrint: (_v: undefined) => "void",
   } as AsyType<undefined>,
   "pair": {
     name: "pair",
-    arrayDims: 0,
+    dimensions: 0,
     default: () => ({ x: 0, y: 0 }),
     typecheck: (v: any): v is Vector2 => typeof v === "object" && v !== null && typeof v.x === "number" && typeof v.y === "number",
     debugPrint: (v: Vector2) => `(${v.x}, ${v.y})`,
   } as AsyType<Vector2>,
   "int": {
     name: "int",
-    arrayDims: 0,
+    dimensions: 0,
     default: () => 0n,
     typecheck: (v: any): v is bigint => typeof v === "bigint" && (BigInt.asIntN(64, v) === v),
     debugPrint: (v: bigint) => v.toString(),
   } as AsyType<bigint>,
   "string": {
     name: "string",
-    arrayDims: 0,
+    dimensions: 0,
     default: () => "",
     typecheck: (v: any): v is string => typeof v === "string",
     debugPrint: escapeString,
   } as AsyType<string>,
   "bool": {
     name: "bool",
-    arrayDims: 0,
+    dimensions: 0,
     default: () => false,
     typecheck: (v: any): v is boolean => typeof v === "boolean",
     debugPrint: (x: boolean) => x.toString(),
   } as AsyType<boolean>,
   "triple": {
     name: "triple",
-    arrayDims: 0,
+    dimensions: 0,
     default: () => ({ x: 0, y: 0, z: 0 }),
     typecheck: 0 as any, // TODO
     debugPrint: 0 as any // TODO
   } as AsyType<Vector3>,
   "transform": {
     name: "transform",
-    arrayDims: 0,
+    dimensions: 0,
     default: () => [1,0,0,1,0,0],
     typecheck: 0 as any, // TODO
     debugPrint: 0 as any, // TODO
@@ -127,16 +122,14 @@ function divideByZeroInt(v: bigint): bigint {
   return v;
 }
 
-type BuiltinTypeKey = keyof typeof BuiltinType;
-type TSType<T extends string> = T extends BuiltinTypeKey ? (typeof BuiltinType)[T] extends AsyType<infer JSTy> ? JSTy : never : never;
+type BuiltinTypeKey = keyof typeof BakedType;
+type TSType<T extends string> = T extends BuiltinTypeKey ? (typeof BakedType)[T] extends AsyType<infer JSTy> ? JSTy : never : never;
 type TSArrayType<T extends string> = T extends `${infer Base}[]` ? TSArrayType<Base>[] : TSType<T>;
 type TSArgsType<T extends string> = T extends `${infer Arg}, ${infer Rest}` ? [TSArrayType<Arg>, ...TSArgsType<Rest>] : T extends "" ? [] : [TSArrayType<T>];
 type TSFunctionType<T extends string> = T extends `${infer R}(${infer Args})` ? (...args: TSArgsType<Args>) => TSArrayType<R> : never;
 
-type Functionlike = (...args: any) => any;
-
 // i miss haskell
-type Forecast<T extends Functionlike> = { [Property in keyof Parameters<T>]: unknown };
+type Forecast<T extends Functionlike<any>> = { [Property in keyof Parameters<T>]: unknown };
 
 export function bake<N extends string, S extends string>(name: N, _: S, spell: TSFunctionType<S>) {
   return [name, spell];
@@ -160,7 +153,7 @@ export function bake<N extends string, S extends string>(name: N, _: S, spell: T
 //  cake("string(int)", i => i.toString()),
 //];
 
-const bakeboard: Map<string, Functionlike> = new Map([
+const bakeboard: Map<string, Functionlike<any>> = new Map([
   ["+", AsyMath.plus],
   ["-", AsyMath.minus],
   ["*", AsyMath.times],
@@ -169,7 +162,7 @@ const bakeboard: Map<string, Functionlike> = new Map([
   ["<", AsyMath.lt],
   ["==", AsyMath.eq],
   ["--", (x,y) => x instanceof Path ? x.add(y) : new Path([x, y])],
-] as [string, Functionlike][]);
+] as [string, Functionlike<any>][]);
 
 //const bakeboard: Map<string, TSFunctionType<any>> = new Map([
 //  /** BASIC STRING BUILTINS */

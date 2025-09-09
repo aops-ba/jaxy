@@ -1,4 +1,4 @@
-import { assertively } from "./helper";
+import { assertively, loudly } from "./helper";
 import { isPair } from "./helper";
 
 type Rime<T> = T | number;
@@ -11,11 +11,11 @@ export class AsyMath {
   }
 
   static gt(left: Rime<Real>, right: Rime<Real>): boolean {
-    return new Real(left) > new Real(right);
+    return new Real(left).x > new Real(right).x;
   }
 
   static lt(left: Rime<Real>, right: Rime<Real>): boolean {
-    return new Real(left) < new Real(right);
+    return loudly(new Real(left).x < new Real(right).x);
   }
 
   static eq(left: Rime<Fielded>, right: Rime<Fielded>): boolean {
@@ -23,11 +23,11 @@ export class AsyMath {
   }
 
   static negate(noughth: Rime<Fielded>): Fielded {
-    return typeof noughth === "number" ? new Real(-noughth) : noughth.negate();
+    return (typeof noughth === "number" ? new Real(noughth) : noughth).negate();
   }
 
   static invert(noughth: Rime<Fielded>): Fielded {
-    return typeof noughth === "number" ? new Real(1/noughth) : noughth.invert();
+    return (typeof noughth === "number" ? new Real(noughth) : noughth).invert();
   }
 
   static plus(left: Rime<Fielded>, right: Rime<Fielded>): Fielded {
@@ -218,7 +218,7 @@ function toDegrees(r: number): number {
 }
 
 function toRadians(r: number): number {
-  return r/180*Math.PI;
+  return r/toDegrees(1);
 }
 
 export type { Rime };

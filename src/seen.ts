@@ -4,9 +4,10 @@ import { Pens, defaultpen } from "./pen";
 export abstract class Seen {
 
   ink({ fill, stroke }: Pens, text: string=""): Knowledge {
-    return (scaling) => `fill="${fill?.color ?? "none"}" stroke="${stroke?.color ?? "none"}"`
+    return Object.assign((scaling: Scaling) => `fill="${fill?.color ?? "none"}" stroke="${stroke?.color ?? "none"}"`
       + ` stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"`
-      + ` stroke-width="${PT*(stroke ?? defaultpen).linewidth}"`;
+      + ` stroke-width="${PT*(stroke ?? defaultpen).linewidth}"`,
+      { kind: "ink ink ink" });
   }
 
   show(pens: Pens): Knowledge {

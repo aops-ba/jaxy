@@ -1,4 +1,4 @@
-import { CompileError, loudly, LOUDNESS } from "./helper.ts";
+import { loudly, LOUDNESS } from "./helper.ts";
 import { assertively } from "./helper.ts";
 
 import { Keyword, Operator, Separator, Other } from "./tokens.ts";
@@ -11,7 +11,7 @@ import type { Assignor, Modifactor } from "./tokens.ts";
 import { tokenTypeToString } from "./tokens.ts";
 
 import type { LexyOptions } from "./lexer.ts";
-import { Lexy } from "./lexer.ts";
+import { CompileError, Lexy } from "./lexer.ts";
 
 import {
   LambdaP,

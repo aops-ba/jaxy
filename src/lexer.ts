@@ -1,12 +1,20 @@
-import { CompileError, LOUDNESS, unreachably } from "./helper";
+import { Badness, LOUDNESS, flight, unreachably } from "./helper";
 import { assertively } from "./helper";
 import { nextSuchThat } from "./helper";
 
 import { Keyword, Operator, Separator, Other, span } from "./tokens";
 
-import type { BadToken, Token } from "./tokens";
+import type { BadToken, Span, Token } from "./tokens";
 import { isStringKeywordOrLiteral } from "./tokens";
 import { tokenTypeToLength } from "./tokens";
+
+class CompileError {
+  constructor(
+    public readonly message: string,
+    public readonly span: Span,
+    public readonly errorType: Badness = "error"
+  ) {}
+}
 
 function isHex(c: string): boolean {
   assertively(c.length === 1, `${c} is of length 1`, LOUDNESS.Lexer);
@@ -31,7 +39,7 @@ function checkedBigInt(text: string, start: number, end: number, base: number): 
 
   try {
     return {
-      value: [...Array(end-start).keys()].reduce((x: bigint, y: number) =>
+      value: flight(end-start).reduce((x: bigint, y: number) =>
         BigInt(base)*x + BigInt(Number.parseInt(text[y+start]!, base)), 0n),
       realDigits: end - start,
     };
@@ -631,4 +639,5 @@ class Lexy {
 }
 
 export type { LexyOptions };
+export {CompileError};
 export { Lexy };

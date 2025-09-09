@@ -1,13 +1,19 @@
-import type { Span } from "./tokens";
 import { Align, Pair } from "./number";
 import { Pen } from "./pen";
 import { Arc } from "./arc";
 import { Path } from "./path";
 
-export type { Scaling, Knowledge };
-export { unspell };
+/** For sundries **/
+
+type Maybe<T> = NonNullable<T> | null;
+type MaybeOrNot<T> = Maybe<T> | undefined;
+type Enumlike = { [key: number]: string };
+type Functionlike<T> = (...args: any) => T;
+type Curried<T> = (arg: any) => T;
 
 /** For debugging **/
+
+type Badness = "warning" | "error";
 
 enum LOUDNESS {
   Lexer,
@@ -18,29 +24,36 @@ enum LOUDNESS {
   Loudly,
 }
 
-const UTLOUD = LOUDNESS.Assert;
+const UTLOUD = 99;//LOUDNESS.Loudly;
 
-function weep(first: unknown ="wah", ...rest: unknown[]): void {
-  console.log(first, ...rest);
+function weep(): void {
+  console.log("wah");
 }
 
 function loudly<T>(thing: T, loudness: number=LOUDNESS.Loudly): T {
-  if (loudness >= UTLOUD) weep(...shell(thing));
+  if (loudness >= UTLOUD) console.log(...shell(thing));
   return thing;
 }
 
 function roughly(first: unknown, ...rest: unknown[]): never {
-  weep(first, ...rest);
+  console.log(first, ...rest);
   throw new Error();
 }
 
-function assertively(condition: boolean, message: unknown ="", loudness: number=LOUDNESS.Assert): asserts condition {
+function assertively(condition: boolean, message: unknown ="assert", loudness: number=LOUDNESS.Assert): asserts condition {
   if (!condition) roughly(`I can't assert ${message ? `that ${message}` : "this"}…`);
   else if (message) loudly(message, loudness);
 }
 
 function unreachably(first: unknown, ...rest: unknown[]): never {
   roughly("Unreachable", first, ...rest);
+}
+
+class AsyError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AsyError";
+  }
 }
 
 /** For measuring **/
@@ -58,11 +71,15 @@ type BBox = {
   miny: number
 };
 
-
 // coordinates of screen area thingy, not coordinates of asymptote world
 type Scaling = { x: number, y: number };
-type Knowledge = ($s: Scaling) => string;
-const unspell: Knowledge = _ => "";
+
+type Knowledge = {
+  kind?: string,
+  (scaling: Scaling): string,
+}
+
+const unspell: Knowledge = () => "";
 
 /** For working with iterables **/
 
@@ -93,49 +110,54 @@ function peel<T>(xs: T[]): T[] {
   return xs.slice(1,-1);
 }
 
-function maybeArray(s: string | undefined | null): string[] {
-  return s ? [s] : [];
+function maybeArray<T>(thing: MaybeOrNot<T>): T[] {
+  return thing ? [thing] : [];
 }
 
-// do `f` to `body` for each thing in `xs`, and then return `body`
-function repeatedly<T,U>(body: T, f: (t: T, u: U) => unknown, xs: U[]): T {
-  xs.forEach(x => f(body, x));
+function flight(n: number): number[] {
+  return [...Array(n).keys()];
+}
+
+// do `f(body,x)` for each `x` in `xs`, and then return `body`
+function toEach<T, U, V>(body: T, f: (t: T, u: U) => V, xs: U[]): T {
+  xs.forEach((x: U): V => f(body, x));
   return body;
 }
 
-type Maybe<T> = NonNullable<T> | null;
-type Enumlike = { [key: number]: string };
-type Functionlike<T> = (...args: any) => T;
+// do `f` to each thing in `body`, and then return `body`
+function withEach<T, V>(body: T[], f: ($t: T) => V): T[] {
+  body.forEach(f);
+  return body;
+}
+
+// while `$c` do `$f`, but break if it takes longer than `timeout`
+function hurriedly(timeout: number): ($c: Functionlike<boolean>, $f: Functionlike<any>) => void {
+  return (lc: Functionlike<boolean>, lf: Functionlike<any>) => ((lt) => { while (lc()) {
+    if (Date.now()-lt > timeout) {
+      console.log("too slow");
+      break;
+    } else lf();
+  }})(Date.now());
+}
 
 function enumNames(e: Enumlike): string[] {
   return Object.keys(e).filter((k) => isNaN(Number(k)));
 }
 
-// todo: beautification
 // returns the least index `i` in `text[start, text.length` such that `condition(text[i])`,
 //   or else `text.length`
 function nextSuchThat(text: string, condition: ($s: string) => boolean, start: number=0): number {
-  return [...Array(text.length-start).keys()]
-           .map(x => x+start)
-           .find(i => condition(text[i]))
-         ?? text.length;
+  return flight(text.length-start).map(x => x+start).find(i => condition(text[i])) ?? text.length;
 }
 
 function timely<T,U>(work: ($T: T) => U=same, iterations: number=1): ($T: T) => U {
   const t = Date.now();
   Array(iterations).forEach(work);
-  console.log(`${iterations} iterations took ${Date.now()-t}ms.`);
+  console.log(`${iterations} runs took ${Date.now()-t}ms.`);
   return work;
 }
 
-//function implies(fore: boolean): ($after: boolean) => boolean {
-//  if (fore) {
-//    asyAssert(fore);
-//    return (lafter) => lafter;
-//  } else {
-//    return (lafter) => true;
-//  }
-//}
+/** for growing the brain **/
 
 // lots of todos, this is just a temporary implementation
 // make it upcast-safe is the big one
@@ -151,10 +173,6 @@ function underload(f: Functionlike<any>, checks: Functionlike<boolean>[], args: 
     loudly("this ones bad", 0);
     return underload((lrest) => f([null, ...lrest]), checks.slice(1), args);
   }
-}
-
-function eff([a, b, c]: [Maybe<boolean>, Maybe<number>, Maybe<string>] ): string {
-  return `${a ?? true} ... ${b ?? 1} ... ${c ?? "T"}`;
 }
 
 function isBoolean(thing: unknown): thing is boolean {
@@ -174,16 +192,20 @@ function isPair(thing: unknown): thing is Pair {
 }
 
 // todo: more wisdom
-function isAlign(thing: unknown): boolean {
+function isAlign(thing: unknown): thing is Align {
   return thing instanceof Pair || thing instanceof Align;
 }
 
-function isPen(thing: unknown): boolean {
+function isPen(thing: unknown): thing is Pen {
   return thing instanceof Pen;
 }
 
-function isPathlike(thing: unknown): boolean {
+function isPathlike(thing: unknown): thing is Path | Arc {
   return thing instanceof Path || thing instanceof Arc ;
+}
+
+function eff([a, b, c]: [Maybe<boolean>, Maybe<number>, Maybe<string>] ): string {
+  return `${a ?? true} ... ${b ?? 1} ... ${c ?? "T"}`;
 }
 
 function underloadTests() {
@@ -201,39 +223,23 @@ function underloadTests() {
   console.log("fourth");
 }
 
+function hasTex(s: string): boolean {
+  return (s.includes('\\(') && s.includes('\\)'))
+      || (s.includes('$') && s.includes('$'))
+}
+
 // hides linter warnings
 function same(...stuff: any[]): any { stuff ? {} : {}; }
 
-type Badness = "warning" | "error";
-
-class CompileError {
-  constructor(
-    public readonly message: string,
-    public readonly span: Span,
-    public readonly errorType: Badness = "error"
-  ) {}
-}
-
-class AsyError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "AsyError";
-  }
-}
-
 export type { Badness };
-export { CompileError, AsyError };
-export { PT, PX, INCH, CM, MM };
+export { AsyError, LOUDNESS };
+export { weep, loudly, timely, same, roughly, assertively, unreachably, hurriedly };
 
-export { min, max, shed, shell };
-export { peel, maybeArray };
+export type { BBox, Scaling, Knowledge };
+export { PT, PX, INCH, CM, MM, unspell };
+export { hasTex };
 
-export type { Enumlike, Maybe, Functionlike, BBox };
-export { enumNames, nextSuchThat };
+export type { Maybe, Enumlike, Functionlike, Curried };
+export { min, max, only, peel, shed, shell, flight, toEach, withEach, maybeArray, enumNames, nextSuchThat };
 
 export { underload, isAlign, isBoolean, isNumber, isPair, isPen, isString, isPathlike };
-
-export { LOUDNESS };
-export { weep, loudly, timely, repeatedly, same, roughly, assertively, unreachably };
-
-export { underloadTests };

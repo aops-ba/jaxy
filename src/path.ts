@@ -49,10 +49,11 @@ class Path extends Seen {
   }
 
   show(pens: Pens): Knowledge {
-    return (scaling: Scaling) =>
+    return Object.assign((scaling: Scaling) =>
     `<path d="${this.points.map((lpair: Pair, lindex: number): string =>
       `${lindex==0 ? 'M' : ' L'} ${scaling.x*lpair.x} ${scaling.y*lpair.y}`).join('')}
-       ${this.cyclic ? ' Z' : ''}"` + this.ink(pens)(scaling) + ` />`;
+       ${this.cyclic ? ' Z' : ''}"` + this.ink(pens)(scaling) + ` />`,
+      { kind: "show a… path!!" });
   }
 
   bbox(): BBox {

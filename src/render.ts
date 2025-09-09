@@ -14,7 +14,7 @@ import { unitcircle } from "./arc";
 import type { Pen } from "./pen";
 import { defaultpen, penboard } from "./pen";
 import Label from "./label";
-import { CM, INCH, isAlign, isPair, isPathlike, isPen, isString, Maybe, MM, PT, Scaling, shed, underload, Knowledge, loudly, BBox } from "./helper";
+import { CM, INCH, isAlign, isPair, isPathlike, isPen, isString, Maybe, MM, PT, Scaling, shed, underload, Knowledge, loudly, BBox, isNumber, LOUDNESS, hasTex as hasTex } from "./helper";
 import { Keyword, Operator, Other, Token, Tokenboard } from "./tokens";
 import { bakeboard } from "./builtins";
 import { assertively } from "./helper";
@@ -39,7 +39,7 @@ export default class Render {
 
     this.wisdom = [];
     this.scaling = { x: 0, y: 0 };
-    loudly(window.devicePixelRatio);
+    //loudly(window.devicePixelRatio);
   }
 
 //  size(x: number, y?: number): Knowledge {
@@ -52,14 +52,17 @@ export default class Render {
 
   unitsize(x: number, y?: number): Knowledge {
     return (ls: Scaling) => {
-      ls.x = Number(x);///PX;///(20/3);
-      ls.y = Number(y ?? x)*Render.UP;///PX;///(20/3);
+      ls.x = Number(x);
+      ls.y = Number(y ?? x)*Render.UP;
       return "";
     };
   }
 
   update(knowledge: Knowledge[]): Render {
-    this.wisdom = [this.unitsize(Render.DEFSCALE.x, Render.DEFSCALE.y)].concat(_.compact (_.flattenDeep (knowledge)));
+    this.wisdom = [this.unitsize(Render.DEFSCALE.x, Render.DEFSCALE.y)]
+      .concat(_.compact (_.flattenDeep (knowledge)))
+      // til js has a `function` type lol
+      .filter(x => typeof x === "function")
     return this;
   }
 
@@ -76,13 +79,9 @@ export default class Render {
     })(this.bbox());
   }
 
-  isTexful(s: string): boolean {
-    return (s.includes('\\(') && s.includes('\\)'))
-        || (s.includes('$') && s.includes('$'))
-  }
-
   async mete(k: Knowledge): Promise<Knowledge[]> {
-    return !this.isTexful(k(this.scaling))
+//    loudly(k, LOUDNESS.Spanner);
+    return !hasTex(k(this.scaling))
       ? [k]
       : (async (le: HTMLElement) => {
           document.getElementById("unseen")!.appendChild(le).innerHTML = k(this.scaling);
@@ -144,13 +143,39 @@ export const nameboard = new Map<string, any>([
   ...bakeboard,
 ] as [string, any][]);
 
-const variables: Map<string, unknown> = new Map();
+export type Memory = { name: string, memory: unknown };
+export const variables: Map<string, unknown> = new Map();
 
-export function remember(name: string, value: unknown): void {
-  variables.set(name, value);
+function safen<T>(thing: T, typename: string): T {
+  ((lx) => {
+//    console.log(`Is ${lx} of type ${typename}?`);
+    assertively(BakedTypes[typename].check(lx));
+//    console.log("yes");
+  }) (thing && typeof thing === "object" && "memory" in thing ? thing.memory : thing);
+  return thing;
 }
 
-function lookup(thing: Token<Keyword | Operator | Other.Identifier> | null): any {
+type BakedType = {
+  name: string,
+  check: (thing: unknown) => boolean,
+}
+
+export const BakedTypes: { [s: string]: BakedType } = {
+  "int": { name: "int", check: (x: unknown): x is Real => isNumber(x) || x instanceof Real },
+  "pair": { name: "pair", check: (x: unknown): x is Pair => x instanceof Pair },
+  "real": { name: "real", check: (x: unknown): x is Real => isNumber(x) || x instanceof Real },
+  "string": { name: "string", check: (x: unknown): x is string => typeof x === "string" },
+}
+
+function remember<T>(name: string, value: T): Memory {
+  return { name, memory: variables.set(name, value).get(name) as T };
+}
+
+function recall(name: string): Memory {
+  return { name, memory: variables.get(name) };
+}
+
+function lookup(thing: Maybe<Token<Keyword | Operator | Other.Identifier>>): any {
   if (thing === null) return null;
   return (lname => {
     return nameboard.has(lname)
@@ -190,6 +215,7 @@ function dot([L, z, align, p]: [Maybe<string>, Maybe<Pair>, Maybe<Align>, Maybe<
                      label([L ?? "", z, align ?? E, p])]);
 }
 
+// carafes go here
 function descale<T extends Rime<Fielded>>(z: T, scaling: Scaling): T {
   return z instanceof Align
     ? new Align(z.x / scaling.x, z.y / Render.UP / scaling.y) as T
@@ -200,4 +226,4 @@ function descale<T extends Rime<Fielded>>(z: T, scaling: Scaling): T {
         : (z as number) / scaling.x as T;
 }
 
-export { lookup, descale };
+export { safen, lookup, descale, remember, recall };

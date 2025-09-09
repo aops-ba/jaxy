@@ -31,10 +31,11 @@ export default class Label extends Seen {
   }
 
   show(pens: Pens): Knowledge {
-    return (scaling: Scaling) =>
+    return Object.assign((scaling: Scaling) =>
       `<foreignObject x="${scaling.x*(this.position.x+Label.SF*this.align.x)}" y="${scaling.y*(this.position.y+Label.SF*this.align.y)}"`
       + `style="overflow: visible;">`
-      + this.ink(pens, this.text)(scaling) + `</foreignObject>`;
+      + this.ink(pens, this.text)(scaling) + `</foreignObject>`,
+      { kind: "show label!" });
   }
 
 //  bbox(): BBox {

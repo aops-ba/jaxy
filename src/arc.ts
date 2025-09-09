@@ -1,4 +1,4 @@
-import type { BBox, Scaling } from "./helper";
+import type { BBox, Knowledge, Scaling } from "./helper";
 
 import { Pair } from "./number";
 import { origin } from "./number";
@@ -34,10 +34,11 @@ class Circle extends Arc {
     super(center, radius, 0, 360);
   }
 
-  show(pens: Pens): ($s: Scaling) => string {
-    return (scaling: Scaling) =>
+  show(pens: Pens): Knowledge {
+    return Object.assign((scaling: Scaling) =>
       `<circle cx="${scaling.x*this.center.x}" cy="${scaling.y*this.center.y}" r="${scaling.x*this.radius}"`
-    + `${this.ink(pens)(scaling)} />`
+      + `${this.ink(pens)(scaling)} />`,
+      { kind: "show circle" });
   }
 
   bbox(): BBox {

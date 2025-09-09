@@ -1,4 +1,4 @@
-import { assertively, LOUDNESS, roughly } from "./helper";
+import { assertively, Functionlike, hurriedly, LOUDNESS, roughly } from "./helper";
 
 import type { Binor, Unor, Assignor, Modifactor, Literal } from "./tokens";
 import { Keyword, Operator, Separator, Other, DEFSPAN } from "./tokens";
@@ -10,8 +10,8 @@ import type { Token } from "./tokens";
 import { tokenTypeToString } from "./tokens";
 
 import { Maybe, maybeArray, weep, Knowledge, unspell, loudly, isBoolean } from "./helper";
-import { lookup, remember } from "./render";
-import { Pair } from "./number";
+import { lookup, recall, remember, safen } from "./render";
+import { Fielded, Pair, Rime } from "./number";
 import merx from "./merx";
 
 export class Phrase {
@@ -203,7 +203,7 @@ export class FunctionDeclarationP extends DeclarationP {
   ) { super(); }
 }
 
-export class OneVariableDeclarationP extends DeclarationP {
+export class OneVariableDeclarationP extends ExpressionP {
   constructor (
     readonly name: IdentifierP,
     readonly brackets: Maybe<DimensionsP>,
@@ -293,22 +293,21 @@ export class ForeachP extends StatementP {
     readonly colon: Maybe<Token<Operator.Colon>>,
     readonly iterated: Maybe<Phrase>,
     readonly closeParen: Maybe<Token<Separator.RRound>>,
-    readonly statement: Phrase | null
+    readonly statement: Maybe<Phrase>,
   ) { super(); }
 }
 
-// todo
 export class ForStatementP extends StatementP {
   constructor (
     readonly forToken: Token<Keyword.for>,
-    readonly openParen: Token<Separator.LRound> | null,
-    readonly forInit: Phrase[] | ManyVariablesDeclarationP | null,
-    readonly sep1: Token<Separator.Semicolon> | null,
-    readonly forCond: Phrase | null,
-    readonly sep2: Token<Separator.Semicolon> | null,
-    readonly forUpdate: Phrase[] | null,
-    readonly closeParen: Token<Separator.RRound> | null,
-    readonly statement: Phrase | null
+    readonly openParen: Maybe<Token<Separator.LRound>>,
+    readonly forInit: Maybe<Phrase[] | ManyVariablesDeclarationP>,
+    readonly sep1: Maybe<Token<Separator.Semicolon>>,
+    readonly forCond: Maybe<Phrase>,
+    readonly sep2: Maybe<Token<Separator.Semicolon>>,
+    readonly forUpdate: Maybe<Phrase[]>,
+    readonly closeParen: Maybe<Token<Separator.RRound>>,
+    readonly statement: Maybe<Phrase>,
   ) { super(); }
 }
 
@@ -316,18 +315,18 @@ export class ForStatementP extends StatementP {
 export class WhileP extends StatementP {
   constructor (
     readonly whileToken: Token<Keyword.while>,
-    readonly openParen: Token<Separator.LRound> | null,
-    readonly condition: Phrase | null,
-    readonly closeParen: Token<Separator.RRound> | null,
-    readonly statement: Phrase | null
+    readonly openParen: Maybe<Token<Separator.LRound>>,
+    readonly condition: Maybe<Phrase>,
+    readonly closeParen: Maybe<Token<Separator.RRound>>,
+    readonly statement: Maybe<Phrase>,
   ) { super(); }
 }
 
-// todo: redundancy
+// todo
 export class DowhileP extends StatementP {
   constructor (
     readonly doToken: Token<Keyword.do>,
-    readonly statement: Phrase | null,
+    readonly statement: Maybe<Phrase>,
     readonly whileToken: Token<Keyword.while> | null,
     readonly openParen: Token<Separator.LRound> | null,
     readonly condition: Phrase | null,
@@ -348,7 +347,7 @@ export class BreakP extends StatementP {
 export class ContinueP extends StatementP {
   constructor (
     readonly continueToken: Token<Keyword.continue>,
-    readonly semicolon: Token<Separator.Semicolon> | null
+    readonly semicolon: Maybe<Token<Separator.Semicolon>>,
   ) { super(); }
 }
 
@@ -356,8 +355,8 @@ export class ContinueP extends StatementP {
 export class ReturnP extends StatementP {
   constructor (
     readonly returnToken: Token<Keyword.return>,
-    readonly returnExpr: Phrase | null,
-    readonly semicolon: Token<Separator.Semicolon> | null
+    readonly returnExpr: Maybe<Phrase>,
+    readonly semicolon: Maybe<Token<Separator.Semicolon>>,
   ) { super(); }
 }
 
@@ -463,24 +462,24 @@ export class CallP extends ExpressionP {
 
 // todo
 export class AccessP extends DeclarationP {
-  constructor(readonly modifiers: Token<Modifactor>[],
-        readonly accessToken: Token<Keyword.access>,
-        readonly module: IdentifierP | null,
-        readonly semi: Token<Separator.Semicolon> | null) {
-    super();
-  }
+  constructor (
+    readonly modifiers: Token<Modifactor>[],
+    readonly accessToken: Token<Keyword.access>,
+    readonly module: Maybe<IdentifierP>,
+    readonly semi: Maybe<Token<Separator.Semicolon>>,
+  ) { super(); }
 }
 
 // e.g. (0,0){down} or {up}(0,0)
 // todo
 export class BraceAffixedExpressionPhrase extends Phrase {
-  constructor(readonly modified: Phrase,
-        readonly openBrace: Token<Separator.LCurly>,
-        readonly affix: Phrase | null,
-        readonly closeBrace: Token<Separator.RCurly> | null,
-        readonly isSuffix: boolean) {
-    super();
-  }
+  constructor (
+    readonly modified: Phrase,
+    readonly openBrace: Token<Separator.LCurly>,
+    readonly affix: Maybe<Phrase>,
+    readonly closeBrace: Maybe<Token<Separator.RCurly>>,
+    readonly isSuffix: boolean,
+  ) { super(); }
 
   toString() {
     const a = this.affix?.toString() ?? "<BAD>";
@@ -491,14 +490,14 @@ export class BraceAffixedExpressionPhrase extends Phrase {
 
 // todo
 export class IndexExpressionPhrase extends Phrase {
-  constructor(readonly indexee: Phrase,
-        readonly openBracket: Token<Separator.LSquare> | null,
-        readonly index: Phrase | null,
-        readonly colonToken: Token<Operator.Colon> | null,
-        readonly indexEnd: Phrase | null,  // for slices
-        readonly closeBracket: Token<Separator.RSquare> | null) {
-    super();
-  }
+  constructor (
+    readonly indexee: Phrase,
+    readonly openBracket: Maybe<Token<Separator.LSquare>>,
+    readonly index: Maybe<Phrase>,
+    readonly colonToken: Maybe<Token<Operator.Colon>>,
+    readonly indexEnd: Maybe<Phrase>,  // for slices
+    readonly closeBracket: Maybe<Token<Separator.RSquare>>,
+  ) { super(); }
 
   toString() {
     return this.indexee.toString() + "[" + (this.index?.toString() ?? "") + "]";
@@ -506,10 +505,10 @@ export class IndexExpressionPhrase extends Phrase {
 }
 
 // todo
-export class TypeP extends Phrase {
+export class TypeP extends ExpressionP {
   constructor (
     readonly ident: IdentifierP,
-    public brackets: DimensionsP | null
+    public brackets: Maybe<DimensionsP>,
   ) { super(); }
 
   toString() {
@@ -519,12 +518,12 @@ export class TypeP extends Phrase {
 
 // todo
 export class CastP extends ExpressionP {
-  constructor(readonly lparen: Token<Separator.LRound>,
-        readonly type: TypeP,
-        readonly rparen: Token<Separator.RRound> | null,
-        readonly expr: Phrase | null) {
-    super();
-  }
+  constructor (
+    readonly lparen: Token<Separator.LRound>,
+    readonly type: TypeP,
+    readonly rparen: Maybe<Token<Separator.RRound>>,
+    readonly expr: Maybe<Phrase>,
+  ) { super(); }
 
   toString() {
     return "(" + this.type.toString() + ") (" + (this.expr?.toString() + "") + ")"
@@ -533,24 +532,23 @@ export class CastP extends ExpressionP {
 
 // todo
 export class LambdaP extends ExpressionP {
-  constructor(readonly newToken: Token<Keyword.new>,
-        readonly returnType: TypeP | null,
-        readonly openParen: Token<Separator.LRound>,
-        readonly decls: ManyVariablesDeclarationP[],
-        readonly lastParamIsRest: Token<Separator.DotDotDot> | null,
-        readonly closeParen: Token<Separator.RRound> | null,
-        readonly body: BlockStatementP | null) {
-    super();
-  }
+  constructor (
+    readonly newToken: Token<Keyword.new>,
+    readonly returnType: Maybe<TypeP>,
+    readonly openParen: Token<Separator.LRound>,
+    readonly decls: ManyVariablesDeclarationP[],
+    readonly lastParamIsRest: Maybe<Token<Separator.DotDotDot>>,
+    readonly closeParen: Maybe<Token<Separator.RRound>>,
+    readonly body: Maybe<BlockStatementP>
+  ) { super(); }
 }
 
 // todo
 export class ArrayInitializerList extends Phrase {
-  constructor(readonly openBrace: Token<Separator.LCurly>,
+  constructor (readonly openBrace: Token<Separator.LCurly>,
     readonly elements: Phrase[],
-    readonly closeBrace: Token<Separator.RCurly> | null) {
-    super();
-  }
+    readonly closeBrace: Maybe<Token<Separator.RCurly>>
+  ) { super(); }
 }
 
 // todo
@@ -559,7 +557,7 @@ export class ArrayCreationPhrase extends Phrase {
     readonly newToken: Token<Keyword.new>,
     readonly elementType: TypeP,
     readonly args: Phrase[],
-    readonly initializer: ArrayInitializerList | null
+    readonly initializer: Maybe<ArrayInitializerList>,
   ) { super(); }
 
   toString() {
@@ -572,20 +570,19 @@ export class ArrayCreationPhrase extends Phrase {
 // todo
 export class TernorP extends ExpressionP {
   constructor (
-    readonly condition: Phrase | null,
-    readonly questionToken: Token<Operator.Question> | null,
-    readonly whenTrue: Phrase | null,
-    readonly colonToken: Token<Operator.Colon> | null,
-    readonly whenFalse: Phrase | null
+    readonly condition: Maybe<Phrase>,
+    readonly questionToken: Maybe<Token<Operator.Question>>,
+    readonly whenTrue: Maybe<Phrase>,
+    readonly colonToken: Maybe<Token<Operator.Colon>>,
+    readonly whenFalse: Maybe<Phrase>,
   ) { super(); }
 }
 
-// todo
 export class TupleP extends ExpressionP {
   constructor (
     readonly openParen: Token<Separator.LRound>,
-    readonly exprs: (Phrase | null)[],
-    readonly closeParen: Token<Separator.RRound> | null
+    readonly exprs: Maybe<Phrase>[],
+    readonly closeParen: Maybe<Token<Separator.RRound>>,
   ) { super(); }
 
   toString() {
@@ -597,7 +594,7 @@ export class TupleP extends ExpressionP {
 export class SpreadP extends ExpressionP {
   constructor (
     readonly ellipsis: Token<Separator.DotDotDot>,
-    readonly spreadedExpr: CallArgsP | null
+    readonly spreadedExpr: Maybe<CallArgsP>,
   ) { super(); }
 }
 
@@ -623,7 +620,7 @@ export class MemberAccessPhrase extends Phrase {
   constructor (
     readonly lhs: Phrase,
     readonly dotToken: Token<Separator.Dot>,
-    readonly rhs: IdentifierP | null
+    readonly rhs: Maybe<IdentifierP>,
   ) { super(); }
 
   toString(): string {
@@ -631,7 +628,6 @@ export class MemberAccessPhrase extends Phrase {
   }
 }
 
-// todo
 export class RoundP extends ExpressionP {
   constructor (
     readonly openParen: Token<Separator.LRound>,
@@ -650,37 +646,32 @@ export class AllP extends Phrase {
     private step: number = 0,
   ) { super(); }
 
-  async understandAll(): Promise<Knowledge[]> {
-    return await Promise.all(this.decls.map(async _ => await this.understandNext()));
+  understandAll(): Knowledge[] {
+    return this.decls.map(_ => this.understandNext());
   }
 
-  async understandNext(): Promise<Knowledge> {
+  understandNext(): Knowledge {
     return (this.step < this.decls.length)
-    ? await this.understand(this.decls[this.step++]) as Knowledge
+    ? this.understand(this.decls[this.step++]) as Knowledge
     : unspell;
   }
 
   understand(t: Maybe<Phrase>): unknown {
-    loudly(["It's time to understand", t]);
+//    loudly(["It's time to understand", t]);
     if (t === null) {
       return;
 
 
     } else if (t instanceof DeclarationP) {
       if (t instanceof ManyVariablesDeclarationP) {
-        return t.decls.map(x => this.understand(x));
+        return t.decls.map(x => this.understand(x)).map(x => (this.understand(t.type) as Functionlike<any>)(x));
       } else if (t instanceof ImportDeclarationP) {
         if (t.importTarget instanceof IdentifierP) {
           loudly(["Time to import stuff", t]);
-          return await merx(t.importTarget.getName());
+          return merx(t.importTarget.getName());
         } else {
-          return await merx(t.importTarget?.value ?? "");
+          return merx(t.importTarget?.value ?? "");
         }
-      } else if (t instanceof OneVariableDeclarationP) {
-        return ((lname, lvalue) => {
-          loudly(`Initializing ${lname} as ${lvalue}.`);
-          return remember(lname, lvalue);
-        }) (t.name.getName(), this.understand(t.initializer));
       } else {
         roughly(`wah im a declare ${t.constructor.name}`, t);
       }
@@ -694,10 +685,23 @@ export class AllP extends Phrase {
       } else if (t instanceof SemicolonStatementP) {
         return;
       } else if (t instanceof IfStatementP) {
-        return ((lif, lthen, lelse) => {
+        return ((lif) => {
           assertively(isBoolean(lif)); // todo: think about how to make this kind of castblocking more robust?
-          return lif ? lthen : lelse;
-      }) (this.understand(t.condition), this.understand(t.thenStatement), this.understand(t.elseStatement));
+          return lif ? this.understand(t.thenStatement) : this.understand(t.elseStatement);
+      }) (this.understand(t.condition));
+      } else if (t instanceof ForStatementP) {
+        assertively(!Array.isArray(t.forInit), "yay 1d for loop");
+
+        // danger! assuming that only one looping variable
+        this.understand(t.forInit);
+        console.log(t.forCond, this.understand(t.forCond));
+        return ((ks: Knowledge[]) => {
+          hurriedly (100) (() => this.understand(t.forCond) as boolean, () => {
+            ks.push(this.understand(t.statement) as Knowledge);
+            loudly(t.forUpdate)!.map(x => this.understand(x));
+          });
+          return ks;
+        }) ([]);
       } else {
         roughly(`wah im a statement ${t.constructor.name}`, t);
       }
@@ -705,7 +709,15 @@ export class AllP extends Phrase {
 
     } else if (t instanceof OperatorP) {
       if (t instanceof UnorP) {
-        return (lookup(t.operator)) (this.understand(t.operand));
+        assertively(t.operand !== null && t.operand instanceof IdentifierP);
+        switch (t.operator.kind) {
+          case Operator.PlusPlus:
+            return remember(t.operand.getName(), (recall(t.operand.getName()).memory as number) + 1);
+          case Operator.MinusMinus:
+            return remember(t.operand.getName(), (recall(t.operand.getName()).memory as number) - 1);
+          default:
+            return (lookup(t.operator)) (this.understand(t.operand));
+        }
       } else if (t instanceof BinorP) {
         return (lookup(t.operator)) (this.understand(t.left), this.understand(t.right));
       } else {
@@ -717,21 +729,44 @@ export class AllP extends Phrase {
       if (t instanceof AssignmentExpressionP) {
         return ((lname, lvalue) => {
           assertively(lname instanceof IdentifierP);
-          loudly(`Assigning ${lvalue} to ${lname}.`);
-          return remember(lname.getName(), lvalue);
-        }) (t.left, this.understand(t.right));
+          loudly(`Assigning ${lvalue} to ${lname} with ${Operator[t.equalsToken.kind]}.`);
+          switch (t.equalsToken.kind) {
+            // todo: strings are also somewhat rimelike
+            case Operator.Eq: return remember(lname.getName(), lvalue);
+            case Operator.PlusEq: return remember(lname.getName(), (recall(lname.getName()).memory as number) + lvalue);
+            case Operator.MinusEq: return remember(lname.getName(), (recall(lname.getName()).memory as number) - lvalue);
+            case Operator.StarEq: return remember(lname.getName(), (recall(lname.getName()).memory as number) * lvalue);
+            case Operator.SlashEq: return remember(lname.getName(), (recall(lname.getName()).memory as number) / lvalue);
+            case Operator.PlusPlus: return remember(lname.getName(), (recall(lname.getName()).memory as number) + 1);
+            case Operator.MinusMinus: return remember(lname.getName(), (recall(lname.getName()).memory as number) - 1);
+//            case Operator.HashEq: "#=",
+//            case Operator.PercentEq: "%=",
+//            case Operator.CaretEq: "^=",
+            default: roughly(`wah idk the operator ${t.equalsToken.kind}`);
+          }
+        }) (t.left, this.understand(t.right) as number);
+      } else if (t instanceof OneVariableDeclarationP) {
+        return ((lname, lvalue) => {
+          loudly(`Initializing ${lname} as ${lvalue}.`);
+          return remember(lname, lvalue);
+        }) (t.name.getName(), this.understand(t.initializer));
       } else if (t instanceof CallP) {
         return ((lcall, largs) => {
           loudly([`Calling ${t.caller} on`, largs, "."]);
           return (lcall as Function) (largs);
         }) (this.understand(t.caller), t.args.map(x => this.understand(x)));
+      } else if (t instanceof TypeP) {
+        return (thing: unknown) => safen(loudly(thing), t.ident.getName());
       } else if (t instanceof RoundP) {
         return this.understand(t.expr);
       } else if (t instanceof CallArgsP) {
         return this.understand(t.expr);
       } else if (t instanceof TupleP) {
         // todo: make this type-safe
-        return Pair.fromArray(t.exprs.map(x => this.understand(x)) as [number, number]);
+        // todo: why does this hate asyncs
+        // todo: 3 dimensions
+        assertively(t.exprs.length === 2);
+        return new Pair(...t.exprs.map(x => this.understand(x)) as [Rime<Fielded>, Rime<Fielded>]);
       } else if (t instanceof IdentifierP) {
         return lookup(t.name);
       } else if (t instanceof LiteralP) {
