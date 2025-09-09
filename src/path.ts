@@ -4,6 +4,7 @@ import { Seen } from "./seen";
 import { Pair, toRadians } from "./number";
 
 import type { Pens } from "./pen";
+import { BakedPair } from "./bake";
 
 class Path extends Seen {
   // todo: improve this
@@ -21,6 +22,14 @@ class Path extends Seen {
     } else {
       return ((lr) => new Pair(Math.cos(lr), Math.sin(lr)))(toRadians(p));
     }
+  }
+
+  // todo: this is actually redundant because of upcasting
+  static make(left: Path | Pair, right: Pair | "cycle"): Path {
+    if (left instanceof Path && right === "cycle") return left.becycle();
+    else if (left instanceof Path && BakedPair.is(right)) return left.add(right);
+    else if (BakedPair.is(left) && BakedPair.is(right)) return new Path([left as Pair, right as Pair]);
+    else throw new Error("bad path");
   }
 
   constructor(points?: Pair[], cyclic?: boolean) {

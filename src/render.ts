@@ -2,7 +2,6 @@ import _ from "lodash/fp";
 
 import { randy } from "./main";
 
-
 import { Align, Fielded, Pair, Real, Rime } from "./number";
 import { origin, N, S, E, W } from "./number";
 
@@ -14,9 +13,9 @@ import { unitcircle } from "./arc";
 import type { Pen } from "./pen";
 import { defaultpen, penboard } from "./pen";
 import Label from "./label";
-import { CM, INCH, isAlign, isPair, isPathlike, isPen, isString, Maybe, MM, PT, Scaling, shed, underload, Knowledge, loudly, BBox, isNumber, LOUDNESS, hasTex as hasTex } from "./helper";
+import { CM, INCH, Maybe, MM, PT, Scaling, shed, underload, Knowledge, loudly, BBox, LOUDNESS, hasTex as hasTex } from "./helper";
 import { Keyword, Operator, Other, Token, Tokenboard } from "./tokens";
-import { bakeboard } from "./builtins";
+import { bakeboard, BakedPair, BakedString, isAlign, isPathlike, isPen } from "./bake";
 import { assertively } from "./helper";
 import { Seen } from "./seen";
 
@@ -32,36 +31,37 @@ export default class Render {
 
   constructor(svgblock: SVGGraphicsElement) {
     this.svgblock = svgblock;
-    ((l) => {
-      this.svgblock.setAttribute("width", `${l.width}`);
-      this.svgblock.setAttribute("height", `${l.height}`);
-    })(this.bbox());
+    ((lb) => {
+      this.svgblock.setAttribute("width", `${lb.width}`);
+      this.svgblock.setAttribute("height", `${lb.height}`);
+    })(this.greatbox());
 
     this.wisdom = [];
     this.scaling = { x: 0, y: 0 };
     //loudly(window.devicePixelRatio);
   }
 
-//  size(x: number, y?: number): Knowledge {
-//    console.log(this.svgblock.get
-//    // every seen thing needs a bounding box
-//    // size unions the bounding boxes
-//    // then returns the needed scaling
-//    return () => "";
-//  }
+  // this wont work because the bbox reckoning is based on the sizes
+  size(x: number, y: number =x): Knowledge {
+    return ((lb) => (ls: Scaling) => {
+      ls.x = x/lb.width;
+      ls.y = y/lb.height*Render.UP;
+      return "";
+    })(this.svgblock.getBBox());
+  }
 
-  unitsize(x: number, y?: number): Knowledge {
+  unitsize(x: number, y: number =x): Knowledge {
     return (ls: Scaling) => {
-      ls.x = Number(x);
-      ls.y = Number(y ?? x)*Render.UP;
+      ls.x = x;
+      ls.y = y*Render.UP;
       return "";
     };
   }
 
-  update(knowledge: Knowledge[]): Render {
-    this.wisdom = [this.unitsize(Render.DEFSCALE.x, Render.DEFSCALE.y)]
+  async update(knowledge: Knowledge[]): Promise<Render> {
+    this.wisdom = [this.size(200, 200)]
+//    this.wisdom = [this.unitsize(Render.DEFSCALE.x, Render.DEFSCALE.y)]
       .concat(_.compact (_.flattenDeep (knowledge)))
-      // til js has a `function` type lol
       .filter(x => typeof x === "function")
     return this;
   }
@@ -76,7 +76,7 @@ export default class Render {
       .join('')}`;
       this.svgblock.setAttribute("viewBox", `${l.minx} ${l.miny} ${l.width} ${l.height}`);
       this.svgblock.setAttribute("preserveAspectRatio", "xMidYMid meet");
-    })(this.bbox());
+    })(this.greatbox());
   }
 
   async mete(k: Knowledge): Promise<Knowledge[]> {
@@ -98,7 +98,7 @@ export default class Render {
         }) (document.createElement("svg"));
   }
 
-  private bbox(): BBox {
+  private greatbox(): BBox {
     return ((l) => ({
       width: l.width,
       height: l.height,
@@ -112,12 +112,12 @@ export const nameboard = new Map<string, any>([
   //todo: get rid of randy
   ["write", (s: string[]) => console.log(shed(s))],
 
-  ["draw", (largs: unknown[]) => underload(draw, [isString, isPathlike, isAlign, isPen], largs)],
+  ["draw", (largs: unknown[]) => underload(draw, [BakedString.is, isPathlike, isAlign, isPen], largs)],
   ["fill", (largs: unknown[]) => underload(fill, [isPathlike, isPen], largs)],
   ["filldraw", (largs: unknown[]) => underload(filldraw, [isPathlike, isPen, isPen], largs)],
-  ["label", (largs: unknown[]) => underload(label, [isString, isPair, isAlign, isPen], largs)],
+  ["label", (largs: unknown[]) => underload(label, [BakedString.is, BakedPair.is, isAlign, isPen], largs)],
 
-  ["dot", (largs: unknown[]) => underload(dot, [isString, isPair, isAlign, isPen], largs)],
+  ["dot", (largs: unknown[]) => underload(dot, [BakedString.is, BakedPair.is, isAlign, isPen], largs)],
   ["circle", ([c,r]: [Pair, number]) => new Circle(c, Number(r))],
   ["dir", (p: Path | number, q?: Path) => Path.dir(p, q)],
   ["degrees", (lz: Pair) => new Real(lz.degrees())],
@@ -145,27 +145,6 @@ export const nameboard = new Map<string, any>([
 
 export type Memory = { name: string, memory: unknown };
 export const variables: Map<string, unknown> = new Map();
-
-function safen<T>(thing: T, typename: string): T {
-  ((lx) => {
-//    console.log(`Is ${lx} of type ${typename}?`);
-    assertively(BakedTypes[typename].check(lx));
-//    console.log("yes");
-  }) (thing && typeof thing === "object" && "memory" in thing ? thing.memory : thing);
-  return thing;
-}
-
-type BakedType = {
-  name: string,
-  check: (thing: unknown) => boolean,
-}
-
-export const BakedTypes: { [s: string]: BakedType } = {
-  "int": { name: "int", check: (x: unknown): x is Real => isNumber(x) || x instanceof Real },
-  "pair": { name: "pair", check: (x: unknown): x is Pair => x instanceof Pair },
-  "real": { name: "real", check: (x: unknown): x is Real => isNumber(x) || x instanceof Real },
-  "string": { name: "string", check: (x: unknown): x is string => typeof x === "string" },
-}
 
 function remember<T>(name: string, value: T): Memory {
   return { name, memory: variables.set(name, value).get(name) as T };
@@ -226,4 +205,4 @@ function descale<T extends Rime<Fielded>>(z: T, scaling: Scaling): T {
         : (z as number) / scaling.x as T;
 }
 
-export { safen, lookup, descale, remember, recall };
+export { lookup, descale, remember, recall };

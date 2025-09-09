@@ -1,9 +1,6 @@
-import { Align, Pair } from "./number";
-import { Pen } from "./pen";
-import { Arc } from "./arc";
-import { Path } from "./path";
-
 /** For sundries **/
+
+import { BakedBool, BakedReal, BakedString } from "./bake";
 
 type Maybe<T> = NonNullable<T> | null;
 type MaybeOrNot<T> = Maybe<T> | undefined;
@@ -175,51 +172,22 @@ function underload(f: Functionlike<any>, checks: Functionlike<boolean>[], args: 
   }
 }
 
-function isBoolean(thing: unknown): thing is boolean {
-  return typeof thing === "boolean";
-}
-
-function isNumber(thing: unknown): thing is number {
-  return typeof thing === "number";
-}
-
-function isString(thing: unknown): thing is string {
-  return typeof thing === "string";
-}
-
-function isPair(thing: unknown): thing is Pair {
-  return thing instanceof Pair;
-}
-
-// todo: more wisdom
-function isAlign(thing: unknown): thing is Align {
-  return thing instanceof Pair || thing instanceof Align;
-}
-
-function isPen(thing: unknown): thing is Pen {
-  return thing instanceof Pen;
-}
-
-function isPathlike(thing: unknown): thing is Path | Arc {
-  return thing instanceof Path || thing instanceof Arc ;
-}
-
 function eff([a, b, c]: [Maybe<boolean>, Maybe<number>, Maybe<string>] ): string {
   return `${a ?? true} ... ${b ?? 1} ... ${c ?? "T"}`;
 }
 
 function underloadTests() {
-  console.log(underload(eff, [isBoolean, isNumber, isString], []));
+  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], []));
   console.log("first");
-  console.log(underload(eff, [isBoolean, isNumber, isString], [false]));
-  console.log(underload(eff, [isBoolean, isNumber, isString], [-1]));
-  console.log(underload(eff, [isBoolean, isNumber, isString], ["hoynos"]));
+  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], [false]));
+  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], [-1]));
+  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], ["hoynos"]));
   console.log("second");
-  console.log(underload(eff, [isBoolean, isNumber, isString], [false, -2]));
-  console.log(underload(eff, [isBoolean, isNumber, isString], [false, "dwoh"]));
-  console.log(underload(eff, [isBoolean, isNumber, isString], [-2, "dwoh"]));
+  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], [false, -2]));
+  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], [false, "dwoh"]));
+  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], [-2, "dwoh"]));
   console.log("third");
-  console.log(underload(eff, [isBoolean, isNumber, isString], [false, -3, "treyes"]));
+  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], [false, -3, "treyes"]));
   console.log("fourth");
 }
 
@@ -242,4 +210,4 @@ export { hasTex };
 export type { Maybe, Enumlike, Functionlike, Curried };
 export { min, max, only, peel, shed, shell, flight, toEach, withEach, maybeArray, enumNames, nextSuchThat };
 
-export { underload, isAlign, isBoolean, isNumber, isPair, isPen, isString, isPathlike };
+export { underload };

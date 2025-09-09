@@ -9,10 +9,11 @@ import { span } from "./tokens";
 import type { Token } from "./tokens";
 import { tokenTypeToString } from "./tokens";
 
-import { Maybe, maybeArray, weep, Knowledge, unspell, loudly, isBoolean } from "./helper";
-import { lookup, recall, remember, safen } from "./render";
+import { Maybe, maybeArray, weep, Knowledge, unspell, loudly } from "./helper";
+import { lookup, recall, remember } from "./render";
 import { Fielded, Pair, Rime } from "./number";
 import merx from "./merx";
+import { bless, BakedBool, BakedTypes } from "./bake";
 
 export class Phrase {
 
@@ -686,7 +687,7 @@ export class AllP extends Phrase {
         return;
       } else if (t instanceof IfStatementP) {
         return ((lif) => {
-          assertively(isBoolean(lif)); // todo: think about how to make this kind of castblocking more robust?
+          assertively(BakedBool.is(lif)); // todo: think about how to make this kind of castblocking more robust?
           return lif ? this.understand(t.thenStatement) : this.understand(t.elseStatement);
       }) (this.understand(t.condition));
       } else if (t instanceof ForStatementP) {
@@ -756,7 +757,7 @@ export class AllP extends Phrase {
           return (lcall as Function) (largs);
         }) (this.understand(t.caller), t.args.map(x => this.understand(x)));
       } else if (t instanceof TypeP) {
-        return (thing: unknown) => safen(loudly(thing), t.ident.getName());
+        return (thing: unknown) => bless(thing, t.ident.getName());
       } else if (t instanceof RoundP) {
         return this.understand(t.expr);
       } else if (t instanceof CallArgsP) {

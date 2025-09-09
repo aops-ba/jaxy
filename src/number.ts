@@ -1,17 +1,32 @@
+import { BakedPair } from "./bake";
 import { assertively, loudly } from "./helper";
-import { isPair } from "./helper";
 
-type Rime<T> = T | number;
 type Fielded = Real | Pair;
+type Ringed = Int | Fielded;
+type Rime<T> = T | number;
+type Unclosed = Exclude<Rime<Ringed>, Pair>;
+
+// todo: test this out
+class _Ringed { constructor(public x: number) {} };
+class _Fielded extends _Ringed { stuff() {} }//{ constructor(public x: number) {super(x)} };
+class _Closed extends _Fielded { constructor(public x: number, public y: number) {super(x)} };
+type _Int = Exclude<_Ringed, _Fielded>;
+type _Real = Exclude<_Fielded, _Closed>;
+type _Pair = _Closed;
+let x: _Int = 5;
 
 export class AsyMath {
-  static lift(left: Rime<Fielded>, right: Rime<Fielded>): [Fielded, Fielded] {
+  static lift(left: Rime<Ringed>, right: Rime<Ringed>): [Ringed, Ringed] {
     return (lT => [new lT(left), new lT(right)])
       (left instanceof Pair || right instanceof Pair ? Pair : Real);
   }
 
-  static gt(left: Rime<Real>, right: Rime<Real>): boolean {
-    return new Real(left).x > new Real(right).x;
+  static land(x: Unclosed): number {
+    return typeof x === "number" ? x : x.x;
+  }
+
+  static gt(left: Unclosed, right: Unclosed): boolean {
+    return AsyMath.land(left) > AsyMath.land(right);
   }
 
   static lt(left: Rime<Real>, right: Rime<Real>): boolean {
@@ -53,50 +68,6 @@ export class AsyMath {
   }
 }
 
-class Real {
-  x: number;
-
-  constructor(x: Rime<Real>) {
-    this.x = x instanceof Real ? x.x : x;
-  }
-
-  toString(): string {
-    return this.x.toString();
-  }
-
-  eq(r: Real): boolean {
-    return this.x === r.x;
-  }
-
-  negate(): Real {
-    return new Real(-this.x);
-  }
-
-  invert(): Real {
-    return new Real(1/this.x);
-  }
-
-  plus(r: Real): Real {
-    return new Real(this.x + r.x);
-  }
-
-  minus(r: Real): Real {
-    return new Real(this.x - r.x);
-  }
-
-  times(r: Real): Real {
-    return new Real(this.x * r.x);
-  }
-
-  divide(r: Real): Real {
-    return new Real(this.x / r.x);
-  }
-
-  power(r: Real): Real {
-    return new Real(this.x ** r.x);
-  }
-}
-
 class Pair {
   x: number;
   y: number;
@@ -122,7 +93,7 @@ class Pair {
   }
 
   eq(z: Fielded): boolean {
-    return this.x === z.x && (!isPair(z) || this.y === z.y);
+    return this.x === z.x && (!BakedPair.is(z) || this.y === (z as Pair).y);
   }
 
   private _length2(): number {
@@ -205,6 +176,58 @@ class Pair {
   }
 }
 
+
+class Real {
+  x: number;
+
+  constructor(x: Rime<Real>) {
+    this.x = x instanceof Real ? x.x : x;
+  }
+
+  toString(): string {
+    return this.x.toString();
+  }
+
+  eq(r: Real): boolean {
+    return this.x === r.x;
+  }
+
+  negate(): Real {
+    return new Real(-this.x);
+  }
+
+  invert(): Real {
+    return new Real(1/this.x);
+  }
+
+  plus(r: Real): Real {
+    return new Real(this.x + r.x);
+  }
+
+  minus(r: Real): Real {
+    return new Real(this.x - r.x);
+  }
+
+  times(r: Real): Real {
+    return new Real(this.x * r.x);
+  }
+
+  divide(r: Real): Real {
+    return new Real(this.x / r.x);
+  }
+
+  power(r: Real): Real {
+    return new Real(this.x ** r.x);
+  }
+}
+
+class Int extends Real {
+  constructor(x: Rime<Int>) {
+    assertively(AsyMath.land(x) === Math.floor(AsyMath.land(x)));
+    super(x);
+  }
+}
+
 const origin: Pair = new Pair(0,0);
 const N: Pair = new Pair(0,1);
 const S: Pair = new Pair(0,-1);
@@ -222,6 +245,6 @@ function toRadians(r: number): number {
 }
 
 export type { Rime };
-export { Real, Fielded, Pair, Align };
+export { Real, Fielded, Pair, Align, Int };
 export { origin, N, S, E, W };
 export { toDegrees, toRadians };

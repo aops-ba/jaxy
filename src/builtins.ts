@@ -13,6 +13,10 @@ import { loudly, weep } from "./helper.ts";
 import { AsyMath, Fielded, Real } from "./number.ts";
 import { Path } from "./path.ts";
 
+//function makeReifiedArrayType<T>(ty: AsyReifiedType<T>): AsyReifiedArrayType<AsyReifiedType<T>> {
+//
+//}
+
 export type AsyType<JSType> = {
   name: string;
   dimensions: number;
@@ -23,9 +27,6 @@ export type AsyType<JSType> = {
 
 export type AsyArrayType<T> = AsyType<T[]>;
 
-//function makeReifiedArrayType<T>(ty: AsyReifiedType<T>): AsyReifiedArrayType<AsyReifiedType<T>> {
-//
-//}
 
 // Whiteboard?
 export type Vector2 = { x: number, y: number };
@@ -64,7 +65,7 @@ export const BakedType = {
     default: () => 0n,
     typecheck: (v: any): v is bigint => typeof v === "bigint" && (BigInt.asIntN(64, v) === v),
     debugPrint: (v: bigint) => v.toString(),
-  } as AsyType<bigint>,
+  },
   "string": {
     name: "string",
     dimensions: 0,
@@ -122,20 +123,12 @@ function divideByZeroInt(v: bigint): bigint {
   return v;
 }
 
-type BuiltinTypeKey = keyof typeof BakedType;
-type TSType<T extends string> = T extends BuiltinTypeKey ? (typeof BakedType)[T] extends AsyType<infer JSTy> ? JSTy : never : never;
-type TSArrayType<T extends string> = T extends `${infer Base}[]` ? TSArrayType<Base>[] : TSType<T>;
-type TSArgsType<T extends string> = T extends `${infer Arg}, ${infer Rest}` ? [TSArrayType<Arg>, ...TSArgsType<Rest>] : T extends "" ? [] : [TSArrayType<T>];
-type TSFunctionType<T extends string> = T extends `${infer R}(${infer Args})` ? (...args: TSArgsType<Args>) => TSArrayType<R> : never;
 
 // i miss haskell
 type Forecast<T extends Functionlike<any>> = { [Property in keyof Parameters<T>]: unknown };
 
-export function bake<N extends string, S extends string>(name: N, _: S, spell: TSFunctionType<S>) {
-  return [name, spell];
 //  return [name, (xs: Forecast<typeof spell>) =>
 //    spell(xs.map((v: unknown, k: keyof typeof xs) => cast<Parameters<typeof spell>[typeof k]>(v)))];
-  }
 
 //function cast<T>(thing: unknown): T {
 //  return cakeboard.get(`${T}`)
@@ -153,16 +146,6 @@ export function bake<N extends string, S extends string>(name: N, _: S, spell: T
 //  cake("string(int)", i => i.toString()),
 //];
 
-const bakeboard: Map<string, Functionlike<any>> = new Map([
-  ["+", AsyMath.plus],
-  ["-", AsyMath.minus],
-  ["*", AsyMath.times],
-  ["/", AsyMath.divide],
-  [">", AsyMath.gt],
-  ["<", AsyMath.lt],
-  ["==", AsyMath.eq],
-  ["--", (x,y) => x instanceof Path ? x.add(y) : new Path([x, y])],
-] as [string, Functionlike<any>][]);
 
 //const bakeboard: Map<string, TSFunctionType<any>> = new Map([
 //  /** BASIC STRING BUILTINS */
@@ -188,7 +171,42 @@ const bakeboard: Map<string, Functionlike<any>> = new Map([
 //
 //] as [string, TSFunctionType<any>][]);
 
+abandon all hope ye who scroll past here
+lol scroll is a keyword in typescript ?? defaultvalue
 
+scroll scroll scroll
+
+// todo: beautification
+type BuiltinTypeKey = keyof typeof BakedTypes;
+
+type TSType<T extends string>
+  = T extends BuiltinTypeKey
+    ? (typeof BakedTypes)[T] extends AsyType<infer JSTy>
+      ? JSTy
+      : never
+    : never;
+
+type TSArrayType<T extends string>
+  = T extends `${infer Base}[]`
+    ? TSArrayType<Base>[]
+    : TSType<T>;
+
+type TSArgsType<T extends string>
+  = T extends `${infer Arg}, ${infer Rest}`
+    ? [TSArrayType<Arg>, ...TSArgsType<Rest>]
+    : T extends ""
+      ? []
+      : [TSArrayType<T>];
+
+type TSFunctionType<T extends string>
+  = T extends `${infer R}(${infer Args})`
+    ? (...args: TSArgsType<Args>) => TSArrayType<R>
+    : never;
+
+
+export function bake<N extends string, S extends string>(name: N, _: S, spell: TSFunctionType<S>) {
+  return [name, spell];
+}
 
 
 bake("*", "int(int, int)", (x, y) => checkOverflow(x * y));
