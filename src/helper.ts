@@ -4,7 +4,7 @@ type Maybe<T> = NonNullable<T> | null;
 type MaybeOrNot<T> = Maybe<T> | undefined;
 type Enumlike = { [key: number]: string };
 type Functionlike<T> = (...args: any) => T;
-type Curried<T> = (arg: any) => T;
+type Curried<T> = (arg: unknown) => T;
 
 /** For debugging **/
 
@@ -19,29 +19,16 @@ enum LOUDNESS {
   Loudly,
 }
 
-const UTLOUD = LOUDNESS.Loudly;
-
-function weep(): void {
-  console.log("wah");
-}
+const UTLOUD = 5;//LOUDNESS.Loudly;
 
 function loudly<T>(thing: T, loudness: number=LOUDNESS.Loudly): T {
   if (loudness >= UTLOUD) console.log(...shell(thing));
   return thing;
 }
 
-function roughly(first: unknown, ...rest: unknown[]): never {
-  console.log(first, ...rest);
-  throw new Error();
-}
-
-function assertively(condition: boolean, message: unknown ="assert", loudness: number=LOUDNESS.Assert): asserts condition {
-  if (!condition) roughly(`I can't assert ${message ? `that ${message}` : "this"}…`);
-  else if (message) loudly(message, loudness);
-}
-
-function unreachably(first: unknown, ...rest: unknown[]): never {
-  roughly("Unreachable", first, ...rest);
+function assertively(condition: boolean, message: string ="", loudness: number=LOUDNESS.Assert): asserts condition {
+  if (!condition) throw new Error(`I can't assert ${message ? `that ${message}` : "this"}…`);
+  else if (message !== "") loudly(message, loudness);
 }
 
 class AsyError extends Error {
@@ -60,10 +47,10 @@ const CM = INCH*50/127; // 127cm = 50in
 const MM = CM*10; // 127cm = 50in
 
 type BBox = {
-  width: number,
-  height: number,
   minx: number,
   miny: number
+  maxx: number,
+  maxy: number,
 };
 
 // coordinates of screen area thingy, not coordinates of asymptote world
@@ -101,8 +88,8 @@ function shell(body: unknown): unknown[] {
   return (Array.isArray(body)) ? body : [body];
 }
 
-function peel<T>(xs: T[]): T[] {
-  return xs.slice(1,-1);
+function peel<T extends unknown[] | string>(xs: T): T {
+  return xs.slice(1, -1) as typeof xs;
 }
 
 function maybeArray<T>(thing: MaybeOrNot<T>): T[] {
@@ -126,8 +113,8 @@ function withEach<T, V>(body: T[], f: ($t: T) => V): T[] {
 }
 
 // while `$c` do `$f`, but break if it takes longer than `timeout`
-function hurriedly(timeout: number): ($c: Functionlike<boolean>, $f: Functionlike<any>) => void {
-  return (lc: Functionlike<boolean>, lf: Functionlike<any>) => ((lt) => { while (lc()) {
+function hurriedly(timeout: number): ($c: Functionlike<boolean>, $f: Functionlike<unknown>) => void {
+  return (lc: Functionlike<boolean>, lf: Functionlike<unknown>) => ((lt: number) => { while (lc()) {
     if (Date.now()-lt > timeout) {
       console.log("too slow");
       break;
@@ -145,18 +132,22 @@ function nextSuchThat(text: string, condition: ($s: string) => boolean, start: n
   return flight(text.length-start).map(x => x+start).find(i => condition(text[i])) ?? text.length;
 }
 
-function timely<T,U>(work: ($T: T) => U=same, iterations: number=1): ($T: T) => U {
+function timedly<T,U>(work: ($T: T) => U, iterations: number=1): ($T: T) => U {
   const t = Date.now();
   Array(iterations).forEach(work);
   console.log(`${iterations} runs took ${Date.now()-t}ms.`);
   return work;
 }
 
+function zip(...teeth: unknown[][]): unknown[][] {
+  return flight(Math.max(...teeth.map(x => x.length))).map((_,i) => teeth.map(x => x[i]));
+}
+
 /** for growing the brain **/
 
 // lots of todos, this is just a temporary implementation
 // make it upcast-safe is the big one
-function underload(f: Functionlike<any>, checks: Functionlike<boolean>[], args: unknown[]): ReturnType<typeof f> {
+function underload(f: Functionlike<unknown>, checks: Functionlike<boolean>[], args: unknown[]): ReturnType<typeof f> {
   loudly([f, checks, args], 0);
   if (args.length === 0) {
     loudly("got em all", 0);
@@ -170,10 +161,10 @@ function underload(f: Functionlike<any>, checks: Functionlike<boolean>[], args: 
   }
 }
 
-function eff([a, b, c]: [Maybe<boolean>, Maybe<number>, Maybe<string>] ): string {
-  return `${a ?? true} ... ${b ?? 1} ... ${c ?? "T"}`;
-}
-
+//function eff([a, b, c]: [Maybe<boolean>, Maybe<number>, Maybe<string>] ): string {
+//  return `${a ?? true} ... ${b ?? 1} ... ${c ?? "T"}`;
+//}
+//
 //function underloadTests() {
 //  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], []));
 //  console.log("first");
@@ -195,17 +186,17 @@ function hasTex(s: string): boolean {
 }
 
 // hides linter warnings
-function same(...stuff: any[]): any { stuff ? {} : {}; }
+function same(...stuff: unknown[]): void { stuff ? {} : {}; }
 
 export type { Badness };
 export { AsyError, LOUDNESS };
-export { weep, loudly, timely, same, roughly, assertively, unreachably, hurriedly };
+export { loudly, timedly as timely, same, assertively, hurriedly };
 
 export type { BBox, Scaling, Knowledge };
 export { PT, PX, INCH, CM, MM, unspell };
 export { hasTex };
 
 export type { Maybe, MaybeOrNot, Enumlike, Functionlike, Curried };
-export { min, max, only, peel, shed, shell, flight, toEach, withEach, maybeArray, enumNames, nextSuchThat };
+export { min, max, only, peel, shed, shell, flight, toEach, withEach, maybeArray, enumNames, nextSuchThat, zip };
 
 export { underload };

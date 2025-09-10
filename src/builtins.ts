@@ -10,7 +10,7 @@ import {
 } from "./special_functions.ts";
 import {AsyError, Functionlike} from "./helper.ts";
 import { loudly, weep } from "./helper.ts";
-import { AsyMath, Fielded, Real } from "./number.ts";
+import { AsyMath, Fielded, Real } from "./reckon.ts";
 import { Path } from "./path.ts";
 
 //function makeReifiedArrayType<T>(ty: AsyReifiedType<T>): AsyReifiedArrayType<AsyReifiedType<T>> {

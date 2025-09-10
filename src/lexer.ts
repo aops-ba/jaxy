@@ -1,4 +1,4 @@
-import { Badness, LOUDNESS, flight, unreachably } from "./helper";
+import { Badness, LOUDNESS, flight } from "./helper";
 import { assertively } from "./helper";
 import { nextSuchThat } from "./helper";
 
@@ -125,7 +125,7 @@ function processCharacterOrOctalEscape(
         return [{kind: Other.Bad, value: "Unterminated escape sequence"
         }, 1];
       case "\\":
-        unreachably("Should have been handled outside");
+        throw new Error("Should have been handled outside");
       // fallthrough
       default: // just process as a slash
         return [92, 1];

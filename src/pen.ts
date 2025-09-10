@@ -42,7 +42,6 @@ export class Pen {
 
   static dotfactor = 6;
   static labelmargin = 0.28;
-//  return labelmargin*fontsize(p)+0.5*linewidth(p);
 
   labelmargin(): number {
     return Pen.labelmargin*this.fontsize+0.5*this.linewidth;

@@ -1,4 +1,4 @@
-import { assertively, Functionlike, hurriedly, LOUDNESS, roughly } from "./helper";
+import { assertively, Functionlike, hurriedly, LOUDNESS, } from "./helper";
 
 import type { Binor, Unor, Assignor, Modifactor, Literal } from "./tokens";
 import { Keyword, Operator, Separator, Other, DEFSPAN } from "./tokens";
@@ -9,11 +9,11 @@ import { span } from "./tokens";
 import type { Token } from "./tokens";
 import { tokenTypeToString } from "./tokens";
 
-import { Maybe, maybeArray, weep, Knowledge, unspell, loudly } from "./helper";
+import { Maybe, maybeArray, Knowledge, unspell as unknowledge, loudly } from "./helper";
 import { lookup, recall, remember } from "./render";
-import { Fielded, Pair, Rime } from "./number";
+import { Fielded, Pair, Rime } from "./reckon";
 import merx from "./merx";
-import { bless, BakedBool, BakedTypes } from "./bake";
+import { bless } from "./bake";
 
 export class Phrase {
 
@@ -21,11 +21,11 @@ export class Phrase {
     public span: Span = DEFSPAN,
     public flags: number = 0,
 //    public scope: ScopeChainNode | null = null,
-    public docComment: Comment | null = null,
+    public docComment: Maybe<Comment> = null,
   ) {}
 
   // Mark this tree as having the following doc comment
-  attachDocComment(docComment: Comment | null): Phrase {
+  attachDocComment(docComment: Maybe<Comment>): Phrase {
     if (docComment) this.docComment = docComment;
     return this;
   }
@@ -120,13 +120,13 @@ export class Phrase {
 
     this.setSpan(span(min, max));
     assertively(-1 < this.span.start && this.span.start < this.span.end,
-      [`[${this.span.start}, ${this.span.end}]`, "is a good span."], LOUDNESS.Spanner);
+      `[${this.span.start}, ${this.span.end}] is a good span.`, LOUDNESS.Spanner);
   }
 
   /**
    * Given a cursor position, find the path of trees and tokens taking us to that cursor position.
    */
-  findChainAtPosition(pos: number): (Phrase | Token<any>)[] | null {
+  findChainAtPosition(pos: number): Maybe<(Phrase | Token<any>)[]> {
     if (this.span.start <= pos && this.span.end >= pos) {
       for (const tokenOrPhrase of this.iterTokensAndPhrases()) {
         if (tokenOrPhrase instanceof Phrase) {
@@ -174,6 +174,16 @@ export class ImportDeclarationP extends DeclarationP {
     readonly asToken: Maybe<Token<Other.Identifier>>,
     readonly alias: Maybe<IdentifierP>,
     readonly semicolon: Maybe<Token<Separator.Semicolon>>,
+  ) { super(); }
+}
+
+// todo
+export class AccessP extends DeclarationP {
+  constructor (
+    readonly modifiers: Token<Modifactor>[],
+    readonly accessToken: Token<Keyword.access>,
+    readonly module: Maybe<IdentifierP>,
+    readonly semi: Maybe<Token<Separator.Semicolon>>,
   ) { super(); }
 }
 
@@ -285,7 +295,7 @@ export class IfStatementP extends StatementP {
 }
 
 // todo
-export class ForeachP extends StatementP {
+export class ForeachStatementP extends StatementP {
   constructor (
     readonly forToken: Token<Keyword.for>,
     readonly openParen: Maybe<Token<Separator.LRound>>,
@@ -313,7 +323,7 @@ export class ForStatementP extends StatementP {
 }
 
 // todo
-export class WhileP extends StatementP {
+export class WhileStatementP extends StatementP {
   constructor (
     readonly whileToken: Token<Keyword.while>,
     readonly openParen: Maybe<Token<Separator.LRound>>,
@@ -324,15 +334,15 @@ export class WhileP extends StatementP {
 }
 
 // todo
-export class DowhileP extends StatementP {
+export class DowhileStatementP extends StatementP {
   constructor (
     readonly doToken: Token<Keyword.do>,
     readonly statement: Maybe<Phrase>,
-    readonly whileToken: Token<Keyword.while> | null,
-    readonly openParen: Token<Separator.LRound> | null,
-    readonly condition: Phrase | null,
-    readonly closeParen: Token<Separator.RRound> | null,
-    readonly semicolon: Token<Separator.Semicolon> | null
+    readonly whileToken: Maybe<Token<Keyword.while>>,
+    readonly openParen: Maybe<Token<Separator.LRound>>,
+    readonly condition: Maybe<Phrase>,
+    readonly closeParen: Maybe<Token<Separator.RRound>>,
+    readonly semicolon: Maybe<Token<Separator.Semicolon>>,
   ) { super(); }
 }
 
@@ -340,7 +350,7 @@ export class DowhileP extends StatementP {
 export class BreakP extends StatementP {
   constructor (
     readonly breakToken: Token<Keyword.break>,
-    readonly semicolon: Token<Separator.Semicolon> | null
+    readonly semicolon: Maybe<Token<Separator.Semicolon>>,
   ) { super(); }
 }
 
@@ -461,16 +471,6 @@ export class CallP extends ExpressionP {
   ) { super(); }
 }
 
-// todo
-export class AccessP extends DeclarationP {
-  constructor (
-    readonly modifiers: Token<Modifactor>[],
-    readonly accessToken: Token<Keyword.access>,
-    readonly module: Maybe<IdentifierP>,
-    readonly semi: Maybe<Token<Separator.Semicolon>>,
-  ) { super(); }
-}
-
 // e.g. (0,0){down} or {up}(0,0)
 // todo
 export class BraceAffixedExpressionPhrase extends Phrase {
@@ -568,7 +568,6 @@ export class ArrayCreationPhrase extends Phrase {
   }
 }
 
-// todo
 export class TernorP extends ExpressionP {
   constructor (
     readonly condition: Maybe<Phrase>,
@@ -654,7 +653,7 @@ export class AllP extends Phrase {
   understandNext(): Knowledge {
     return (this.step < this.decls.length)
     ? this.understand(this.decls[this.step++]) as Knowledge
-    : unspell;
+    : unknowledge;
   }
 
   understand(t: Maybe<Phrase>): unknown {
@@ -665,16 +664,19 @@ export class AllP extends Phrase {
 
     } else if (t instanceof DeclarationP) {
       if (t instanceof ManyVariablesDeclarationP) {
-        return t.decls.map(x => this.understand(x)).map(x => (this.understand(t.type) as Functionlike<any>)(x));
+        //todo: this
+//        return t.decls.map(x => (this.understand(t.type) as Functionlike<unknown>)(this.understand(x)));
+        return t.decls.map(x => this.understand(x));
       } else if (t instanceof ImportDeclarationP) {
         if (t.importTarget instanceof IdentifierP) {
           loudly(["Time to import stuff", t]);
+          // todo: async this
           return merx(t.importTarget.getName());
         } else {
           return merx(t.importTarget?.value ?? "");
         }
       } else {
-        roughly(`wah im a declare ${t.constructor.name}`, t);
+        throw new Error(`wah im a bad declaration ${t.constructor.name}`);
       }
 
 
@@ -686,35 +688,40 @@ export class AllP extends Phrase {
       } else if (t instanceof SemicolonStatementP) {
         return;
       } else if (t instanceof IfStatementP) {
-        return ((lif) => {
-          assertively(BakedBool.is(lif)); // todo: think about how to make this kind of castblocking more robust?
-          return lif ? this.understand(t.thenStatement) : this.understand(t.elseStatement);
-      }) (this.understand(t.condition));
+        return this.understand(this.understand(t.condition)
+          ? t.thenStatement
+          : t.elseStatement);
       } else if (t instanceof ForStatementP) {
-        assertively(!Array.isArray(t.forInit), "yay 1d for loop");
 
-        // danger! assuming that only one looping variable
-        this.understand(t.forInit);
-        console.log(t.forCond, this.understand(t.forCond));
+        if (t.forInit instanceof ManyVariablesDeclarationP) {
+          this.understand(t.forInit);
+        } else if (Array.isArray(t.forInit)) {
+          t.forInit.map(x => this.understand(x));
+        } else {
+          throw new Error("bad for init :(");
+        }
+
         return ((ks: Knowledge[]) => {
           hurriedly (100) (() => this.understand(t.forCond) as boolean, () => {
             ks.push(this.understand(t.statement) as Knowledge);
-            loudly(t.forUpdate)!.map(x => this.understand(x));
+            (t.forUpdate ?? []).map(x => this.understand(x));
           });
           return ks;
         }) ([]);
       } else {
-        roughly(`wah im a statement ${t.constructor.name}`, t);
+        throw new Error(`wah im a bad statement ${t.constructor.name}`);
       }
 
 
     } else if (t instanceof OperatorP) {
       if (t instanceof UnorP) {
-        assertively(t.operand !== null && t.operand instanceof IdentifierP);
+        assertively(t.operand !== null);
         switch (t.operator.kind) {
           case Operator.PlusPlus:
+            assertively(t.operand instanceof IdentifierP);
             return remember(t.operand.getName(), (recall(t.operand.getName()).memory as number) + 1);
           case Operator.MinusMinus:
+            assertively(t.operand instanceof IdentifierP);
             return remember(t.operand.getName(), (recall(t.operand.getName()).memory as number) - 1);
           default:
             return (lookup(t.operator)) (this.understand(t.operand));
@@ -722,7 +729,7 @@ export class AllP extends Phrase {
       } else if (t instanceof BinorP) {
         return (lookup(t.operator)) (this.understand(t.left), this.understand(t.right));
       } else {
-        roughly(`wah im an operator ${t.constructor.name}`, t);
+        throw new Error(`wah im a bad operator ${t.constructor.name}`);
       }
 
 
@@ -743,7 +750,7 @@ export class AllP extends Phrase {
 //            case Operator.HashEq: "#=",
 //            case Operator.PercentEq: "%=",
 //            case Operator.CaretEq: "^=",
-            default: roughly(`wah idk the operator ${t.equalsToken.kind}`);
+            default: throw new Error(`wah idk what this is: ${t.equalsToken.kind}`);
           }
         }) (t.left, this.understand(t.right) as number);
       } else if (t instanceof OneVariableDeclarationP) {
@@ -756,6 +763,8 @@ export class AllP extends Phrase {
           loudly([`Calling ${t.caller} on`, largs, "."]);
           return (lcall as Function) (largs);
         }) (this.understand(t.caller), t.args.map(x => this.understand(x)));
+      } else if (t instanceof TernorP) {
+        return this.understand(this.understand(t.condition) ? t.whenTrue : t.whenFalse);
       } else if (t instanceof TypeP) {
         return (thing: unknown) => bless(thing, t.ident.getName());
       } else if (t instanceof RoundP) {
@@ -767,23 +776,23 @@ export class AllP extends Phrase {
         // todo: why does this hate asyncs
         // todo: 3 dimensions
         assertively(t.exprs.length === 2);
-        return (([x, y]) => ({ x, y }))(t.exprs.map(x => this.understand(x)));// as [Rime<Fielded>, Rime<Fielded>]);
-        //return (lz => { x: lz.x, y: lz.y })(new Pair(...t.exprs.map(x => this.understand(x)) as [Rime<Fielded>, Rime<Fielded>]);
+        return new Pair(...t.exprs.map(x => this.understand(x)) as [Rime<Fielded>, Rime<Fielded>]);
       } else if (t instanceof IdentifierP) {
         return lookup(t.name);
       } else if (t instanceof LiteralP) {
         switch (t.token.kind) {
           case Other.FloatLiteral:
+          // todo: why does wrapping this in Real make it break
           case Other.IntegerLiteral: return t.token.value as number;
           case Other.StringLiteral: return t.token.value as string;
           case Other.BooleanLiteral: return t.token.value as boolean;
-          default: weep();
+          default: throw new Error(`wah idk what this is: ${t.token.kind}`);
         }
       } else {
-        roughly(`wah im an expression ${t.constructor.name}`, t);
+        throw new Error(`wah im a bad expression ${t.constructor.name}`);
       }
     } else {
-      roughly(`wah im a nothing ${t.constructor.name}`, t);
+      throw new Error(`wah im a bad nothing ${t.constructor.name}`);
     }
     return;
   }

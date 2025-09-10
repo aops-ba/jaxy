@@ -25,8 +25,8 @@ import {
   CastP,
   AllP,
   ContinueP,
-  DowhileP,
-  ForeachP,
+  DowhileStatementP,
+  ForeachStatementP,
   ForStatementP,
   FunctionDeclarationP,
   IdentifierP,
@@ -46,7 +46,7 @@ import {
   UnorP,
   ManyVariablesDeclarationP,
   OneVariableDeclarationP,
-  WhileP,
+  WhileStatementP,
   ImportDeclarationP,
   StructDeclarationP,
   ReturnP,
@@ -621,7 +621,7 @@ export default class Percy {
 
             const block = this.consumeStatement();
 
-            return new ForeachP(
+            return new ForeachStatementP(
               forToken,
               openParen,
               ty,
@@ -694,7 +694,7 @@ export default class Percy {
     );
   }
 
-  consumeWhileStatement(): WhileP | null {
+  consumeWhileStatement(): WhileStatementP | null {
     const whileToken = this.expectTT(Keyword.while);
     if (!whileToken) return null;
 
@@ -702,7 +702,7 @@ export default class Percy {
       this._consumeParenthesizedCondition();
     const statement = this.consumeStatement();
 
-    return new WhileP(
+    return new WhileStatementP(
       whileToken,
       openParen,
       condition,
@@ -711,7 +711,7 @@ export default class Percy {
     );
   }
 
-  consumeDoWhileStatement(): DowhileP | null {
+  consumeDoWhileStatement(): DowhileStatementP | null {
     const doToken = this.expectTT(Keyword.do);
     if (doToken === null) return null;
 
@@ -722,7 +722,7 @@ export default class Percy {
       this._consumeParenthesizedCondition();
     const semicolon = this.expectSemicolon();
 
-    return new DowhileP(
+    return new DowhileStatementP(
       doToken,
       stmt,
       whileToken,

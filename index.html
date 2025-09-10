@@ -43,59 +43,30 @@
           </div>
           <div class="open">
             <p>
-            haj! maj nem ɪz <strong>ˈʤæksi</strong>, rɪtən <span class="otherworldly">Jaxy</span>.
-            maj pronawnz ɑr <strong>hi</strong>/<strong>ɪt</strong>.
-            pərˈhæps ju&rsquo;v mɛt maj sɪstər <a href="https://github.com/kbaki-aops/lasy.git" target="_blank"><strong>læsi</strong></a>.
+            haj! maj nem ɪz <strong>ˈʤæksi</strong>, rɪʔən <span class="otherworldly">Jaxy</span>.
+            maj pronawnz ɑ <strong>hi</strong>/<strong>ɪt</strong>.
+            pəˈhæps ju&rsquo;v mɛt maj sɪstə <a href="https://github.com/kbaki-aops/lasy.git" target="_blank"><strong>læsi</strong></a>.
             </p>
             <p>
-            aj&rsquo;m ə tajpskrɪpt mɒdjul ðæt kəmˈpajlz æsɪmptot kod ɪntu ˌɛsˌviˈʤi awtpʊt
-            wɪˈðɪn ðə brawzər, <em>wɪˈðawt</em> ði æsɪmptot kəmˈpajlər.
+            aj&rsquo;m ə tajpskrɪpt mɒʤul ðæt kəmˈpajlz æsɪmptot kod ɪntu ˌɛsˌviˈʤi awtpʊt
+            wɪˈðɪn ðə brawzə, <em>wɪˈðawt</em> ði æsɪmptot kəmˈpajlə.
             </p>
           </div>
+        </div>
+        <div id="walhoard">
+          <span class="wale">
+            <input type="checkbox" id="doMathJax" checked /> 
+            <label for="doMathJax"><span class="closed">MathJax</span><span class="open">mæθʤæks</span></label>
+          </span>
+          <span class="wale">
+            <input type="checkbox" id="doNightJax" /> 
+            <label for="doNightJax"><span class="closed">NightJax</span><span class="open">najtʤæks</span></label>
+          </span>
         </div>
       </div>
     </div>
     <div id="backbone">
-      <div><textarea id="asy">
-//import goods;
-
-unitsize(1*cm);
-
-filldraw(circle(origin, 3), cyan, black);
-fill(circle(origin, 2), blue);
-draw(unitcircle, red);
-filldraw(circle(N, 1/2), blue);
-filldraw(circle(2*S, 3/4), green);
-filldraw(circle(E/3, 0.5), yellow);
-
-dot("one");
-dot(4*N);
-dot(red);
-dot("two", 4*S);
-dot("three", 4*S, 4*(-E));
-dot("four", red);
-dot(5*N, green);
-dot(6*(-S), -E-E, blue);
-dot("five", 3*N+3*(-S), blue);
-dot("six", 3*S+3*(-N), -W-W-W-W, blue);
-
-//label(beowulf, 8*S);
-label("\( \phi, \psi \vDash \int_0^\infty (f')_i^2\langle \vec x_1, x|_2\rangle\ d\mathbf s \)", 7*E+2*N);
-label("\( \frac1{1+\frac1{1+\frac1{1+\frac1{1+\frac1{1+\frac1{1+\frac1{1+\frac1{1}}}}}}}} \)", 7*W+3*S, magenta);
-
-if (1+1 == 2) {
-  label("we did it", 4*N);
-} else {
-  label("we didn't do it", 4*S);
-}
-
-draw(2.5*dir(60)--3*dir(150)--2.5*dir(210)--3*dir(300)
-   --2.5*dir(0)--3*dir(90)--2.5*dir(150)--3*dir(240)
-   --2.5*dir(300)--3*dir(30)--2.5*dir(90)--3*dir(180)
-   --2.5*dir(240)--3*dir(330)--2.5*dir(30)--3*dir(120)
-   --2.5*dir(180)--3*dir(270)--2.5*dir(330)--3*dir(60)
-   --2.5*dir(120)--3*dir(210)--2.5*dir(270)--3*dir(0)--cycle);
-</textarea></div>
+      <div><textarea id="asy"></textarea></div>
       <div><svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg></div>
     </div>
   </div>

@@ -1,19 +1,9 @@
-//import { BakedPair } from "./bake";
 import { assertively, loudly } from "./helper";
 
 type Fielded = Real | Pair;
 type Ringed = Int | Fielded;
 type Rime<T> = T | number;
 type Unclosed = Exclude<Rime<Ringed>, Pair>;
-
-// todo: test this out
-//class _Ringed { constructor(public x: number) {} };
-//class _Fielded extends _Ringed { stuff() {} }//{ constructor(public x: number) {super(x)} };
-//class _Closed extends _Fielded { constructor(public x: number, public y: number) {super(x)} };
-//type _Int = Exclude<_Ringed, _Fielded>;
-//type _Real = Exclude<_Fielded, _Closed>;
-//type _Pair = _Closed;
-//let x: _Int = 5;
 
 export class AsyMath {
   static lift(left: Rime<Ringed>, right: Rime<Ringed>): [Ringed, Ringed] {
@@ -46,7 +36,8 @@ export class AsyMath {
   }
 
   static plus(left: Rime<Fielded>, right: Rime<Fielded>): Fielded {
-    return (([ll, lr]) => ll.plus(lr))(AsyMath.lift(left, right));
+    return (([ll, lr]) => (([lll, llr]) => lll.plus(llr))(AsyMath.lift(ll, lr)))
+           (right ? [left, right] : [0, left]);
   }
 
   static minus(left: Rime<Fielded>, right: Rime<Fielded>): Fielded {
@@ -93,7 +84,7 @@ class Pair {
   }
 
   eq(z: Fielded): boolean {
-    return this.x === z.x && (!BakedPair.is(z) || this.y === (z as Pair).y);
+    return this.x === z.x && (!(z instanceof Pair) || this.y === (z as Pair).y);
   }
 
   private _length2(): number {

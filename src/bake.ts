@@ -1,19 +1,9 @@
 import { Arc } from "./arc";
 import { assertively, Functionlike } from "./helper";
-import { Real, Pair, AsyMath, Align, Int } from "./number";
+import { Real, Pair, AsyMath, Align, Int } from "./reckon";
 import { Path } from "./path";
 import { Pen } from "./pen";
-
-/**
- * The baked types of Asymptote are `void`, `bool`, `int`, `real`, and so on.
- * The baked types of TypeScript are `undefined`, `boolean`, `bigint`, `number`, and so on.
- * Each type `Baked<T>` represents the Asymptote implementation of the TypeScript type `T`,
- *   and `BakedTypes` is the warehouse thereof.
- * A TypeScript primitive of type `T` is to be wrapped inside
- *   a Jaxy class using the information in `Baked<T>`.
- * For example, the TS primitive `0.1` (: number) is to be typechecked using `BakedReal.is`,
- *   and then used as `new Real(0.1)`,
-**/
+import { Operator, Tokenboard } from "./tokens";
 
 type Baked<T> = {
   name: string;
@@ -111,15 +101,25 @@ function isPathlike(thing: unknown): thing is Path | Arc {
   return thing instanceof Path || thing instanceof Arc ;
 }
 
+function lift(thing: unknown): unknown {
+  if (thing instanceof Int) return lift(new Real(thing));
+  else if (thing instanceof Real) return lift(new Pair(thing));
+  else if (thing instanceof Pair) return lift(new Path([thing]));
+  else if (thing instanceof Path) return lift([thing]);
+  else return thing;
+}
+
 const bakeboard: Map<string, Functionlike<unknown>> = new Map([
-  ["+", AsyMath.plus],
-  ["-", AsyMath.minus],
-  ["*", AsyMath.times],
-  ["/", AsyMath.divide],
-  [">", AsyMath.gt],
-  ["<", AsyMath.lt],
-  ["==", AsyMath.eq],
-  ["--", Path.make],
+  [Tokenboard[Operator.Plus], AsyMath.plus],
+  [Tokenboard[Operator.Minus], AsyMath.minus],
+  [Tokenboard[Operator.Star], AsyMath.times],
+  [Tokenboard[Operator.Slash], AsyMath.divide],
+  [Tokenboard[Operator.Caret], AsyMath.power],
+  [Tokenboard[Operator.StarStar], AsyMath.power],
+  [Tokenboard[Operator.Gt], AsyMath.gt],
+  [Tokenboard[Operator.Lt], AsyMath.lt],
+  [Tokenboard[Operator.EqEq], AsyMath.eq],
+  [Tokenboard[Operator.MinusMinus], Path.make],
 ] as [string, Functionlike<unknown>][]);
 
 export type { Baked };

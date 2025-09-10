@@ -1,7 +1,7 @@
 import type { BBox } from "./helper";
 
-import { Pair } from "./number";
-import { origin } from "./number";
+import { Pair } from "./reckon";
+import { origin } from "./reckon";
 
 import { Seen } from "./seen";
 
@@ -29,11 +29,11 @@ class Circle extends Arc {
 
   bbox(): BBox {
     return {
-      width: 2*this.radius,
-      height: 2*this.radius,
       minx: this.center.x-this.radius,
       miny: this.center.y-this.radius,
-    }
+      maxx: this.center.x+this.radius,
+      maxy: this.center.y+this.radius,
+    };
   }
 }
 

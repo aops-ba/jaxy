@@ -7,4 +7,4 @@ draw(r*W--r*E, red);
 draw(r*SW--r*NE, red);
 
 string beowulf = "Hwæt! We gardena in geardagum, theodcyninga thrym gefrunon, hu tha æthelingas ellen fremedon.";
-label("Arma virumque cano, Troiiae qui primus ab oris, Italiam fato profugus, Lavinia que venit…", N);//r*3/2*N);
+label("Arma virumque cano, Troiiae qui primus ab oris, Italiam fato profugus, Lavinia que venit…");

@@ -1,7 +1,7 @@
 import { BBox, min, max } from "./helper";
 import { Seen } from "./seen";
 
-import { Pair, toRadians } from "./number";
+import { Pair, toRadians } from "./reckon";
 
 class Path extends Seen {
   // todo: improve this
@@ -57,9 +57,9 @@ class Path extends Seen {
   bbox(): BBox {
     return {
       minx: min(...this.points.map(z => z.x)),
-      miny: min(...this.points.map(z => z.y)), 
-      width: max(...this.points.map(z => z.x))-min(...this.points.map(z => z.x)), 
-      height: max(...this.points.map(z => z.y))-min(...this.points.map(z => z.y)), 
+      miny: min(...this.points.map(z => z.y)),
+      maxx: max(...this.points.map(z => z.x)),
+      maxy: max(...this.points.map(z => z.y)),
     };
   }
 }

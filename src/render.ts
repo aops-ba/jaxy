@@ -1,9 +1,7 @@
-import _ from "lodash/fp";
-
 import { randy } from "./main";
 
-import { Align, Fielded, Pair, Real, Rime } from "./number";
-import { origin, N, S, E, W } from "./number";
+import { Align, Fielded, Pair, Real, Rime } from "./reckon";
+import { origin, N, S, E, W } from "./reckon";
 
 import { Path } from "./path";
 
@@ -13,7 +11,7 @@ import { unitcircle } from "./arc";
 import type { Pen, Pens } from "./pen";
 import { defaultpen, penboard } from "./pen";
 import Label from "./label";
-import { CM, INCH, Maybe, MM, PT, Scaling, shed, underload, loudly, BBox, LOUDNESS, hasTex as hasTex, only } from "./helper";
+import { CM, INCH, Maybe, MM, PT, Scaling, shed, underload, loudly, BBox, LOUDNESS, hasTex as hasTex, only, flight, max, min, Functionlike, zip } from "./helper";
 import { Keyword, Operator, Other, Token, Tokenboard } from "./tokens";
 import { bakeboard, BakedPair, BakedString, isAlign, isPathlike, isPen } from "./bake";
 import { assertively } from "./helper";
@@ -31,23 +29,33 @@ export default class Render {
   static DEFSCALE: Scaling = { x: 100, y: 100*Render.UP };
 
   svgblock: SVGGraphicsElement;
-  wisdom: Knowledge[];
-  scaling: Scaling;
+  wisdom!: Knowledge[];
+  scaling!: Scaling;
+  afterwork!: Functionlike<unknown>[];
 
-  constructor(svgblock: SVGGraphicsElement) {
+  doTex: HTMLInputElement;
+
+  constructor(svgblock: SVGGraphicsElement, doTex: HTMLInputElement) {
     this.svgblock = svgblock;
+    this.doTex = doTex;
     ((lb) => {
-      this.svgblock.setAttribute("width", `${lb.width}`);
-      this.svgblock.setAttribute("height", `${lb.height}`);
+      this.svgblock.setAttribute("width", `${lb.maxx-lb.minx}`);
+      this.svgblock.setAttribute("height", `${lb.maxy-lb.miny}`);
     })(this.greatbox());
 
-    this.wisdom = [];
-    this.scaling = Render.DEFSCALE;
+    this.forget();
     //loudly(window.devicePixelRatio);
   }
 
-  size(x: number, y: number =x): Render {
-    //todo
+  size(x: number, y: number): Render {
+    this.afterwork.push(() => { this.scaling = ((xs: number[][]) => ((lmost: number) => ({
+      x: x/lmost,
+      y: y/lmost*Render.UP,
+    })) (max(max(...xs[3])-min(...xs[1]), max(...xs[2])-min(...xs[0])))
+    ) (zip(...this.wisdom.filter((lw: Knowledge) => !(lw.sight instanceof Label))
+        .map((lw: Knowledge) => ((lb: BBox) => [lb.minx, lb.miny, lb.maxx, lb.maxy])(lw.sight.bbox()))
+      ) as number[][]);
+    });
     return this;
   }
 
@@ -63,6 +71,8 @@ export default class Render {
 
   forget(): Render {
     this.wisdom = [];
+    this.afterwork = [];
+    this.scaling = Render.DEFSCALE;
     return this;
   }
 
@@ -79,7 +89,7 @@ export default class Render {
         + `${this.ink(knowledge)} />`)(knowledge.sight)(this.scaling);
     } else if (knowledge.sight instanceof Label) {
       return ((lx: Label) => (ls: Scaling) =>
-        `<foreignObject x="${ls.x*(lx.position.x+Label.SF*lx.align.x)}" y="${ls.y*(lx.position.y+Label.SF*lx.align.y)}"`
+        `<foreignObject x="${ls.x*(lx.position.x+lx.align.x)}" y="${ls.y*(lx.position.y+lx.align.y)}"`
         + `style="overflow: visible;">`
         + this.ink(knowledge) + `</foreignObject>`)(knowledge.sight)(this.scaling);
     } else {
@@ -90,9 +100,10 @@ export default class Render {
   ink(knowledge: Knowledge): string {
     if (knowledge.sight instanceof Label) {
       return `\\(\\textcolor[RGB]{` + ((lc) => `${lc.r},${lc.g},${lc.b}`)(knowledge.pens.fill!.color) + `}`
-      + `{${`${_.replace (/\\text{}|\\\(|\\\)/gm) ('') (`\\text{${
-              _.replace (/\\\(/gm) ('}\\(') (
-              _.replace (/\\\)/gm) ('\\)\\text{') (knowledge.sight.text))}}}`)}\\)`}`;
+      + `{${`${(`\\text{${knowledge.sight.text
+        .replace(/\\\)/gm, '\\)\\text{')
+        .replace(/\\\(/gm, '}\\(')}}}`)
+        .replace(/\\text{}|\\\(|\\\)/gm, '')}\\)`}`;
     } else {
       return (({fill, stroke}) => `fill="${fill?.color ?? "none"}" stroke="${stroke?.color ?? "none"}"`
         + ` stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10"`
@@ -101,13 +112,20 @@ export default class Render {
   }
 
   // todo: should these promises resolve all at render time or eachwise at read time?
-  async render(): Promise<void> {
+  // todo: afterwork needs to wait for `mete`s to fulfill
+  async show(): Promise<void> {
     await (async (l): Promise<void> => {
       this.svgblock.innerHTML = `${
-        (await Promise.all(this.wisdom.map(async (lk: Knowledge) => await this.mete(lk)))
+        this.doTex.checked
+        ? (await Promise.all(this.wisdom.map(async (lk: Knowledge) => await this.mete(lk)))
+          .then((outcome) => { this.afterwork.forEach(f => f()); return outcome; })
           .then((outcome) => outcome.flat().map((lk: Knowledge | string) => this.sketch(lk))))
+        : (() => {
+            this.afterwork.forEach(f => f());
+            return this.wisdom.flat().map((lk: Knowledge | string) => this.sketch(lk));
+          })()
       .join('')}`;
-      this.svgblock.setAttribute("viewBox", `${l.minx} ${l.miny} ${l.width} ${l.height}`);
+      this.svgblock.setAttribute("viewBox", `${l.minx} ${l.miny} ${l.maxx-l.minx} ${l.maxy-l.miny}`);
       this.svgblock.setAttribute("preserveAspectRatio", "xMidYMid meet");
     })(this.greatbox());
   }
@@ -119,29 +137,32 @@ export default class Render {
           document.getElementById("unseen")!.appendChild(le).innerHTML = this.sketch(k);
           await MathJax.typesetPromise([le]);
 
+          // todo: the tex is ever so slightly lower than it should be????
           return ((lf: SVGForeignObjectElement) => (((lr: DOMRect): string => {
             lf.setAttribute("x", `${Number(lf.getAttribute("x"))-lr.width/2}`);
             lf.setAttribute("y", `${Number(lf.getAttribute("y"))-lr.height/2}`);
             lf.setAttribute("width", ''+lr.width);
             lf.setAttribute("height", ''+lr.height);
             document.getElementById("unseen")!.removeChild(le);
+            // todo: check that this bbox doesnt get used for anything besides calculating the scaling when using `size`
+//            (k.sight as Label).setBBox(lr);
             return lf.outerHTML;
           }) (lf.firstElementChild!.getBoundingClientRect())))
-             (only([...le.getElementsByTagName("foreignObject")]));
+          (only([...le.getElementsByTagName("foreignObject")]));
         }) (document.createElement("svg"));
   }
 
   private greatbox(): BBox {
-    return ((l) => ({
-      width: l.width,
-      height: l.height,
+    return (l => ({
       minx: -l.width/2,
-      miny: -l.height/2
-    }))(this.svgblock.getBoundingClientRect());
+      miny: -l.height/2,
+      maxx: l.width/2,
+      maxy: l.height/2,
+    })) (this.svgblock.getBoundingClientRect());
   }
 }
 
-export const nameboard = new Map<string, any>([
+export const nameboard = new Map<string, unknown>([
   //todo: get rid of randy
   ["write", (s: string[]) => console.log(shed(s))],
 
@@ -170,11 +191,11 @@ export const nameboard = new Map<string, any>([
   ["cm", CM],
   ["mm", MM],
   ["pt", PT],
-//  ["size", ([x,y=x]: number[]) => randy.size(x, y)],
+  ["size", ([x, y=x]: [number, number]) => randy.size(x, y)],
   ["unitsize", ([x, y=x]: [number, number]) => randy.unitsize(x, y)],
   ...penboard,
   ...bakeboard,
-] as [string, any][]);
+] as [string, unknown][]);
 
 export type Memory = { name: string, memory: unknown };
 export const variables: Map<string, unknown> = new Map();
@@ -227,8 +248,7 @@ function label([s, position, align, p]: [string, Maybe<Pair>, Maybe<Pair>, Maybe
 // todo: calibrate dot size
 // todo: L should be Label instead of string, cf. upcasting
 function dot([L, z, align, p]: [Maybe<string>, Maybe<Pair>, Maybe<Align>, Maybe<Pen>]): void {
-  console.log("wah");
-  randy.learn({ sight: loudly(new Circle(z ?? origin, descale(1/2*defaultpen.dotsize()))), pens: { fill: p ?? defaultpen, stroke: null } });
+  randy.learn({ sight: new Circle(z ?? origin, descale(1/2*defaultpen.dotsize())), pens: { fill: p ?? defaultpen, stroke: null } });
   label([L ?? "", z, align ?? E, p]);
 }
 
