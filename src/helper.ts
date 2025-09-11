@@ -96,6 +96,10 @@ function maybeArray<T>(thing: MaybeOrNot<T>): T[] {
   return thing ? [thing] : [];
 }
 
+function sameArray(left: unknown[], right: unknown[]): boolean {
+  return (!!!left && !!!right) || (!!left && !!right && (left.every((v,i) => v === right[i])));
+}
+
 function flight(n: number): number[] {
   return [...Array(n).keys()];
 }
@@ -192,6 +196,6 @@ export { PT, PX, INCH as INCHES, CM, MM, unknowledge };
 export { hasTex };
 
 export type { Maybe, MaybeOrNot, Enumlike, Functionlike, Curried };
-export { min, max, only, peel, shed, shell, flight, toEach, withEach, maybeArray, enumNames, nextSuchThat, zip };
+export { min, max, only, peel, shed, shell, flight, toEach, withEach, maybeArray, sameArray, enumNames, nextSuchThat, zip };
 
 export { underload };

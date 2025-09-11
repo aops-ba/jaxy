@@ -1,5 +1,5 @@
 import { Circle, unitcircle } from "./arc";
-import { assert, CM, Functionlike, INCHES, Maybe, MM, PT, underload } from "./helper";
+import { assert, CM, Functionlike, INCHES, Maybe, MM, only, PT, sameArray, underload } from "./helper";
 import { Real, Pair, AsyMath, Int, Unclosed, E, N, S, W, origin } from "./reckon";
 import { Path } from "./path";
 import { Color, Pen } from "./pen";
@@ -40,7 +40,7 @@ const Typebakes: { [s: string]: Bake<any> } = {
   "pair": {
     name: "pair",
     dimensions: 0,
-    is: (x: unknown): x is Pair => x instanceof Pair,
+    is: (x: unknown): x is Pair => x instanceof Pair || (!!x && typeof x === "object" && "x" in x && "y" in x),
   } as Bake<Pair>,
   "string": {
     name: "string",
@@ -107,6 +107,27 @@ function isSeen(thing: unknown): thing is Seen {
   return thing instanceof Seen;
 }
 
+function narrow(thing: unknown): Bakename | "path" {
+  if (isSeen(thing)) return "path";
+  else if (isPen(thing)) return "pen";
+  else if (isTransform(thing)) return "transform";
+  else if (isString(thing)) return "string";
+  else if (isPair(thing)) return "pair";
+  else if (isReal(thing)) return "real";
+  else if (isInt(thing)) return "int";
+  else if (isBool(thing)) return "bool";
+  else if (isVoid(thing)) return "void";
+  else throw new Error("idk what type this is");
+}
+
+function unload<T extends BakedFunction<any, any>>(fs: T[], args: unknown[]): T {
+  if (!Array.isArray(fs)) return fs;
+  else if (fs.length === 1) return only(fs);
+  else {
+    return only(fs.filter(f => sameArray(f.inkinds, args.map(narrow))));
+  }
+}
+
 function lift(thing: unknown): unknown {
   if (thing instanceof Int) return lift(new Real(thing));
   else if (thing instanceof Real) return lift(new Pair(thing));
@@ -116,6 +137,7 @@ function lift(thing: unknown): unknown {
 }
 
 function bless<T>(thing: T, type: Bakename): T {
+  console.log("wah", type, thing);
   assert(Typebakes[type].is(thing), ["Go,", thing, ", and be now of type", type, "."]);
   return thing;
 }
@@ -143,7 +165,7 @@ const bakeboard: BakedFunction<any, any>[] = [
   bake(Tokenboard[Operator.Slash], ["real", "real"], "real", ([x, y]) => x/y),
   bake(Tokenboard[Operator.Caret], ["real", "real"], "real", ([x, y]) => x^y),
   bake(Tokenboard[Operator.StarStar], ["real", "real"], "real", ([x, y]) => x**y),
-//  bake(Tokenboard[Operator.Plus], ["pair", "pair"], "pair", (z,w) => ({ x: z.x+w.x, y: z.y+w.y })),
+  bake(Tokenboard[Operator.Plus], ["pair", "pair"], "pair", ([z, w]) => ({ x: z.x+w.x, y: z.y+w.y })),
 //  [Tokenboard[Operator.Gt], AsyMath.gt],
 //  [Tokenboard[Operator.Lt], AsyMath.lt],
 //  [Tokenboard[Operator.EqEq], AsyMath.eq],
@@ -187,6 +209,6 @@ export type { Bake, Bakename, BakedFunction };
 export { Typebakes, bakeboard, cakeboard };
 export { BakedVoid, BakedBool, BakedInt, BakedReal, BakedPair, BakedString };
 
-export { bless, bake };
+export { bless, bake, narrow, unload };
 
 export { isVoid, isBool, isInt, isReal, isPair, isTransform, isString, isSeen, isPen };

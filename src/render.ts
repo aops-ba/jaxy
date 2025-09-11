@@ -173,7 +173,9 @@ function HAS(name: string): boolean {
 }
 
 function GET(name: string): unknown {
-  return cakeboard.filter(f => f.namey === name).map(x => x.inkinds === "not a function" ? x() : x);
+//  console.log("wah", cakeboard.filter(f => f.namey === name).map(x => x.inkinds === "not a function" ? x() : x));
+  return (xs => xs.length === 1 ? only(xs) : xs)
+    (cakeboard.filter(f => f.namey === name).map(x => x.inkinds === "not a function" ? x() : x));
 }
 
 //function GET(name: string, inkinds: Bakename[] =[]): unknown {
