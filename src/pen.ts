@@ -1,4 +1,5 @@
-import { Maybe, MaybeOrNot } from "./helper";
+import { bake } from "./bake";
+import { loudly, Maybe, MaybeOrNot } from "./helper";
 
 export class Color {
   r: number;
@@ -80,4 +81,3 @@ export class Pen {
 }
 
 export const defaultpen = Pen.fromName("black");
-export const penboard: Map<string, Pen> = new Map([...Color.names.entries()].map(([k,v]) => [k, Pen.fromColor(v)]));

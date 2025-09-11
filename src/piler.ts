@@ -1,4 +1,4 @@
-import { assertively, Functionlike, hurriedly, LOUDNESS, } from "./helper";
+import { assert, Functionlike, hurriedly, LOUDNESS, } from "./helper";
 
 import type { Binor, Unor, Assignor, Modifactor, Literal } from "./tokens";
 import { Keyword, Operator, Separator, Other, DEFSPAN } from "./tokens";
@@ -9,11 +9,11 @@ import { span } from "./tokens";
 import type { Token } from "./tokens";
 import { tokenTypeToString } from "./tokens";
 
-import { Maybe, maybeArray, Knowledge, unspell as unknowledge, loudly } from "./helper";
+import { Maybe, maybeArray, Knowledge, unknowledge as unknowledge, loudly } from "./helper";
 import { lookup, recall, remember } from "./render";
 import { Fielded, Pair, Rime } from "./reckon";
 import merx from "./merx";
-import { bless } from "./bake";
+import { Bakename, bless } from "./bake";
 
 export class Phrase {
 
@@ -119,7 +119,7 @@ export class Phrase {
     }
 
     this.setSpan(span(min, max));
-    assertively(-1 < this.span.start && this.span.start < this.span.end,
+    assert(-1 < this.span.start && this.span.start < this.span.end,
       `[${this.span.start}, ${this.span.end}] is a good span.`, LOUDNESS.Spanner);
   }
 
@@ -715,19 +715,19 @@ export class AllP extends Phrase {
 
     } else if (t instanceof OperatorP) {
       if (t instanceof UnorP) {
-        assertively(t.operand !== null);
+        assert(t.operand !== null);
         switch (t.operator.kind) {
           case Operator.PlusPlus:
-            assertively(t.operand instanceof IdentifierP);
+            assert(t.operand instanceof IdentifierP);
             return remember(t.operand.getName(), (recall(t.operand.getName()).memory as number) + 1);
           case Operator.MinusMinus:
-            assertively(t.operand instanceof IdentifierP);
+            assert(t.operand instanceof IdentifierP);
             return remember(t.operand.getName(), (recall(t.operand.getName()).memory as number) - 1);
           default:
             return (lookup(t.operator)) (this.understand(t.operand));
         }
       } else if (t instanceof BinorP) {
-        return (lookup(t.operator)) (this.understand(t.left), this.understand(t.right));
+        return lookup(t.operator!) ([this.understand(t.left), this.understand(t.right)]);
       } else {
         throw new Error(`wah im a bad operator ${t.constructor.name}`);
       }
@@ -736,7 +736,7 @@ export class AllP extends Phrase {
     } else if (t instanceof ExpressionP) {
       if (t instanceof AssignmentExpressionP) {
         return ((lname, lvalue) => {
-          assertively(lname instanceof IdentifierP);
+          assert(lname instanceof IdentifierP);
           loudly(`Assigning ${lvalue} to ${lname} with ${Operator[t.equalsToken.kind]}.`);
           switch (t.equalsToken.kind) {
             // todo: strings are also somewhat rimelike
@@ -766,7 +766,7 @@ export class AllP extends Phrase {
       } else if (t instanceof TernorP) {
         return this.understand(this.understand(t.condition) ? t.whenTrue : t.whenFalse);
       } else if (t instanceof TypeP) {
-        return (thing: unknown) => bless(thing, t.ident.getName());
+        return (thing: unknown) => bless(thing, t.ident.getName() as Bakename);
       } else if (t instanceof RoundP) {
         return this.understand(t.expr);
       } else if (t instanceof CallArgsP) {
@@ -775,7 +775,7 @@ export class AllP extends Phrase {
         // todo: make this type-safe
         // todo: why does this hate asyncs
         // todo: 3 dimensions
-        assertively(t.exprs.length === 2);
+        assert(t.exprs.length === 2);
         return new Pair(...t.exprs.map(x => this.understand(x)) as [Rime<Fielded>, Rime<Fielded>]);
       } else if (t instanceof IdentifierP) {
         return lookup(t.name);

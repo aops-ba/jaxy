@@ -1,4 +1,4 @@
-import { assertively, loudly } from "./helper";
+import { assert, loudly } from "./helper";
 
 type Fielded = Real | Pair;
 type Ringed = Int | Fielded;
@@ -70,7 +70,7 @@ class Pair {
   // todo: use asserts instead
   constructor(x: Rime<Fielded>, y?: Rime<Real>) {
     if (x instanceof Pair) {
-      assertively(!y);
+      assert(!y);
       this.x = x.x;
       this.y = x.y;
     } else {
@@ -214,7 +214,7 @@ class Real {
 
 class Int extends Real {
   constructor(x: Rime<Int>) {
-    assertively(AsyMath.land(x) === Math.floor(AsyMath.land(x)));
+    assert(AsyMath.land(x) === Math.floor(AsyMath.land(x)));
     super(x);
   }
 }
@@ -235,7 +235,7 @@ function toRadians(r: number): number {
   return r/toDegrees(1);
 }
 
-export type { Rime };
-export { Real, Fielded, Pair, Align, Int };
+export type { Rime, Unclosed, Ringed, Fielded };
+export { Real, Pair, Align, Int };
 export { origin, N, S, E, W };
 export { toDegrees, toRadians };

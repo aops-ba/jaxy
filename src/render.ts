@@ -1,20 +1,19 @@
 import { randy } from "./main";
 
 import { Align, Fielded, Pair, Real, Rime } from "./reckon";
-import { origin, N, S, E, W } from "./reckon";
+import { origin, E } from "./reckon";
 
 import { Path } from "./path";
 
 import { Circle } from "./arc";
-import { unitcircle } from "./arc";
 
-import type { Pen, Pens } from "./pen";
-import { defaultpen, penboard } from "./pen";
+import { Pen, Pens } from "./pen";
+import { defaultpen } from "./pen";
 import Label from "./label";
-import { CM, INCH, Maybe, MM, PT, Scaling, shed, underload, loudly, BBox, LOUDNESS, hasTex as hasTex, only, flight, max, min, Functionlike, zip } from "./helper";
+import { Maybe, PT, Scaling, BBox, only, max, min, Functionlike, zip } from "./helper";
 import { Keyword, Operator, Other, Token, Tokenboard } from "./tokens";
-import { bakeboard, BakedPair, BakedString, isAlign, isPathlike, isPen } from "./bake";
-import { assertively } from "./helper";
+import { Bakename, cakeboard } from "./bake";
+import { assert } from "./helper";
 import { Seen } from "./seen";
 
 const MathJax = window["MathJax" as keyof typeof window];
@@ -59,6 +58,7 @@ export default class Render {
     return this;
   }
 
+  // todo: if this comes before `size` then the labels are still sensitive thereto lol
   unitsize(x: number, y: number): Render {
     this.scaling = { x: x, y: y*Render.UP };
     return this;
@@ -162,40 +162,24 @@ export default class Render {
   }
 }
 
-export const nameboard = new Map<string, unknown>([
-  //todo: get rid of randy
-  ["write", (s: string[]) => console.log(shed(s))],
+//  ["NE", N.plus(E).unit()],
+//  ["SE", S.plus(E).unit()],
+//  ["SW", S.plus(W).unit()],
+//  ["NW", N.plus(W).unit()],
+//  ["cycle", "cycle"],
 
-  ["draw", (largs: unknown[]) => underload(draw, [BakedString.is, isPathlike, isAlign, isPen], largs)],
-  ["fill", (largs: unknown[]) => underload(fill, [isPathlike, isPen], largs)],
-  ["filldraw", (largs: unknown[]) => underload(filldraw, [isPathlike, isPen, isPen], largs)],
-  ["label", (largs: unknown[]) => underload(label, [BakedString.is, BakedPair.is, isAlign, isPen], largs)],
+function HAS(name: string): boolean {
+  return cakeboard.filter(f => f.namey === name).length > 0;
+}
 
-  ["dot", (largs: unknown[]) => underload(dot, [BakedString.is, BakedPair.is, isAlign, isPen], largs)],
-  ["circle", ([c,r]: [Pair, number]) => new Circle(c, Number(r))],
-  ["dir", (p: Path | number, q?: Path) => Path.dir(p, q)],
-  ["degrees", (lz: Pair) => new Real(lz.degrees())],
-  ["conjugate", (lz: Pair) => lz.conjugate()],
-  ["unitcircle", unitcircle],
-  ["origin", origin],
-  ["N", N],
-  ["S", S],
-  ["E", E],
-  ["W", W],
-  ["NE", N.plus(E).unit()],
-  ["SE", S.plus(E).unit()],
-  ["SW", S.plus(W).unit()],
-  ["NW", N.plus(W).unit()],
-  ["cycle", "cycle"],
-  ["inches", INCH],
-  ["cm", CM],
-  ["mm", MM],
-  ["pt", PT],
-  ["size", ([x, y=x]: [number, number]) => randy.size(x, y)],
-  ["unitsize", ([x, y=x]: [number, number]) => randy.unitsize(x, y)],
-  ...penboard,
-  ...bakeboard,
-] as [string, unknown][]);
+function GET(name: string): unknown {
+  return cakeboard.filter(f => f.namey === name).map(x => x.inkinds === "not a function" ? x() : x);
+}
+
+//function GET(name: string, inkinds: Bakename[] =[]): unknown {
+//  return (x => x.inkinds === "not a function" ? x() : x)
+//    (only(cakeboard.filter(f => f.namey === name)));
+//}
 
 export type Memory = { name: string, memory: unknown };
 export const variables: Map<string, unknown> = new Map();
@@ -208,29 +192,30 @@ function recall(name: string): Memory {
   return { name, memory: variables.get(name) };
 }
 
-function lookup(thing: Maybe<Token<Keyword | Operator | Other.Identifier>>): any {
+function lookup(thing: Token<Keyword | Operator | Other.Identifier>): any {
+//  console.log(thing, thing.kind, Tokenboard[thing.kind], cakeboard);
   if (thing === null) return null;
   return (lname => {
-    return nameboard.has(lname)
-      ? nameboard.get(lname)
+    return HAS(lname)
+      ? GET(lname)
       : variables.has(lname)
         ? variables.get(lname)
-        : () => thing;
+        : (() => { throw new Error(`${lname} not found`); })();
   }) ("value" in thing ? thing.value as string : Tokenboard[thing.kind]);
 }
 
-function draw([L, g, align, p]: [Maybe<Pair>, Seen, Maybe<Pair>, Maybe<Pen>]): void {
-  assertively(g !== null);
+function draw([L, g, align, p]: [Maybe<string>, Seen, Maybe<Pair>, Maybe<Pen>]): void {
+  assert(g !== null);
   randy.learn({ sight: g, pens: { fill: null, stroke: p ?? defaultpen } });//_.flatten ([g.show({ fill: null, stroke: p ?? defaultpen })]);
 }
 
 function fill([g, p]: [Seen, Maybe<Pen>]): void {
-  assertively(g !== null);
+  assert(g !== null);
   randy.learn({ sight: g, pens: { fill: p ?? defaultpen, stroke: null } });
 }
 
 function filldraw([g, fillpen, strokepen]: [Seen, Maybe<Pen>, Maybe<Pen>]): void {
-  assertively(g !== null);
+  assert(g !== null);
   randy.learn({ sight: g, pens: { fill: fillpen ?? defaultpen, stroke: null } });
   randy.learn({ sight: g, pens: { fill: null, stroke: strokepen ?? defaultpen } });
 }
@@ -238,7 +223,7 @@ function filldraw([g, fillpen, strokepen]: [Seen, Maybe<Pen>, Maybe<Pen>]): void
 // todo: calibrate label appearance
 // todo: lots of redundancy with type checking / guarding
 function label([s, position, align, p]: [string, Maybe<Pair>, Maybe<Pair>, Maybe<Pen>]): void {
-  assertively(s !== null);
+  assert(s !== null);
   randy.learn({
     sight: new Label(s, position ?? origin, align ?? origin),
     pens: { fill: p ?? defaultpen, stroke: null },
@@ -264,3 +249,4 @@ function descale<T extends Rime<Fielded>>(z: T): T {
 }
 
 export { lookup, descale, remember, recall };
+export { draw, fill, filldraw, label, dot };

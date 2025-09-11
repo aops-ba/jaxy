@@ -1,5 +1,5 @@
 import { Badness, LOUDNESS, flight } from "./helper";
-import { assertively } from "./helper";
+import { assert } from "./helper";
 import { nextSuchThat } from "./helper";
 
 import { Keyword, Operator, Separator, Other, span } from "./tokens";
@@ -17,7 +17,7 @@ class CompileError {
 }
 
 function isHex(c: string): boolean {
-  assertively(c.length === 1, `${c} is of length 1`, LOUDNESS.Lexer);
+  assert(c.length === 1, `${c} is of length 1`, LOUDNESS.Lexer);
   return ((c >= "0" && c <= "9")
        || (c >= "a" && c <= "f")
        || (c >= "A" && c <= "F"));
@@ -35,7 +35,7 @@ type BigIntParseResult = {
  * @returns the base-`base` integer at `text[start:end]`.
  */
 function checkedBigInt(text: string, start: number, end: number, base: number): BigIntParseResult {
-  assertively([2, 8, 10, 16].includes(base), `${base} is a supported base`, LOUDNESS.Lexer);
+  assert([2, 8, 10, 16].includes(base), `${base} is a supported base`, LOUDNESS.Lexer);
 
   try {
     return {
@@ -114,7 +114,7 @@ function processCharacterOrOctalEscape(
   offset: number,
   isSingleQuote: boolean
 ): [number | BadToken, number] {
-  assertively(text[offset] === "\\", "processEscape precondition fail", LOUDNESS.Lexer);
+  assert(text[offset] === "\\", "processEscape precondition fail", LOUDNESS.Lexer);
 
   if (!isSingleQuote) {
     // Only escapes are \\ -> \\ and \" -> ".
@@ -292,7 +292,7 @@ class Lexy {
 
       if (token.kind === Other.Bad) {
         this.error(token.value as string, lastOffset, this.offset);
-        assertively(this.offset > lastOffset, "Did not advance after erroneous", LOUDNESS.Lexer);
+        assert(this.offset > lastOffset, "Did not advance after erroneous", LOUDNESS.Lexer);
         continue;
       }
 
@@ -311,12 +311,12 @@ class Lexy {
   }
 
   private eat(howmany: number) {
-    assertively(howmany !== 0, "we ate at least one bite", LOUDNESS.Lexer);
+    assert(howmany !== 0, "we ate at least one bite", LOUDNESS.Lexer);
     this.offset += howmany;
   }
 
   private eatUntil(newOffset: number) {
-    assertively(newOffset > this.offset, "we ate forwards", LOUDNESS.Lexer);
+    assert(newOffset > this.offset, "we ate forwards", LOUDNESS.Lexer);
     this.offset = newOffset;
   }
 
@@ -330,7 +330,7 @@ class Lexy {
     const text = this._text;
     const char = text[this.offset];
     const isSingleQuoted = char === "'";  // escape algorithm for single quoted strings is different than double quoted!
-    assertively(char === '"' || isSingleQuoted, "nextString precondition", LOUDNESS.Lexer);
+    assert(char === '"' || isSingleQuoted, "nextString precondition", LOUDNESS.Lexer);
 
     const INVAL = "?"; // character substituted for invalid escape sequences
 
@@ -392,7 +392,7 @@ class Lexy {
   }
 
   private nextInlineComment(): Token<Other.Comment> {
-    assertively(this._text.startsWith("//", this.offset), `this line begins with "//")`, LOUDNESS.Lexer);
+    assert(this._text.startsWith("//", this.offset), `this line begins with "//")`, LOUDNESS.Lexer);
 
     return ((lindex) => {
       this.eatUntil(lindex);
@@ -405,7 +405,7 @@ class Lexy {
   }
 
   private nextBlockComment(): Token<Other.Comment> {
-    assertively(this._text.startsWith("/*", this.offset), `this line begins with "/*"`, LOUDNESS.Lexer);
+    assert(this._text.startsWith("/*", this.offset), `this line begins with "/*"`, LOUDNESS.Lexer);
 
     return ((lindex) => {
       if (lindex === -1) { // missing "*/"
@@ -445,7 +445,7 @@ class Lexy {
     const text = this._text;
     const start = this.offset;
 
-    assertively(
+    assert(
       text[start] === "." || (text[start]! >= "0" && text[start]! <= "9"),
       "nextNumeric precondition"
       ,0

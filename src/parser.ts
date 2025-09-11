@@ -1,5 +1,5 @@
 import { loudly, LOUDNESS } from "./helper.ts";
-import { assertively } from "./helper.ts";
+import { assert } from "./helper.ts";
 
 import { Keyword, Operator, Separator, Other } from "./tokens.ts";
 
@@ -248,7 +248,7 @@ export default class Percy {
   peek() {
     if (this.fuel++ > 1e6) {
       loudly(["Stuck tok:", this.tokens[this.currentIndex]], 0);
-      assertively(false, "infinite loop", LOUDNESS.Parser);
+      assert(false, "infinite loop", LOUDNESS.Parser);
     }
     return this.tokens[this.currentIndex]!;
   }
@@ -283,7 +283,7 @@ export default class Percy {
    * @param index Token index to move to. Usually used in conjunction with a previous value of `this.currentIndex`.
    */
   rollback(index: number) {
-    assertively(
+    assert(
       index >= 0 && index < this.tokens.length,
       "rollback index check"
       ,LOUDNESS.Parser
@@ -1181,7 +1181,7 @@ export default class Percy {
 
   _consumeBraceSuffixedExpression(tree: StatementP): BraceAffixedExpressionPhrase {
     const lbrace = this.expectTT(Separator.LCurly);
-    assertively(lbrace !== null, "_consumeBraceSuffixedExpression precondition", LOUDNESS.Parser);
+    assert(lbrace !== null, "_consumeBraceSuffixedExpression precondition", LOUDNESS.Parser);
 
     let suffix: StatementP | null = null;
     switch (this.peek().kind) {

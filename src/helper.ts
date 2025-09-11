@@ -1,6 +1,6 @@
 /** For sundries **/
 
-type Maybe<T> = NonNullable<T> | null;
+type Maybe<T> = T | null;
 type MaybeOrNot<T> = Maybe<T> | undefined;
 type Enumlike = { [key: number]: string };
 type Functionlike<T> = (...args: any) => T;
@@ -19,16 +19,16 @@ enum LOUDNESS {
   Loudly,
 }
 
-const UTLOUD = 5;//LOUDNESS.Loudly;
+const UTLOUD = LOUDNESS.Loudly;
 
 function loudly<T>(thing: T, loudness: number=LOUDNESS.Loudly): T {
   if (loudness >= UTLOUD) console.log(...shell(thing));
   return thing;
 }
 
-function assertively(condition: boolean, message: string ="", loudness: number=LOUDNESS.Assert): asserts condition {
-  if (!condition) throw new Error(`I can't assert ${message ? `that ${message}` : "this"}…`);
-  else if (message !== "") loudly(message, loudness);
+function assert(condition: boolean, message: unknown =null, loudness: number =LOUDNESS.Assert): asserts condition {
+  if (!condition) throw new Error(`I can't assert ${message ? `that ${Array.isArray(message) ? message.join(' ') : message}` : "this"}…`);
+  else if (message && loudness >= UTLOUD) console.log(...shell(message));
 }
 
 class AsyError extends Error {
@@ -61,7 +61,7 @@ type Knowledge = {
   (scaling: Scaling): string,
 }
 
-const unspell: Knowledge = () => "";
+const unknowledge: Knowledge = () => "";
 
 /** For working with iterables **/
 
@@ -74,7 +74,7 @@ function max(...xs: number[]): number {
 }
 
 function only<T>(thing: T[]): T {
-  assertively(thing.length === 1);
+  assert(thing.length === 1, [thing, "has only one thing in it."]);
   return thing[0];
 }
 
@@ -148,17 +148,12 @@ function zip(...teeth: unknown[][]): unknown[][] {
 // lots of todos, this is just a temporary implementation
 // make it upcast-safe is the big one
 function underload(f: Functionlike<unknown>, checks: Functionlike<boolean>[], args: unknown[]): ReturnType<typeof f> {
-  loudly([f, checks, args], 0);
-  if (args.length === 0) {
-    loudly("got em all", 0);
-    return f([]);
-  } else if (checks[0](args[0])) {
-    loudly("this ones good", 0);
-    return underload((lrest) => f([args[0], ...lrest]), checks.slice(1), args.slice(1));
-  } else {
-    loudly("this ones bad", 0);
-    return underload((lrest) => f([null, ...lrest]), checks.slice(1), args);
-  }
+  console.log(f, checks, args);
+  return (args.length === 0)
+    ? f([])
+    : (([lleft, lright]: [Maybe<typeof args[0]>, unknown[]]) =>
+        (underload((llrest) => f([lleft, ...llrest]), checks.slice(1), lright))
+      ) ((checks[0](args[0]) ? [args[0], args.slice(1)] : [null, args]));
 }
 
 //function eff([a, b, c]: [Maybe<boolean>, Maybe<number>, Maybe<string>] ): string {
@@ -190,10 +185,10 @@ function same(...stuff: unknown[]): void { stuff ? {} : {}; }
 
 export type { Badness };
 export { AsyError, LOUDNESS };
-export { loudly, timedly as timely, same, assertively, hurriedly };
+export { loudly, timedly, same, assert, hurriedly };
 
 export type { BBox, Scaling, Knowledge };
-export { PT, PX, INCH, CM, MM, unspell };
+export { PT, PX, INCH as INCHES, CM, MM, unknowledge };
 export { hasTex };
 
 export type { Maybe, MaybeOrNot, Enumlike, Functionlike, Curried };
