@@ -1,8 +1,5 @@
 import { randy } from "./main";
 
-import { Align, Fielded, Pair, Real, Rime } from "./reckon";
-import { origin, E } from "./reckon";
-
 import { Path } from "./path";
 
 import { Circle } from "./arc";
@@ -12,7 +9,11 @@ import { defaultpen } from "./pen";
 import Label from "./label";
 import { Maybe, PT, Scaling, BBox, only, max, min, Functionlike, zip } from "./helper";
 import { Keyword, Operator, Other, Token, Tokenboard } from "./tokens";
-import { Bakename, cakeboard } from "./bake";
+import { BakedPair, cakeboard } from "./bake";
+
+import type { Pair, Rime } from "./bake";
+import { origin, N, S, E, W } from "./bake";
+
 import { assert } from "./helper";
 import { Seen } from "./seen";
 
@@ -23,7 +24,7 @@ type Knowledge = {
   pens: Pens,
 }
 
-export default class Render {
+class Render {
   static UP = -1; // asy up = svg down
   static DEFSCALE: Scaling = { x: 100, y: 100*Render.UP };
 
@@ -162,12 +163,6 @@ export default class Render {
   }
 }
 
-//  ["NE", N.plus(E).unit()],
-//  ["SE", S.plus(E).unit()],
-//  ["SW", S.plus(W).unit()],
-//  ["NW", N.plus(W).unit()],
-//  ["cycle", "cycle"],
-
 function HAS(name: string): boolean {
   return cakeboard.filter(f => f.namey === name).length > 0;
 }
@@ -178,13 +173,8 @@ function GET(name: string): unknown {
     (cakeboard.filter(f => f.namey === name).map(x => x.inkinds === "not a function" ? x() : x));
 }
 
-//function GET(name: string, inkinds: Bakename[] =[]): unknown {
-//  return (x => x.inkinds === "not a function" ? x() : x)
-//    (only(cakeboard.filter(f => f.namey === name)));
-//}
-
-export type Memory = { name: string, memory: unknown };
-export const variables: Map<string, unknown> = new Map();
+type Memory = { name: string, memory: unknown };
+const variables: Map<string, unknown> = new Map();
 
 function remember<T>(name: string, value: T): Memory {
   return { name, memory: variables.set(name, value).get(name) as T };
@@ -195,7 +185,7 @@ function recall(name: string): Memory {
 }
 
 function lookup(thing: Token<Keyword | Operator | Other.Identifier>): any {
-//  console.log(thing, thing.kind, Tokenboard[thing.kind], cakeboard);
+  console.log(thing, thing.kind, Tokenboard[thing.kind], GET(Tokenboard[thing.kind]));
   if (thing === null) return null;
   return (lname => {
     return HAS(lname)
@@ -234,21 +224,19 @@ function label([s, position, align, p]: [string, Maybe<Pair>, Maybe<Pair>, Maybe
 
 // todo: calibrate dot size
 // todo: L should be Label instead of string, cf. upcasting
-function dot([L, z, align, p]: [Maybe<string>, Maybe<Pair>, Maybe<Align>, Maybe<Pen>]): void {
+function dot([L, z, align, p]: [Maybe<string>, Maybe<Pair>, Maybe<Pair>, Maybe<Pen>]): void {
   randy.learn({ sight: new Circle(z ?? origin, descale(1/2*defaultpen.dotsize())), pens: { fill: p ?? defaultpen, stroke: null } });
   label([L ?? "", z, align ?? E, p]);
 }
 
 // carafes go here
-function descale<T extends Rime<Fielded>>(z: T): T {
-  return z instanceof Align
-    ? new Align(z.x / randy.scaling.x, z.y / Render.UP / randy.scaling.y) as T
-    : z instanceof Pair
-      ? new Pair(z.x / randy.scaling.x, z.y / Render.UP / randy.scaling.y) as T
-      : z instanceof Real
-        ? new Real(z.x / randy.scaling.x) as T
-        : (z as number) / randy.scaling.x as T;
+function descale<T extends Rime>(thing: T): T {
+  return BakedPair.is(thing)
+    ? { x: thing.x / randy.scaling.x, y: thing.y / randy.scaling.y / Render.UP } as T
+    : thing as number / randy.scaling.x as T;
 }
 
+export type { Memory };
+export { Render, variables };
 export { lookup, descale, remember, recall };
 export { draw, fill, filldraw, label, dot };

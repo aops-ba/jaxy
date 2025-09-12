@@ -1,4 +1,4 @@
-import { assert, Functionlike, hurriedly, LOUDNESS, only, sameArray, } from "./helper";
+import { assert, hurriedly, LOUDNESS, } from "./helper";
 
 import type { Binor, Unor, Assignor, Modifactor, Literal } from "./tokens";
 import { Keyword, Operator, Separator, Other, DEFSPAN } from "./tokens";
@@ -11,9 +11,8 @@ import { tokenTypeToString } from "./tokens";
 
 import { Maybe, maybeArray, Knowledge, unknowledge as unknowledge, loudly } from "./helper";
 import { lookup, recall, remember } from "./render";
-import { Fielded, Pair, Rime } from "./reckon";
 import merx from "./merx";
-import { BakedFunction, Bakename, bless, narrow, unload } from "./bake";
+import { BakedFunction, Bakename, bless, unload } from "./bake";
 
 export class Phrase {
 
@@ -724,12 +723,13 @@ export class AllP extends Phrase {
             assert(t.operand instanceof IdentifierP);
             return remember(t.operand.getName(), (recall(t.operand.getName()).memory as number) - 1);
           default:
-            return (lookup(t.operator)) (this.understand(t.operand));
+            return unload(lookup(t.operator), [this.understand(t.operand)]);
+//            return (largs => unload(lookup(t.operator), largs)(largs)) ([this.understand(t.operand)]);
         }
       } else if (t instanceof BinorP) {
-        return ((largs) => unload(lookup(t.operator!), largs)(largs))
-          ([this.understand(t.left), this.understand(t.right)]);
-//        return lookup(t.operator!) ([this.understand(t.left), this.understand(t.right)]);
+        return unload(lookup(t.operator!), [this.understand(t.left), this.understand(t.right)]);
+//        return ((largs) => unload(lookup(t.operator!), largs)(largs))
+//          ([this.understand(t.left), this.understand(t.right)]);
       } else {
         throw new Error(`wah im a bad operator ${t.constructor.name}`);
       }
@@ -763,8 +763,7 @@ export class AllP extends Phrase {
       } else if (t instanceof CallP) {
         return ((lcalls, largs) => {
           loudly([`Calling ${t.caller} on`, largs, "."]);
-          console.log(lcalls, largs);
-          return (unload(lcalls as BakedFunction<any, any>[], largs)) (largs);
+          return unload(lcalls as BakedFunction<any, any>[], largs);
         }) (this.understand(t.caller), t.args.map(x => this.understand(x)));
       } else if (t instanceof TernorP) {
         return this.understand(this.understand(t.condition) ? t.whenTrue : t.whenFalse);
@@ -775,11 +774,8 @@ export class AllP extends Phrase {
       } else if (t instanceof CallArgsP) {
         return this.understand(t.expr);
       } else if (t instanceof TupleP) {
-        // todo: make this type-safe
-        // todo: why does this hate asyncs
-        // todo: 3 dimensions
         assert(t.exprs.length === 2);
-        return new Pair(...t.exprs.map(x => this.understand(x)) as [Rime<Fielded>, Rime<Fielded>]);
+        return (([x, y]) => ({ x, y }))(t.exprs.map(x => this.understand(x)));
       } else if (t instanceof IdentifierP) {
         return lookup(t.name);
       } else if (t instanceof LiteralP) {
@@ -797,6 +793,5 @@ export class AllP extends Phrase {
     } else {
       throw new Error(`wah im a bad nothing ${t.constructor.name}`);
     }
-    return;
   }
 }

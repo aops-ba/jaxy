@@ -70,7 +70,7 @@ enum Operator {
   DotDot, CaretCaret, ColonColon, MinusMinusMinus, // .. ^^ :: ---
 
   GtGt, LtLt, LtGt, AtAt, DollarDollar, // >> << <> @@ $$
-  and,  // and
+  and, // and
 
   last,
 }

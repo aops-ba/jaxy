@@ -56,7 +56,7 @@ import {
   ExpressionStatementP
 } from "./piler.ts";
 
-export type PercyOptions = {
+type ParserOptions = {
   // Future options go here
   lexer?: LexyOptions;
 };
@@ -118,7 +118,7 @@ function isRightAssociative(kind: TokenType) {
   return kind === Operator.Caret;
 }
 
-export default class Percy {
+class Parser {
   readonly lexy: Lexy;
 
   tokens: Token<any>[];
@@ -137,7 +137,7 @@ export default class Percy {
    * @param text Text to parse.
    * @param options Parser options (e.g. disallow some expressions)
    */
-  constructor(text: string, options: PercyOptions = {}) {
+  constructor(text: string, options: ParserOptions = {}) {
     const lexer = (this.lexy = new Lexy(text, options.lexer ?? {}));
     const tokens: Token<any>[] = [];
     let t: Token<any>;
@@ -1231,7 +1231,7 @@ export default class Percy {
     let expr = this.consumePrimaryExpression();
     const nextK = this.peek().kind;
     if (expr && nextK !== Operator.and && nextK !== Operator.DotDot) {
-      expr = this.consumeExpressionOperatorPrecedence(expr, (Percy.BinaryPrecedenceTable[Operator.DotDot]! + 1));
+      expr = this.consumeExpressionOperatorPrecedence(expr, (Parser.BinaryPrecedenceTable[Operator.DotDot]! + 1));
     }
 
     return tree;
@@ -1336,7 +1336,7 @@ export default class Percy {
     const os: Token<any>[] = []; // operator stack
 
     function binaryPrecedence(tok: TokenType): number {
-      return (Percy.BinaryPrecedenceTable as any)[tok] ?? -1;
+      return (Parser.BinaryPrecedenceTable as any)[tok] ?? -1;
     }
 
     let tok: Token<any>;
@@ -1409,3 +1409,6 @@ export default class Percy {
     return modifiers;
   }
 }
+
+export { Parser };
+export type { ParserOptions };

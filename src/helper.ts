@@ -97,7 +97,7 @@ function maybeArray<T>(thing: MaybeOrNot<T>): T[] {
 }
 
 function sameArray(left: unknown[], right: unknown[]): boolean {
-  return (!!!left && !!!right) || (!!left && !!right && (left.every((v,i) => v === right[i])));
+  return (!!!left && !!!right) || (!!left && !!right && (left.every((v,i) => v === right[i])) && (right.every((v,i) => v === left[i])));
 }
 
 function flight(n: number): number[] {
@@ -151,8 +151,7 @@ function zip(...teeth: unknown[][]): unknown[][] {
 
 // lots of todos, this is just a temporary implementation
 // make it upcast-safe is the big one
-function underload(f: Functionlike<unknown>, checks: Functionlike<boolean>[], args: unknown[]): ReturnType<typeof f> {
-  console.log(f, checks, args);
+function underload<T>(f: Functionlike<T>, checks: Functionlike<boolean>[], args: unknown[]): T {
   return (args.length === 0)
     ? f([])
     : (([lleft, lright]: [Maybe<typeof args[0]>, unknown[]]) =>

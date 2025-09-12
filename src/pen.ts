@@ -1,5 +1,4 @@
-import { bake } from "./bake";
-import { loudly, Maybe, MaybeOrNot } from "./helper";
+import { Maybe } from "./helper";
 
 export class Color {
   r: number;

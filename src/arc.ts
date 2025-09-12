@@ -1,7 +1,6 @@
 import type { BBox } from "./helper";
-
-import { Pair } from "./reckon";
-import { origin } from "./reckon";
+import type { Pair } from "./bake";
+import { origin } from "./bake";
 
 import { Seen } from "./seen";
 

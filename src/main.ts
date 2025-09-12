@@ -1,5 +1,5 @@
-import Percy from "./parser";
-import Randy from "./render";
+import { Parser } from "./parser";
+import { Render } from "./render";
 import { Functionlike, loudly, zip } from "./helper";
 
 const asyblock = document.getElementById("asy") as HTMLTextAreaElement;
@@ -8,6 +8,8 @@ const eyes = document.getElementById("eyes") as HTMLSpanElement;
 const ears = document.getElementById("ears") as HTMLSpanElement;
 const doMathJax = document.getElementById("doMathJax") as HTMLInputElement;
 const doNightJax = document.getElementById("doNightJax") as HTMLInputElement;
+
+const randy: Render = new Render(svgblock, doMathJax);
 
 window.onload = function() {
   asyblock.innerHTML = orsong;
@@ -65,14 +67,12 @@ function truesight(): void {
 // the merx
 // we all live together in a happy world
 
-export const randy: Randy = new Randy(svgblock, doMathJax);
-
 async function ordeal(): Promise<void> {
   console.clear();
   randy.forget();
   asyblock.style.setProperty("border", "2px solid var(--mg)");
   try {
-    new Percy(asyblock.value.trim()).parse().understandAll();
+    new Parser(asyblock.value.trim()).parse().understandAll();
     await randy.show();
     loudly("we did it");
   } catch (e) {
@@ -93,7 +93,7 @@ fill(circle(origin, 2), blue);
 draw(unitcircle, red);
 filldraw(circle(N, 1/2), blue);
 filldraw(circle(2*S, 3/4), green);
-filldraw(circle(E/3, 0.5), yellow);
+//filldraw(circle(E/3, 0.5), yellow);
 
 int s = 4;
 
@@ -131,3 +131,5 @@ draw(2.5*dir(60)--3*dir(150)--2.5*dir(210)--3*dir(300)
 for (int i=0; i<16; i++) {
   draw(origin--8*dir(i*360/16));
 }`;
+
+export { randy };
