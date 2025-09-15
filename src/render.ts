@@ -7,7 +7,7 @@ import { Circle } from "./arc";
 import { Pen, Pens } from "./pen";
 import { defaultpen } from "./pen";
 import Label from "./label";
-import { Maybe, PT, Scaling, BBox, only, max, min, Functionlike, zip } from "./helper";
+import { Maybe, PT, Scaling, BBox, only, max, min, Functionlike, zip, loudly } from "./helper";
 import { Keyword, Operator, Other, Token, Tokenboard } from "./tokens";
 import { BakedPair, cakeboard } from "./bake";
 
@@ -47,20 +47,19 @@ class Render {
     //loudly(window.devicePixelRatio);
   }
 
-  size(x: number, y: number): Render {
+  size(x: number, y: number =x): Render {
     this.afterwork.push(() => { this.scaling = ((xs: number[][]) => ((lmost: number) => ({
       x: x/lmost,
       y: y/lmost*Render.UP,
     })) (max(max(...xs[3])-min(...xs[1]), max(...xs[2])-min(...xs[0])))
     ) (zip(...this.wisdom.filter((lw: Knowledge) => !(lw.sight instanceof Label))
-        .map((lw: Knowledge) => ((lb: BBox) => [lb.minx, lb.miny, lb.maxx, lb.maxy])(lw.sight.bbox()))
-      ) as number[][]);
+        .map((lw: Knowledge) => Object.values(lw.sight.bbox()))) as number[][]);
     });
     return this;
   }
 
   // todo: if this comes before `size` then the labels are still sensitive thereto lol
-  unitsize(x: number, y: number): Render {
+  unitsize(x: number, y: number =x): Render {
     this.scaling = { x: x, y: y*Render.UP };
     return this;
   }
@@ -167,6 +166,7 @@ function HAS(name: string): boolean {
   return cakeboard.filter(f => f.namey === name).length > 0;
 }
 
+// nb: we want to shed if length === 1 since otherwise over in `piler.ts` the output of lookup won't know whether to wait for args or not
 function GET(name: string): unknown {
 //  console.log("wah", cakeboard.filter(f => f.namey === name).map(x => x.inkinds === "not a function" ? x() : x));
   return (xs => xs.length === 1 ? only(xs) : xs)
@@ -185,20 +185,22 @@ function recall(name: string): Memory {
 }
 
 function lookup(thing: Token<Keyword | Operator | Other.Identifier>): any {
-  console.log(thing, thing.kind, Tokenboard[thing.kind], GET(Tokenboard[thing.kind]));
+  console.log("lookup", thing);
   if (thing === null) return null;
-  return (lname => {
-    return HAS(lname)
-      ? GET(lname)
-      : variables.has(lname)
-        ? variables.get(lname)
+  return loudly((lname => {
+    return HAS(lname) ? GET(lname)
+      : variables.has(lname) ? variables.get(lname)
         : (() => { throw new Error(`${lname} not found`); })();
-  }) ("value" in thing ? thing.value as string : Tokenboard[thing.kind]);
+  }) ("value" in thing ? thing.value as string : Tokenboard[thing.kind]));
 }
 
-function draw([L, g, align, p]: [Maybe<string>, Seen, Maybe<Pair>, Maybe<Pen>]): void {
+//function draw([L="", g, align=origin, p]: [Maybe<string>, Seen, Maybe<Pair>, Maybe<Pen>]): void {
+//function draw([g, align=origin, p=defaultpen]: [Maybe<string>, Seen, Maybe<Pair>, Maybe<Pen>]): void {
+function draw([g, p=defaultpen]: [Seen, Maybe<Pen>]): void {
+  let L = "hi";
+  console.log("draw", L, g, origin, p);
   assert(g !== null);
-  randy.learn({ sight: g, pens: { fill: null, stroke: p ?? defaultpen } });//_.flatten ([g.show({ fill: null, stroke: p ?? defaultpen })]);
+  randy.learn({ sight: g, pens: { fill: null, stroke: p ?? defaultpen } });
 }
 
 function fill([g, p]: [Seen, Maybe<Pen>]): void {

@@ -1,10 +1,9 @@
 /** For sundries **/
 
 type Maybe<T> = T | null;
-type MaybeOrNot<T> = Maybe<T> | undefined;
 type Enumlike = { [key: number]: string };
 type Functionlike<T> = (...args: any) => T;
-type Curried<T> = (arg: unknown) => T;
+type Twain<T> = [T, T];
 
 /** For debugging **/
 
@@ -22,7 +21,7 @@ enum LOUDNESS {
 const UTLOUD = LOUDNESS.Loudly;
 
 function loudly<T>(thing: T, loudness: number=LOUDNESS.Loudly): T {
-  if (loudness >= UTLOUD) console.log(...shell(thing));
+  if (loudness >= UTLOUD) console.log(thing);
   return thing;
 }
 
@@ -66,11 +65,11 @@ const unknowledge: Knowledge = () => "";
 /** For working with iterables **/
 
 function min(...xs: number[]): number {
-  return xs.reduce((x,y) => Math.min(x,y));
+  return xs.reduce((x, y) => Math.min(x, y));
 }
 
 function max(...xs: number[]): number {
-  return xs.reduce((x,y) => Math.max(x,y));
+  return xs.reduce((x, y) => Math.max(x, y));
 }
 
 function only<T>(thing: T[]): T {
@@ -92,7 +91,7 @@ function peel<T extends unknown[] | string>(xs: T): T {
   return xs.slice(1, -1) as typeof xs;
 }
 
-function maybeArray<T>(thing: MaybeOrNot<T>): T[] {
+function maybeArray<T>(thing: Maybe<T> | undefined): T[] {
   return thing ? [thing] : [];
 }
 
@@ -127,7 +126,7 @@ function hurriedly(timeout: number): ($c: Functionlike<boolean>, $f: Functionlik
 }
 
 function enumNames(e: Enumlike): string[] {
-  return Object.keys(e).filter((k) => isNaN(Number(k)));
+  return Object.keys(e).filter(k => isNaN(Number(k)));
 }
 
 // returns the least index `i` in `text[start, text.length` such that `condition(text[i])`,
@@ -144,39 +143,17 @@ function timedly<T,U>(work: ($T: T) => U, iterations: number=1): ($T: T) => U {
 }
 
 function zip(...teeth: unknown[][]): unknown[][] {
-  return flight(Math.max(...teeth.map(x => x.length))).map((_,i) => teeth.map(x => x[i]));
+  return flight(Math.max(...teeth.map(x => x.length))).map((_, i) => teeth.map(x => x[i]));
 }
 
-/** for growing the brain **/
-
-// lots of todos, this is just a temporary implementation
-// make it upcast-safe is the big one
-function underload<T>(f: Functionlike<T>, checks: Functionlike<boolean>[], args: unknown[]): T {
-  return (args.length === 0)
-    ? f([])
-    : (([lleft, lright]: [Maybe<typeof args[0]>, unknown[]]) =>
-        (underload((llrest) => f([lleft, ...llrest]), checks.slice(1), lright))
-      ) ((checks[0](args[0]) ? [args[0], args.slice(1)] : [null, args]));
+function lift<T>(f: Functionlike<T>): Functionlike<T> {
+  return ([...xs]) => f(...xs);
 }
 
-//function eff([a, b, c]: [Maybe<boolean>, Maybe<number>, Maybe<string>] ): string {
-//  return `${a ?? true} ... ${b ?? 1} ... ${c ?? "T"}`;
-//}
-//
-//function underloadTests() {
-//  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], []));
-//  console.log("first");
-//  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], [false]));
-//  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], [-1]));
-//  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], ["hoynos"]));
-//  console.log("second");
-//  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], [false, -2]));
-//  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], [false, "dwoh"]));
-//  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], [-2, "dwoh"]));
-//  console.log("third");
-//  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], [false, -3, "treyes"]));
-//  console.log("fourth");
-//}
+function product(...xss: unknown[][]): any[][] {
+  return xss.reduce((xs: unknown[], ys: unknown[]) =>
+    xs.flatMap((x: unknown) => ys.map((y: unknown) => [x, y].flat()))) as unknown[][];
+}
 
 function hasTex(s: string): boolean {
   return (s.includes('\\(') && s.includes('\\)'))
@@ -194,7 +171,5 @@ export type { BBox, Scaling, Knowledge };
 export { PT, PX, INCH as INCHES, CM, MM, unknowledge };
 export { hasTex };
 
-export type { Maybe, MaybeOrNot, Enumlike, Functionlike, Curried };
-export { min, max, only, peel, shed, shell, flight, toEach, withEach, maybeArray, sameArray, enumNames, nextSuchThat, zip };
-
-export { underload };
+export type { Maybe, Enumlike, Functionlike, Twain };
+export { product, lift, min, max, only, peel, shed, shell, flight, toEach, withEach, maybeArray, sameArray, enumNames, nextSuchThat, zip };

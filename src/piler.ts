@@ -1,4 +1,4 @@
-import { assert, hurriedly, LOUDNESS, } from "./helper";
+import { assert, hurriedly, LOUDNESS, Twain, } from "./helper";
 
 import type { Binor, Unor, Assignor, Modifactor, Literal } from "./tokens";
 import { Keyword, Operator, Separator, Other, DEFSPAN } from "./tokens";
@@ -12,7 +12,8 @@ import { tokenTypeToString } from "./tokens";
 import { Maybe, maybeArray, Knowledge, unknowledge as unknowledge, loudly } from "./helper";
 import { lookup, recall, remember } from "./render";
 import merx from "./merx";
-import { BakedFunction, Bakename, bless, unload } from "./bake";
+import { TypedFunction, Bakename, pair } from "./bake";
+import { bless, unload } from "./yeast";
 
 export class Phrase {
 
@@ -321,7 +322,6 @@ export class ForStatementP extends StatementP {
   ) { super(); }
 }
 
-// todo
 export class WhileStatementP extends StatementP {
   constructor (
     readonly whileToken: Token<Keyword.while>,
@@ -332,7 +332,6 @@ export class WhileStatementP extends StatementP {
   ) { super(); }
 }
 
-// todo
 export class DowhileStatementP extends StatementP {
   constructor (
     readonly doToken: Token<Keyword.do>,
@@ -655,92 +654,104 @@ export class AllP extends Phrase {
     : unknowledge;
   }
 
-  understand(t: Maybe<Phrase>): unknown {
+  understand(xp: Maybe<Phrase>): unknown {
 //    loudly(["It's time to understand", t]);
-    if (t === null) {
+    if (xp === null) {
       return;
 
 
-    } else if (t instanceof DeclarationP) {
-      if (t instanceof ManyVariablesDeclarationP) {
+    } else if (xp instanceof DeclarationP) {
+      if (xp instanceof ManyVariablesDeclarationP) {
         //todo: this
 //        return t.decls.map(x => (this.understand(t.type) as Functionlike<unknown>)(this.understand(x)));
-        return t.decls.map(x => this.understand(x));
-      } else if (t instanceof ImportDeclarationP) {
-        if (t.importTarget instanceof IdentifierP) {
-          loudly(["Time to import stuff", t]);
+        return xp.decls.map(x => this.understand(x));
+      } else if (xp instanceof ImportDeclarationP) {
+        if (xp.importTarget instanceof IdentifierP) {
+          loudly(["Time to import stuff", xp]);
           // todo: async this
-          return merx(t.importTarget.getName());
+          return merx(xp.importTarget.getName());
         } else {
-          return merx(t.importTarget?.value ?? "");
+          return merx(xp.importTarget?.value ?? "");
         }
       } else {
-        throw new Error(`wah im a bad declaration ${t.constructor.name}`);
+        throw new Error(`wah im a bad declaration ${xp.constructor.name}`);
       }
 
 
-    } else if (t instanceof StatementP) {
-      if (t instanceof ExpressionStatementP) {
-        return this.understand(t.expression);
-      } else if (t instanceof BlockStatementP) {
-        return t.statements.map(x => this.understand(x));
-      } else if (t instanceof SemicolonStatementP) {
+    } else if (xp instanceof StatementP) {
+      if (xp instanceof ExpressionStatementP) {
+        return this.understand(xp.expression);
+      } else if (xp instanceof BlockStatementP) {
+        return xp.statements.map(x => this.understand(x));
+      } else if (xp instanceof SemicolonStatementP) {
         return;
-      } else if (t instanceof IfStatementP) {
-        return this.understand(this.understand(t.condition)
-          ? t.thenStatement
-          : t.elseStatement);
-      } else if (t instanceof ForStatementP) {
+      } else if (xp instanceof IfStatementP) {
+        return this.understand(this.understand(xp.condition)
+          ? xp.thenStatement
+          : xp.elseStatement);
+      } else if (xp instanceof DowhileStatementP) {
+        return ((ks: Knowledge[]) => {
+          ks.push(this.understand(xp.statement) as Knowledge);
+          hurriedly (100) (() => this.understand(xp.condition) as boolean, () => {
+            ks.push(this.understand(xp.statement) as Knowledge);
+          });
+          return ks;
+        }) ([]);
+      } else if (xp instanceof WhileStatementP) {
+        return ((ks: Knowledge[]) => {
+          hurriedly (100) (() => this.understand(xp.condition) as boolean, () => {
+            ks.push(this.understand(xp.statement) as Knowledge);
+          });
+          return ks;
+        }) ([]);
+      } else if (xp instanceof ForStatementP) {
 
-        if (t.forInit instanceof ManyVariablesDeclarationP) {
-          this.understand(t.forInit);
-        } else if (Array.isArray(t.forInit)) {
-          t.forInit.map(x => this.understand(x));
+        if (xp.forInit instanceof ManyVariablesDeclarationP) {
+          this.understand(xp.forInit);
+        } else if (Array.isArray(xp.forInit)) {
+          xp.forInit.map(x => this.understand(x));
         } else {
           throw new Error("bad for init :(");
         }
 
         return ((ks: Knowledge[]) => {
-          hurriedly (100) (() => this.understand(t.forCond) as boolean, () => {
-            ks.push(this.understand(t.statement) as Knowledge);
-            (t.forUpdate ?? []).map(x => this.understand(x));
+          hurriedly (100) (() => this.understand(xp.forCond) as boolean, () => {
+            ks.push(this.understand(xp.statement) as Knowledge);
+            (xp.forUpdate ?? []).map(x => this.understand(x));
           });
           return ks;
         }) ([]);
       } else {
-        throw new Error(`wah im a bad statement ${t.constructor.name}`);
+        throw new Error(`wah im a bad statement ${xp.constructor.name}`);
       }
 
 
-    } else if (t instanceof OperatorP) {
-      if (t instanceof UnorP) {
-        assert(t.operand !== null);
-        switch (t.operator.kind) {
+    } else if (xp instanceof OperatorP) {
+      if (xp instanceof UnorP) {
+        assert(xp.operand !== null);
+        switch (xp.operator.kind) {
           case Operator.PlusPlus:
-            assert(t.operand instanceof IdentifierP);
-            return remember(t.operand.getName(), (recall(t.operand.getName()).memory as number) + 1);
+            assert(xp.operand instanceof IdentifierP);
+            return remember(xp.operand.getName(), (recall(xp.operand.getName()).memory as number) + 1);
           case Operator.MinusMinus:
-            assert(t.operand instanceof IdentifierP);
-            return remember(t.operand.getName(), (recall(t.operand.getName()).memory as number) - 1);
+            assert(xp.operand instanceof IdentifierP);
+            return remember(xp.operand.getName(), (recall(xp.operand.getName()).memory as number) - 1);
           default:
-            return unload(lookup(t.operator), [this.understand(t.operand)]);
-//            return (largs => unload(lookup(t.operator), largs)(largs)) ([this.understand(t.operand)]);
+            return unload(lookup(xp.operator), [this.understand(xp.operand)]);
         }
-      } else if (t instanceof BinorP) {
-        return unload(lookup(t.operator!), [this.understand(t.left), this.understand(t.right)]);
-//        return ((largs) => unload(lookup(t.operator!), largs)(largs))
-//          ([this.understand(t.left), this.understand(t.right)]);
+      } else if (xp instanceof BinorP) {
+        return unload(lookup(xp.operator!), [this.understand(xp.left), this.understand(xp.right)]);
       } else {
-        throw new Error(`wah im a bad operator ${t.constructor.name}`);
+        throw new Error(`wah im a bad operator ${xp.constructor.name}`);
       }
 
 
-    } else if (t instanceof ExpressionP) {
-      if (t instanceof AssignmentExpressionP) {
+    } else if (xp instanceof ExpressionP) {
+      if (xp instanceof AssignmentExpressionP) {
         return ((lname, lvalue) => {
           assert(lname instanceof IdentifierP);
-          loudly(`Assigning ${lvalue} to ${lname} with ${Operator[t.equalsToken.kind]}.`);
-          switch (t.equalsToken.kind) {
+          loudly(`Assigning ${lvalue} to ${lname} with ${Operator[xp.equalsToken.kind]}.`);
+          switch (xp.equalsToken.kind) {
             // todo: strings are also somewhat rimelike
             case Operator.Eq: return remember(lname.getName(), lvalue);
             case Operator.PlusEq: return remember(lname.getName(), (recall(lname.getName()).memory as number) + lvalue);
@@ -752,46 +763,45 @@ export class AllP extends Phrase {
 //            case Operator.HashEq: "#=",
 //            case Operator.PercentEq: "%=",
 //            case Operator.CaretEq: "^=",
-            default: throw new Error(`wah idk what this is: ${t.equalsToken.kind}`);
+            default: throw new Error(`wah idk what this is: ${xp.equalsToken.kind}`);
           }
-        }) (t.left, this.understand(t.right) as number);
-      } else if (t instanceof OneVariableDeclarationP) {
+        }) (xp.left, this.understand(xp.right) as number);
+      } else if (xp instanceof OneVariableDeclarationP) {
         return ((lname, lvalue) => {
           loudly(`Initializing ${lname} as ${lvalue}.`);
           return remember(lname, lvalue);
-        }) (t.name.getName(), this.understand(t.initializer));
-      } else if (t instanceof CallP) {
+        }) (xp.name.getName(), this.understand(xp.initializer));
+      } else if (xp instanceof CallP) {
         return ((lcalls, largs) => {
-          loudly([`Calling ${t.caller} on`, largs, "."]);
-          return unload(lcalls as BakedFunction<any, any>[], largs);
-        }) (this.understand(t.caller), t.args.map(x => this.understand(x)));
-      } else if (t instanceof TernorP) {
-        return this.understand(this.understand(t.condition) ? t.whenTrue : t.whenFalse);
-      } else if (t instanceof TypeP) {
-        return (thing: unknown) => bless(thing, t.ident.getName() as Bakename);
-      } else if (t instanceof RoundP) {
-        return this.understand(t.expr);
-      } else if (t instanceof CallArgsP) {
-        return this.understand(t.expr);
-      } else if (t instanceof TupleP) {
-        assert(t.exprs.length === 2);
-        return (([x, y]) => ({ x, y }))(t.exprs.map(x => this.understand(x)));
-      } else if (t instanceof IdentifierP) {
-        return lookup(t.name);
-      } else if (t instanceof LiteralP) {
-        switch (t.token.kind) {
+          loudly([`Calling ${xp.caller} on`, largs, "."]);
+          return unload(lcalls as TypedFunction<any, any>[], largs);
+        }) (this.understand(xp.caller), xp.args.map(x => this.understand(x)));
+      } else if (xp instanceof TernorP) {
+        return this.understand(this.understand(xp.condition) ? xp.whenTrue : xp.whenFalse);
+      } else if (xp instanceof TypeP) {
+        return (thing: unknown) => bless(thing, xp.ident.getName() as Bakename);
+      } else if (xp instanceof RoundP) {
+        return this.understand(xp.expr);
+      } else if (xp instanceof CallArgsP) {
+        return this.understand(xp.expr);
+      } else if (xp instanceof TupleP) {
+        assert(xp.exprs.length === 2);
+        return (([x, y]) => pair(x, y))(xp.exprs.map(x => this.understand(x)) as Twain<number>);
+      } else if (xp instanceof IdentifierP) {
+        return lookup(xp.name);
+      } else if (xp instanceof LiteralP) {
+        switch (xp.token.kind) {
           case Other.FloatLiteral:
-          // todo: why does wrapping this in Real make it break
-          case Other.IntegerLiteral: return t.token.value as number;
-          case Other.StringLiteral: return t.token.value as string;
-          case Other.BooleanLiteral: return t.token.value as boolean;
-          default: throw new Error(`wah idk what this is: ${t.token.kind}`);
+          case Other.IntegerLiteral: return xp.token.value as number;
+          case Other.StringLiteral: return xp.token.value as string;
+          case Other.BooleanLiteral: return xp.token.value as boolean;
+          default: throw new Error(`wah idk what this is: ${xp.token.kind}`);
         }
       } else {
-        throw new Error(`wah im a bad expression ${t.constructor.name}`);
+        throw new Error(`wah im a bad expression ${xp.constructor.name}`);
       }
     } else {
-      throw new Error(`wah im a bad nothing ${t.constructor.name}`);
+      throw new Error(`wah im a bad nothing ${xp.constructor.name}`);
     }
   }
 }

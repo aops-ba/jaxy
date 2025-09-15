@@ -1,6 +1,7 @@
 import { Parser } from "./parser";
 import { Render } from "./render";
 import { Functionlike, loudly, zip } from "./helper";
+import fandtest from "./fand";
 
 const asyblock = document.getElementById("asy") as HTMLTextAreaElement;
 const svgblock = document.getElementById("svg") as unknown as SVGGraphicsElement;
@@ -68,17 +69,19 @@ function truesight(): void {
 // we all live together in a happy world
 
 async function ordeal(): Promise<void> {
+//  fandtest();
+//  return;
   console.clear();
   randy.forget();
   asyblock.style.setProperty("border", "2px solid var(--mg)");
-  try {
+//  try {
     new Parser(asyblock.value.trim()).parse().understandAll();
     await randy.show();
     loudly("we did it");
-  } catch (e) {
-    asyblock.style.setProperty("border", "2px solid red");
-    throw new Error(`we didn't do it: ${e}`);
-  }
+//  } catch (e) {
+//    asyblock.style.setProperty("border", "2px solid red");
+//    throw new Error(`we didn't do it: ${e}`);
+//  }
 }
 
 const orsong: string = String.raw

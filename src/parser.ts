@@ -1320,12 +1320,12 @@ class Parser {
       [Operator.MinusMinus]: 9,
       [Operator.CaretCaret]: 9,
       [Operator.MinusMinusMinus]: 9,
-      [Operator.Plus]: 9,
-      [Operator.Minus]: 9,
-      [Operator.Star]: 10,
-      [Operator.Slash]: 10,
-      [Operator.Percent]: 10,
-      [Operator.Hash]: 10,
+      [Operator.Plus]: 10,
+      [Operator.Minus]: 10,
+      [Operator.Star]: 11,
+      [Operator.Slash]: 11,
+      [Operator.Percent]: 11,
+      [Operator.Hash]: 11,
     };
 
   consumeExpressionOperatorPrecedence(
