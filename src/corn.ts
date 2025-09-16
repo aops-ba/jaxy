@@ -1,11 +1,11 @@
 import { Circle, unitcircle } from "./arc";
-import { yoke } from "./bake";
-import { lift, INCHES, CM, MM, PT, only, Maybe, Functionlike } from "./helper";
+import { Yoke } from "./bake";
+import { lift, INCHES, CM, MM, PT, only, Functionlike, assert } from "./helper";
 import { Color, Pen } from "./pen";
 import { size, unitsize, draw, fill, filldraw, label, dot } from "./render";
 import { pair, deet, doot, abs, degrees, N, S, E, W, NW, NE, SW, SE, deer, navel, conj } from "./rime";
 import { Tokenboard, Operator } from "./tokens";
-import { bakework, Bakework, Bakething, bakething, Bread } from "./yeast";
+import { bakework, Bakework, Bakething, bakething, Bread, doRaise, canRaise } from "./yeast";
 
 /** What has been baked cannot be unbaked. */
 
@@ -19,8 +19,7 @@ const bakeworks: Bakework[] = [
   bakework("write", ["real"], "void", lift(console.log)),
   bakework("write", ["pair"], "void", lift(console.log)),
 
-// todo: awaiting int–real rectification
-//  bake("string", ["real", "int"], "string", (x, digits) => x.toFixed(digits)),
+  bakework("string", ["real", "int"], "string", ([x, digits]) => console.log(Number(x).toFixed(Number(digits)))),
 
   bakework(Tokenboard[Operator.Hash], ["int", "int"], "int", ([x, y]) => Math.floor(x/y)),
   bakework(Tokenboard[Operator.Percent], ["int", "int"], "int", ([x, y]) => x%y),
@@ -137,19 +136,17 @@ function isCake(name: string): boolean {
   return sluice(cakeboard, name).length > 0;
 }
 
-function setCake<T>(name: string, worth: T): Cakething {
-  console.log(worth);
+function setCake(name: string, y: Yoke, worth: unknown): Cakething {
+  console.log("setCake", name, y, worth);
   return isCake(name)
     ? ((cake: Cakething) => {
-        cake.worth = worth;
-        console.log(cakeboard, cakeboard.map(c => c.worth));
+        cake.worth = doRaise(y, worth);
         return cake;
       })(getCake(name))
     : ((cake: Cakething) => {
         cakeboard.push(cake);
-        console.log(cakeboard, cakeboard.map(c => c.worth));
         return cake;
-      })({ name, born: yoke(worth), worth });
+      })({ name, born: y, worth: doRaise(y, worth) });
 }
 
 function getCake(name: string): Cakething {
@@ -158,7 +155,10 @@ function getCake(name: string): Cakething {
 
 function wendCake(name: string, f: Functionlike<unknown>): Cakething {
   return ((cake: Cakething) => {
-    setCake(cake.name, f(cake.worth));
+    (lw => {
+      assert(canRaise(cake.born, lw), [lw, "can be raised to", cake.born]);
+      setCake(cake.name, cake.born, lw);
+    })(f(cake.worth));
     return getCake(cake.name);
   })(getCake(name));
 }

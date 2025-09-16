@@ -18,12 +18,20 @@ enum LOUDNESS {
   Loudly,
 }
 
-const UTLOUD = LOUDNESS.Loudly;
+const UTLOUD = LOUDNESS.Assert;
 
-function loudly<T>(thing: T, loudness: number=LOUDNESS.Loudly): T {
-  if (loudness >= UTLOUD) console.log(thing);
+function loudly<T>(thing: T): T {
+  if (LOUDNESS.Loudly >= UTLOUD) console.log(thing);
   return thing;
 }
+
+function louderly<T>(f: ($th: T) => unknown): ($th: T) => T {
+  return ((thing: T) => {
+    if (LOUDNESS.Loudly >= UTLOUD) console.log(f(thing));
+    return thing;
+  });
+}
+
 
 function asidely<T>(aside: unknown): ($t: T) => T {
   return (thing: T) => {
@@ -191,12 +199,13 @@ function unless<T, U>(lif: Functionlike<boolean>): ($nay: T) => ($thing: U) => T
   return (nay: T) => (thing: U) => lif(thing) ? thing : nay;
 }
 
-// hides linter warnings
-function same(...stuff: unknown[]): void { stuff ? {} : {}; }
+function same<T>(thing: T): T {
+  return thing;
+}
 
 export type { Badness };
 export { AsyError, LOUDNESS };
-export { asidely, loudly, timedly, same, assert, hurriedly };
+export { asidely, loudly, louderly, timedly, same, assert, hurriedly };
 
 export type { BBox, Scaling, Knowledge };
 export { PT, PX, INCH as INCHES, CM, MM, unknowledge };
@@ -204,4 +213,11 @@ export { hasTex };
 
 export type { Maybe, Enumlike, Functionlike, Twain };
 export { isNull, unless };
-export { first, last, left, right, product, lift, min, max, only, peel, shed, shell, flight, toEach, withEach, maybeArray, sameArray, enumNames, nextSuchThat, zip };
+export {
+  first, last, left, right, only,
+  flight, peel, shed, shell, zip, product,
+  lift, toEach, withEach, maybeArray, 
+  min, max, sameArray, 
+  enumNames, 
+  nextSuchThat, 
+};

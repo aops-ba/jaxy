@@ -1,4 +1,4 @@
-import { assert, hurriedly, LOUDNESS, shed, Twain, } from "./helper";
+import { assert, hurriedly, LOUDNESS, Twain, } from "./helper";
 
 import type { Binor, Unor, Assignor, Modifactor, Literal } from "./tokens";
 import { Keyword, Operator, Separator, Other, DEFSPAN } from "./tokens";
@@ -12,11 +12,11 @@ import { tokenTypeToString } from "./tokens";
 import { Maybe, maybeArray, Knowledge, unknowledge, loudly } from "./helper";
 import { lookup } from "./render";
 import merx from "./merx";
-import { Yoke } from "./bake";
+import { yoke, Yoke } from "./bake";
 import { bless, unload } from "./yeast";
 import { Bakework } from "./yeast";
 import { pair } from "./rime";
-import { setCake, wendCake } from "./corned";
+import { setCake, wendCake } from "./corn";
 
 export class Phrase {
 
@@ -606,9 +606,9 @@ export class LiteralP extends ExpressionP {
 
   toString(): string {
     switch (this.token.kind) {
-      case Other.FloatLiteral: return (this.token.value! as number).toExponential();
-      case Other.IntegerLiteral: return this.token.value + "";
-      case Other.BooleanLiteral: return this.token.value + "";
+      case Other.RealLiteral: return (this.token.value! as number).toExponential();
+      case Other.IntLiteral: return this.token.value + "";
+      case Other.BoolLiteral: return this.token.value + "";
       case Other.StringLiteral: return `"${this.token.value}"`;
       case Other.NullLiteral:
       default: return "null";
@@ -665,9 +665,7 @@ export class AllP extends Phrase {
 
     } else if (xp instanceof DeclarationP) {
       if (xp instanceof ManyVariablesDeclarationP) {
-        //todo: this
-//        return t.decls.map(x => (this.understand(t.type) as Functionlike<unknown>)(this.understand(x)));
-        return xp.decls.map(x => this.understand(x));
+        return xp.decls.map(x => (this.understand(x) as ($y: Yoke) => unknown)(this.understand(xp.type) as Yoke));
       } else if (xp instanceof ImportDeclarationP) {
         if (xp.importTarget instanceof IdentifierP) {
           loudly(["Time to import stuff", xp]);
@@ -735,10 +733,10 @@ export class AllP extends Phrase {
         switch (xp.operator.kind) {
           case Operator.PlusPlus:
             assert(xp.operand instanceof IdentifierP);
-            return wendCake(xp.operand.getName(), x => x+1);
+            return wendCake(xp.operand.getName(), x => x+1n);
           case Operator.MinusMinus:
             assert(xp.operand instanceof IdentifierP);
-            return wendCake(xp.operand.getName(), x => x-1);
+            return wendCake(xp.operand.getName(), x => x-1n);
           default:
             return unload(lookup(xp.operator) as Bakework[], [this.understand(xp.operand)]);
         }
@@ -756,21 +754,21 @@ export class AllP extends Phrase {
           loudly(`Assigning ${lvalue} to ${lname} with ${Operator[xp.equalsToken.kind]}.`);
           switch (xp.equalsToken.kind) {
             // todo: strings are also somewhat rimelike
-            case Operator.Eq: return setCake(lname.getName(), lvalue);
+            case Operator.Eq: return (lyoke: Yoke) => setCake(lname.getName(), lyoke, lvalue);
             case Operator.PlusEq: return wendCake(lname.getName(), x => x + lvalue);
             case Operator.MinusEq: return wendCake(lname.getName(), x => x - lvalue);
             case Operator.StarEq: return wendCake(lname.getName(), x => x * lvalue);
             case Operator.SlashEq: return wendCake(lname.getName(), x => x / lvalue);
-//            case Operator.HashEq: "#=",
-//            case Operator.PercentEq: "%=",
-//            case Operator.CaretEq: "^=",
+            case Operator.HashEq: return wendCake(lname.getName(), x => Math.floor(x / lvalue));
+            case Operator.PercentEq: return wendCake(lname.getName(), x => x % lvalue);
+            case Operator.CaretEq: return wendCake(lname.getName(), x => x ** lvalue);
             default: throw new Error(`wah idk what this is: ${xp.equalsToken.kind}`);
           }
         }) (xp.left, this.understand(xp.right) as number);
       } else if (xp instanceof OneVariableDeclarationP) {
-        return ((lname, lvalue) => {
+        return (worth: Yoke) => ((lname: string, lvalue: unknown) => {
           loudly(`Initializing ${lname} as ${lvalue}.`);
-          return setCake(lname, lvalue);
+          return setCake(lname, worth, lvalue);
         }) (xp.name.getName(), this.understand(xp.initializer));
       } else if (xp instanceof CallP) {
         return ((lcalls, largs) => {
@@ -780,7 +778,8 @@ export class AllP extends Phrase {
       } else if (xp instanceof TernorP) {
         return this.understand(this.understand(xp.condition) ? xp.whenTrue : xp.whenFalse);
       } else if (xp instanceof TypeP) {
-        return (thing: unknown) => bless(thing, xp.ident.getName() as Yoke);
+        return xp.ident.getName() as Yoke;
+//        return (thing: unknown) => bless(thing, xp.ident.getName() as Yoke);
       } else if (xp instanceof RoundP) {
         return this.understand(xp.expr);
       } else if (xp instanceof CallArgsP) {
@@ -792,10 +791,10 @@ export class AllP extends Phrase {
         return lookup(xp.name);
       } else if (xp instanceof LiteralP) {
         switch (xp.token.kind) {
-          case Other.FloatLiteral:
-          case Other.IntegerLiteral: return xp.token.value as number;
+          case Other.RealLiteral: return xp.token.value as number;
+          case Other.IntLiteral: return xp.token.value as bigint;
           case Other.StringLiteral: return xp.token.value as string;
-          case Other.BooleanLiteral: return xp.token.value as boolean;
+          case Other.BoolLiteral: return xp.token.value as boolean;
           default: throw new Error(`wah idk what this is: ${xp.token.kind}`);
         }
       } else {

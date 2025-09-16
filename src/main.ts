@@ -1,8 +1,7 @@
 import { Parser } from "./parser";
 import { Render } from "./render";
 import { Functionlike, loudly, zip } from "./helper";
-import { emptyCake } from "./corned";
-import fandtest from "./fand";
+import { emptyCake } from "./corn";
 
 const asyblock = document.getElementById("asy") as HTMLTextAreaElement;
 const svgblock = document.getElementById("svg") as unknown as SVGGraphicsElement;
@@ -75,15 +74,11 @@ async function ordeal(): Promise<void> {
   emptyCake();
 //  fandtest();
 //  return;
+  asyblock.style.setProperty("border", "2px solid red");
+  new Parser(asyblock.value.trim()).parse().understandAll();
+  await randy.show();
+  loudly("we did it");
   asyblock.style.setProperty("border", "2px solid var(--mg)");
-  try {
-    new Parser(asyblock.value.trim()).parse().understandAll();
-    await randy.show();
-    loudly("we did it");
-  } catch (e) {
-    asyblock.style.setProperty("border", "2px solid red");
-    throw new Error(`we didn't do it: ${e}`);
-  }
 }
 
 const orsong: string = String.raw

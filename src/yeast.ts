@@ -1,5 +1,5 @@
-import { Yoke, Typebakes, BakedPair, BakedReal, BakedInt, yoke as yoke } from "./bake";
-import { assert, first, Functionlike, loudly, max, Maybe, left, right, isNull } from "./helper";
+import { Yoke, Typebakes, BakedPair, BakedReal, BakedInt, yoke as yoke, BakedPath } from "./bake";
+import { assert, first, Functionlike, max, Maybe, left, right, isNull, same, only } from "./helper";
 import { Path } from "./path";
 import { pair } from "./rime";
 
@@ -28,6 +28,7 @@ export function bakething(name: string, born: Yoke, worth: unknown): Bakething {
 
 // todo: ints and reals behave the same
 function bless<T>(thing: T, type: Yoke): T {
+  console.log("bless time");
   assert(Typebakes[type].is(thing), ["Go,", thing, ", and be now of type", type, "."]);
   return thing;
 }
@@ -35,7 +36,7 @@ function bless<T>(thing: T, type: Yoke): T {
 // narrow the overloads
 // todo: this calls `underload` twice, once explicitly and once when it calls `work`
 function unload(loaves: Bakework[], args: unknown[]): unknown {
-//  console.log("unload", loaves, args);
+  console.log("unload", loaves, args, underload(args, loaves[0].corn), BakedPath.is(args[0]));
   return loaves.find(loaf => !isNull(underload(args, loaf.corn)))!.work(...args);
 }
 
@@ -46,9 +47,9 @@ export function underload(maybes: unknown[], goods: Maybe<Yoke[]>): Maybe<Maybe<
   return goods === null ? (maybes.length > 0 ? null : [])
   : maybes.length > goods.length ? null
   : maybes.length === 0 ? Array(max(0, goods.length-maybes.length)).fill(null)
-  : raise(maybes[0]).map(left).includes(goods[0])
+  : canRaise(goods[0], maybes[0])//raise(maybes[0]).map(left).includes(goods[0])
     ? (x => isNull(x) ? x
-      : ([right(raise(maybes[0]).find(x => first(x) === goods[0])!)()] as Maybe<Yoke>[]).concat(x))
+      : ([doRaise(goods[0], maybes[0])] as Maybe<Yoke>[]).concat(x))
       (underload(maybes.slice(1), goods.slice(1)))
     : (x => isNull(x) ? x : ([null] as Maybe<Yoke>[]).concat(x))
       (underload(maybes, goods.slice(1)));
@@ -56,13 +57,33 @@ export function underload(maybes: unknown[], goods: Maybe<Yoke[]>): Maybe<Maybe<
 
 type Raise = [Yoke, Functionlike<unknown>];
 
-function raise(dough: unknown): Raise[] {
-  return ([[yoke(dough), () => dough]] as Raise[]).concat(
-    BakedInt.is(dough) ? [["real", () => dough], ["pair", () => pair(dough, 0)]]
-    : BakedReal.is(dough) ? [["pair", () => pair(dough, 0)]]
-    : BakedPair.is(dough) ? [["path", () => new Path([dough])]]
-    : []);
+function doRaise(y: Yoke, dough: unknown): unknown {
+  console.log("doRaise", y, dough, yoke(dough), yeast.get(yoke(dough)), yeast.get(yoke(dough))?.get(y));
+  return yeast.get(yoke(dough))!.get(y)!(dough);
+//  return right(raise(dough).find(x => first(x) === y)!)();
 }
 
-export { bless, unload };
+function canRaise(y: Yoke, dough: unknown): boolean {
+  return yeast.get(yoke(dough))?.has(y) ?? false;
+}
+
+//function raise(dough: unknown): Raise[] {
+//  console.log("wah");
+//  return ([[yoke(dough), () => dough]] as Raise[]).concat(
+//    BakedInt.is(dough) ? [["real", () => Number(dough)], ["pair", () => pair(dough, 0)]]
+//    : BakedReal.is(dough) ? [["pair", () => pair(dough, 0)]]
+//    : BakedPair.is(dough) ? [["path", () => new Path([dough])]]
+//    : []);
+//}
+
+const yeast: Map<Yoke, Map<Yoke, Functionlike<unknown>>> = new Map<Yoke, Map<Yoke, Functionlike<unknown>>>([
+  ["int", new Map<Yoke, Functionlike<unknown>>([["int", same], ["real", Number], ["pair", x => pair(x, 0)]])],
+  ["real", new Map<Yoke, Functionlike<unknown>>([["real", same], ["pair", x => pair(x, 0)]])],
+  ["pair", new Map<Yoke, Functionlike<unknown>>([["pair", same], ["path", x => new Path([x])]])],
+  ["path", new Map<Yoke, Functionlike<unknown>>([["path", same]])],
+  ["pen", new Map<Yoke, Functionlike<unknown>>([["pen", same]])],
+  ["string", new Map<Yoke, Functionlike<unknown>>([["string", same]])],
+]);
+
+export { bless, unload, canRaise, doRaise };
 export type { Bakework, Bakething, Bread };

@@ -7,15 +7,14 @@ import { Circle } from "./arc";
 import { Pen, Pens } from "./pen";
 import { defaultpen } from "./pen";
 import Label from "./label";
-import { Maybe, PT, Scaling, BBox, only, max, min, Functionlike, zip, loudly } from "./helper";
+import { Maybe, PT, Scaling, BBox, only, max, min, Functionlike, zip } from "./helper";
 import { Keyword, Operator, Other, Token, Tokenboard } from "./tokens";
-import { BakedPair, yoke } from "./bake";
+import { BakedPair } from "./bake";
 
-import { assert } from "./helper";
 import { Seen } from "./seen";
-import { bakeworks, bakethings, getBakething, getBakeworks, isBakething, isBakework, cakeboard, Cakething, getCake, isCake } from "./corned";
+import { getBakething, getBakeworks, isBakething, isBakework, cakeboard, Cakething, getCake, isCake } from "./corn";
 import { Pair, E, Rime, navel } from "./rime";
-import { Bakework, Bakething } from "./yeast";
+import { Bakework } from "./yeast";
 
 const MathJax = window["MathJax" as keyof typeof window];
 
@@ -184,18 +183,14 @@ function unitsize([x, y]: [number, number]): void {
 }
 
 function draw([L, g, align, p]: [Maybe<string>, Seen, Maybe<Pair>, Maybe<Pen>]): void {
-//  console.log("draw", L, g, align, p);
-//  assert(g !== null);
   randy.learn({ sight: g, pens: { fill: null, stroke: p ?? defaultpen } });
 }
 
 function fill([g, p]: [Seen, Maybe<Pen>]): void {
-//  assert(g !== null);
   randy.learn({ sight: g, pens: { fill: p ?? defaultpen, stroke: null } });
 }
 
 function filldraw([g, fillpen, strokepen]: [Seen, Maybe<Pen>, Maybe<Pen>]): void {
-//  assert(g !== null);
   randy.learn({ sight: g, pens: { fill: fillpen ?? defaultpen, stroke: null } });
   randy.learn({ sight: g, pens: { fill: null, stroke: strokepen ?? defaultpen } });
 }
@@ -203,7 +198,6 @@ function filldraw([g, fillpen, strokepen]: [Seen, Maybe<Pen>, Maybe<Pen>]): void
 // todo: calibrate label appearance
 // todo: lots of redundancy with type checking / guarding
 function label([s, position, align, p]: [string, Maybe<Pair>, Maybe<Pair>, Maybe<Pen>]): void {
-//  assert(s !== null);
   randy.learn({
     sight: new Label(s, position ?? navel, align ?? navel),
     pens: { fill: p ?? defaultpen, stroke: null },

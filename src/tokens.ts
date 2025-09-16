@@ -91,10 +91,10 @@ enum Other {
   first = Separator.last + 1,
 
   Identifier,
-  IntegerLiteral,
-  FloatLiteral,
+  IntLiteral,
+  RealLiteral,
   StringLiteral,
-  BooleanLiteral,
+  BoolLiteral,
   NullLiteral,
   Comment,
   Eof,
@@ -179,15 +179,15 @@ type TokenType = Keyword | Operator | Separator | Other;
 type Token<T extends TokenType> = {
   kind: T,
   span: Span,
-  value?: T extends Other.BooleanLiteral ? boolean
-        : T extends Other.FloatLiteral ? number
-        : T extends Other.IntegerLiteral ? number//bigint
+  value?: T extends Other.BoolLiteral ? boolean
+        : T extends Other.RealLiteral ? number
+        : T extends Other.IntLiteral ? bigint
         : T extends Other.StringLiteral ? string
         : T extends Other.Identifier ? string
         : T extends Other.Comment ? string
         : undefined,
-  originalType?: T extends Other.IntegerLiteral ? "decimal" : undefined,
-  isHexFloat?: T extends Other.FloatLiteral ? boolean : undefined,
+  originalType?: T extends Other.IntLiteral ? "decimal" : undefined,
+  isHexFloat?: T extends Other.RealLiteral ? boolean : undefined,
 }
 
 type BadToken = {
@@ -248,8 +248,8 @@ type Assignor = Operator.Eq
 // danger: ++ and -- are both unors and assignors; this may be unsafe
   | Operator.PlusPlus | Operator.MinusMinus;
 
-type Literal = Other.IntegerLiteral | Other.FloatLiteral
-  | Other.StringLiteral | Other.BooleanLiteral | Other.NullLiteral;
+type Literal = Other.IntLiteral | Other.RealLiteral
+  | Other.StringLiteral | Other.BoolLiteral | Other.NullLiteral;
 
 export { Keyword, Operator, Separator, Other };
 

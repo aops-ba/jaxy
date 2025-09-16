@@ -55,7 +55,7 @@ function checkedBigInt(text: string, start: number, end: number, base: number): 
  * @returns Successful or erroneous parse, and the number of characters read.
  */
 function parseDecimalFloatSloppy(text: string, offset: number):
-  [Token<Other.FloatLiteral> | BadToken, number] {
+  [Token<Other.RealLiteral> | BadToken, number] {
   let i = offset;
   let hasDigits = false;
 
@@ -93,7 +93,7 @@ function parseDecimalFloatSloppy(text: string, offset: number):
 
 
   return [{
-    kind: Other.FloatLiteral,
+    kind: Other.RealLiteral,
     isHexFloat: false,
     value: Number(text.slice(offset, i)),
     span: {start: offset, end: i},
@@ -430,7 +430,7 @@ class Lexy {
   /**
    * Get the next normal, decimal float.
    */
-  private nextDecimalFloat(): Token<Other.FloatLiteral> | BadToken {
+  private nextDecimalFloat(): Token<Other.RealLiteral> | BadToken {
     return (([ltoken, leaten]) => {
       this.eatUntil(leaten);
       return ltoken;
@@ -441,7 +441,7 @@ class Lexy {
    * Get the next numeric token: integer or floating point.
    * Contract: First character must be . or 0 through 9.
    */
-  private nextNumeric(): Token<Other.IntegerLiteral | Other.FloatLiteral> | BadToken {
+  private nextNumeric(): Token<Other.IntLiteral | Other.RealLiteral> | BadToken {
     const text = this._text;
     const start = this.offset;
 
@@ -477,9 +477,9 @@ class Lexy {
 
     // to-do: Check overflow which is an error
     return {
-      kind: Other.IntegerLiteral,
-      value: Number(value.value), // for testing… no bigints for now. 3/9/25 KB
-//    value: value.value,
+      kind: Other.IntLiteral,
+//      value: Number(value.value), // for testing… no bigints for now. 3/9/25 KB
+      value: value.value,
       originalType: "decimal",
       span,
     };
@@ -607,7 +607,7 @@ class Lexy {
   }
 
   private nextKeywordOrIdentifier():
-    | Token<Keyword | Operator | Other.Identifier | Other.BooleanLiteral | Other.NullLiteral>
+    | Token<Keyword | Operator | Other.Identifier | Other.BoolLiteral | Other.NullLiteral>
     | BadToken {
     const text = this._text,
       offset = this.offset;
@@ -621,7 +621,7 @@ class Lexy {
 
       if (isStringKeywordOrLiteral(ident)) {
         if (ident === "true" || ident === "false") {
-          return { kind: Other.BooleanLiteral, value: ident === "true", span };
+          return { kind: Other.BoolLiteral, value: ident === "true", span };
         } else if (ident === "null") {
           return { kind: Other.NullLiteral, span }
         } else if (ident === "and") {

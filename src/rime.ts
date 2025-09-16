@@ -1,7 +1,7 @@
 type Pair = { x: number, y: number };
 
-function pair(x: number, y: number): Pair {
-  return { x, y };
+function pair(x: Tell, y: Tell): Pair {
+  return { x: Number(x), y: Number(y) };
 }
 
 // `origin` but no namespace clash
@@ -17,7 +17,8 @@ const NE: Pair = { x: Math.sqrt(2), y: Math.sqrt(2) };
 const SW: Pair = { x: -Math.sqrt(2), y: -Math.sqrt(2) };
 const SE: Pair = { x: Math.sqrt(2), y: -Math.sqrt(2) };
 
-type Rime = Pair | number;
+type Rime = Pair | Tell;
+type Tell = number | bigint;
 
 function degrees(th: number): number {
   return th*180/Math.PI;

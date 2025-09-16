@@ -36,8 +36,8 @@ const Typebakes: { [s: string]: Bake<any> } = {
   "int": {
     name: "int",
     dimensions: 0,
-    is: (thing: unknown): thing is number => typeof thing === "number",
-  } as Bake<number>,
+    is: (thing: unknown): thing is bigint => typeof thing === "bigint",
+  } as Bake<bigint>,
   "real": {
     name: "real",
     dimensions: 0,
@@ -72,7 +72,7 @@ const Typebakes: { [s: string]: Bake<any> } = {
 
 const BakedVoid: Bake<undefined> = Typebakes["void"];
 const BakedBool: Bake<boolean> = Typebakes["bool"];
-const BakedInt: Bake<number> = Typebakes["int"];
+const BakedInt: Bake<bigint> = Typebakes["int"];
 const BakedReal: Bake<number> = Typebakes["real"];
 const BakedPair: Bake<Pair> = Typebakes["pair"];
 const BakedPath: Bake<Seen> = Typebakes["path"];
@@ -88,8 +88,8 @@ function yoke(thing: unknown): Yoke {
   else if (BakedString.is(thing)) return "string";
   else if (BakedPath.is(thing)) return "path";
   else if (BakedPair.is(thing)) return "pair";
-  else if (BakedReal.is(thing)) return "real";
   else if (BakedInt.is(thing)) return "int";
+  else if (BakedReal.is(thing)) return "real";
   else if (BakedBool.is(thing)) return "bool";
   else if (BakedVoid.is(thing)) return "void";
   else throw new Error(`idk what type ${thing} is`);

@@ -69,9 +69,9 @@ const SyntaxFacts = {
     Operator.Minus,
     Operator.Bang,
     Other.Identifier,
-    Other.IntegerLiteral,
+    Other.IntLiteral,
     Other.StringLiteral,
-    Other.FloatLiteral,
+    Other.RealLiteral,
     Separator.LRound,
   ]),
   StmtExpressionStart: new Set<TokenType>([
@@ -83,18 +83,18 @@ const SyntaxFacts = {
     Operator.MinusMinus,
     Operator.Bang,
     Other.Identifier,
-    Other.IntegerLiteral,
+    Other.IntLiteral,
     Other.StringLiteral,
-    Other.FloatLiteral,
+    Other.RealLiteral,
     Separator.LRound,
   ]),
   ImplicitMultiplicationRhsStart: new Set<TokenType>([
     Keyword.new,
     Keyword.operator,
     Other.Identifier,
-    Other.IntegerLiteral,
+    Other.IntLiteral,
     Other.StringLiteral,
-    Other.FloatLiteral,
+    Other.RealLiteral,
     Separator.LRound,
   ])
 };
@@ -1260,14 +1260,14 @@ class Parser {
       lhs = new OperatorizerP(operatorToken, op);
       break;
     }
-    case Other.FloatLiteral:
-    case Other.BooleanLiteral:
+    case Other.RealLiteral:
+    case Other.BoolLiteral:
     case Other.StringLiteral:
     case Other.NullLiteral:
-    case Other.IntegerLiteral: {
+    case Other.IntLiteral: {
       const lit = new LiteralP(tok);
       this.next();
-      if (tok.kind === Other.IntegerLiteral || tok.kind === Other.FloatLiteral) {
+      if (tok.kind === Other.IntLiteral || tok.kind === Other.RealLiteral) {
         // Potentially an implicit multiplication like 3 x^2
         const curr = this.peek();
         if (SyntaxFacts.ImplicitMultiplicationRhsStart.has(curr.kind)) {
