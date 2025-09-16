@@ -9,13 +9,14 @@ import { span } from "./tokens";
 import type { Token } from "./tokens";
 import { tokenTypeToString } from "./tokens";
 
-import { Maybe, maybeArray, Knowledge, unknowledge as unknowledge, loudly } from "./helper";
-import { lookup, recall, remember } from "./render";
+import { Maybe, maybeArray, Knowledge, unknowledge, loudly } from "./helper";
+import { lookup } from "./render";
 import merx from "./merx";
 import { Yoke } from "./bake";
 import { bless, unload } from "./yeast";
 import { Bakework } from "./yeast";
 import { pair } from "./rime";
+import { setCake, wendCake } from "./corned";
 
 export class Phrase {
 
@@ -734,10 +735,10 @@ export class AllP extends Phrase {
         switch (xp.operator.kind) {
           case Operator.PlusPlus:
             assert(xp.operand instanceof IdentifierP);
-            return remember(xp.operand.getName(), (recall(xp.operand.getName()).memory as number) + 1);
+            return wendCake(xp.operand.getName(), x => x+1);
           case Operator.MinusMinus:
             assert(xp.operand instanceof IdentifierP);
-            return remember(xp.operand.getName(), (recall(xp.operand.getName()).memory as number) - 1);
+            return wendCake(xp.operand.getName(), x => x-1);
           default:
             return unload(lookup(xp.operator) as Bakework[], [this.understand(xp.operand)]);
         }
@@ -755,13 +756,11 @@ export class AllP extends Phrase {
           loudly(`Assigning ${lvalue} to ${lname} with ${Operator[xp.equalsToken.kind]}.`);
           switch (xp.equalsToken.kind) {
             // todo: strings are also somewhat rimelike
-            case Operator.Eq: return remember(lname.getName(), lvalue);
-            case Operator.PlusEq: return remember(lname.getName(), (recall(lname.getName()).memory as number) + lvalue);
-            case Operator.MinusEq: return remember(lname.getName(), (recall(lname.getName()).memory as number) - lvalue);
-            case Operator.StarEq: return remember(lname.getName(), (recall(lname.getName()).memory as number) * lvalue);
-            case Operator.SlashEq: return remember(lname.getName(), (recall(lname.getName()).memory as number) / lvalue);
-            case Operator.PlusPlus: return remember(lname.getName(), (recall(lname.getName()).memory as number) + 1);
-            case Operator.MinusMinus: return remember(lname.getName(), (recall(lname.getName()).memory as number) - 1);
+            case Operator.Eq: return setCake(lname.getName(), lvalue);
+            case Operator.PlusEq: return wendCake(lname.getName(), x => x + lvalue);
+            case Operator.MinusEq: return wendCake(lname.getName(), x => x - lvalue);
+            case Operator.StarEq: return wendCake(lname.getName(), x => x * lvalue);
+            case Operator.SlashEq: return wendCake(lname.getName(), x => x / lvalue);
 //            case Operator.HashEq: "#=",
 //            case Operator.PercentEq: "%=",
 //            case Operator.CaretEq: "^=",
@@ -771,7 +770,7 @@ export class AllP extends Phrase {
       } else if (xp instanceof OneVariableDeclarationP) {
         return ((lname, lvalue) => {
           loudly(`Initializing ${lname} as ${lvalue}.`);
-          return remember(lname, lvalue);
+          return setCake(lname, lvalue);
         }) (xp.name.getName(), this.understand(xp.initializer));
       } else if (xp instanceof CallP) {
         return ((lcalls, largs) => {

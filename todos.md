@@ -1,7 +1,6 @@
 # todos
 
 - reification of `cycle`
-- variables
 - i think `unload` or `underload` is being called twice?
 - calibrations
   * line width, dot size, label margin

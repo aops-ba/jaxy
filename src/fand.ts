@@ -1,8 +1,11 @@
-import { pair } from "./bake";
-import { Functionlike } from "./helper";
 import { Parser } from "./parser";
-import { underload, bake } from "./yeast";
+import { underload } from "./yeast";
 export default function fandtest() {
+  console.log(new Parser("2*3").parse().understandNext());
+  console.log(new Parser("2*(1,0)").parse().understandNext());
+  console.log(new Parser("2*(0,1)").parse().understandNext());
+  console.log(new Parser("(2,0)*(1,0)").parse().understandNext());
+  return;
   console.log(underload(["string"], ["string"]));
   console.log(underload(["string"], ["string", "int"]));
   console.log(underload(["string"], ["int", "string"]));
@@ -47,4 +50,3 @@ export default function fandtest() {
 //  console.log(underload(eff, [BakedBool.is, BakedReal.is, BakedString.is], [false, -3, "treyes"]));
 //  console.log("fourth");
 //}
-

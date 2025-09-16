@@ -9,11 +9,11 @@ import { defaultpen } from "./pen";
 import Label from "./label";
 import { Maybe, PT, Scaling, BBox, only, max, min, Functionlike, zip, loudly } from "./helper";
 import { Keyword, Operator, Other, Token, Tokenboard } from "./tokens";
-import { BakedPair } from "./bake";
+import { BakedPair, yoke } from "./bake";
 
 import { assert } from "./helper";
 import { Seen } from "./seen";
-import { bakeworks, bakethings, getBakething, getBakeworks, isBakething, isBakework } from "./corned";
+import { bakeworks, bakethings, getBakething, getBakeworks, isBakething, isBakework, cakeboard, Cakething, getCake, isCake } from "./corned";
 import { Pair, E, Rime, navel } from "./rime";
 import { Bakework, Bakething } from "./yeast";
 
@@ -162,25 +162,16 @@ class Render {
   }
 }
 
-type Cakething = { name: string, memory: unknown };
-const cakeboard: Map<string, unknown> = new Map();
-
-function remember<T>(name: string, value: T): Cakething {
-  return { name, memory: cakeboard.set(name, value).get(name) as T };
-}
-
-function recall(name: string): Cakething {
-  return { name, memory: cakeboard.get(name) };
-}
+//type Cakething = { name: string, memory: unknown };
+//const cakeboard: Map<string, unknown> = new Map();
 
 function lookup(thing: Token<Keyword | Operator | Other.Identifier>): unknown | Bakework[] {
-  console.log("lookup", thing);
+//  console.log("lookup", thing);
   return (lname => {
     return isBakework(lname) ? getBakeworks(lname)
-    : isBakething(lname) ? getBakething(lname)
-      : cakeboard.has(lname)
-        ? [cakeboard.get(lname)]
-        : (() => { throw new Error(`${lname} not found`); })();
+    : isBakething(lname) ? getBakething(lname).worth
+    : isCake(lname) ? getCake(lname).worth
+    : (() => { throw new Error(`${lname} not found`); })();
   }) ("value" in thing ? thing.value as string : Tokenboard[thing.kind]);
 }
 
@@ -192,19 +183,19 @@ function unitsize([x, y]: [number, number]): void {
   randy.unitsize(x, y);
 }
 
-function draw([L="", g, align=navel, p=defaultpen]: [Maybe<string>, Seen, Maybe<Pair>, Maybe<Pen>]): void {
-  console.log("draw", L, g, align, p);
-  assert(g !== null);
+function draw([L, g, align, p]: [Maybe<string>, Seen, Maybe<Pair>, Maybe<Pen>]): void {
+//  console.log("draw", L, g, align, p);
+//  assert(g !== null);
   randy.learn({ sight: g, pens: { fill: null, stroke: p ?? defaultpen } });
 }
 
 function fill([g, p]: [Seen, Maybe<Pen>]): void {
-  assert(g !== null);
+//  assert(g !== null);
   randy.learn({ sight: g, pens: { fill: p ?? defaultpen, stroke: null } });
 }
 
 function filldraw([g, fillpen, strokepen]: [Seen, Maybe<Pen>, Maybe<Pen>]): void {
-  assert(g !== null);
+//  assert(g !== null);
   randy.learn({ sight: g, pens: { fill: fillpen ?? defaultpen, stroke: null } });
   randy.learn({ sight: g, pens: { fill: null, stroke: strokepen ?? defaultpen } });
 }
@@ -212,7 +203,7 @@ function filldraw([g, fillpen, strokepen]: [Seen, Maybe<Pen>, Maybe<Pen>]): void
 // todo: calibrate label appearance
 // todo: lots of redundancy with type checking / guarding
 function label([s, position, align, p]: [string, Maybe<Pair>, Maybe<Pair>, Maybe<Pen>]): void {
-  assert(s !== null);
+//  assert(s !== null);
   randy.learn({
     sight: new Label(s, position ?? navel, align ?? navel),
     pens: { fill: p ?? defaultpen, stroke: null },
@@ -222,11 +213,15 @@ function label([s, position, align, p]: [string, Maybe<Pair>, Maybe<Pair>, Maybe
 // todo: calibrate dot size
 // todo: L should be Label instead of string, cf. upcasting
 function dot([L, z, align, p]: [Maybe<string>, Maybe<Pair>, Maybe<Pair>, Maybe<Pen>]): void {
-  randy.learn({ sight: new Circle(z ?? navel, descale(1/2*defaultpen.dotsize())), pens: { fill: p ?? defaultpen, stroke: null } });
+  randy.learn({
+    sight: new Circle(z ?? navel, descale(1/2*defaultpen.dotsize())),
+    pens: { fill: p ?? defaultpen, stroke: null }
+  });
   label([L ?? "", z, align ?? E, p]);
 }
 
 // carafes go here
+// todo: unreify this and merge it into the rest
 function descale<T extends Rime>(thing: T): T {
   return BakedPair.is(thing)
     ? { x: thing.x / randy.scaling.x, y: thing.y / randy.scaling.y / Render.UP } as T
@@ -235,5 +230,5 @@ function descale<T extends Rime>(thing: T): T {
 
 export type { Cakething };
 export { Render, cakeboard };
-export { lookup, descale, remember, recall };
+export { lookup, descale };
 export { draw, fill, filldraw, label, dot, size, unitsize };

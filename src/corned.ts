@@ -1,110 +1,117 @@
 import { Circle, unitcircle } from "./arc";
-import { lift, INCHES, CM, MM, PT, only } from "./helper";
+import { yoke } from "./bake";
+import { lift, INCHES, CM, MM, PT, only, Maybe, Functionlike } from "./helper";
 import { Color, Pen } from "./pen";
 import { size, unitsize, draw, fill, filldraw, label, dot } from "./render";
 import { pair, deet, doot, abs, degrees, N, S, E, W, NW, NE, SW, SE, deer, navel, conj } from "./rime";
 import { Tokenboard, Operator } from "./tokens";
-import { bake, Bakework, Bakething, cake, Bread as Bread } from "./yeast";
+import { bakework, Bakework, Bakething, bakething, Bread } from "./yeast";
 
 /** What has been baked cannot be unbaked. */
 
 const bakeworks: Bakework[] = [
-  bake("size", ["real", "real"], "void", size),
-  bake("unitsize", ["real", "real"], "void", unitsize),
+  bakework("size", ["real", "real"], "void", size),
+  bakework("unitsize", ["real", "real"], "void", unitsize),
 
-  bake(Tokenboard[Operator.Plus], ["string", "string"], "string", ([x, y]) => x+y),
-  bake("string", ["real"], "string", ([x]) => x.toString()),
-  bake("write", ["string"], "void", lift(console.log)),
-  bake("write", ["real"], "void", lift(console.log)),
-  bake("write", ["pair"], "void", lift(console.log)),
+  bakework(Tokenboard[Operator.Plus], ["string", "string"], "string", ([x, y]) => x+y),
+  bakework("string", ["real"], "string", ([x]) => x.toString()),
+  bakework("write", ["string"], "void", lift(console.log)),
+  bakework("write", ["real"], "void", lift(console.log)),
+  bakework("write", ["pair"], "void", lift(console.log)),
 
 // todo: awaiting int–real rectification
 //  bake("string", ["real", "int"], "string", (x, digits) => x.toFixed(digits)),
 
-  bake(Tokenboard[Operator.Hash], ["int", "int"], "int", ([x, y]) => Math.floor(x/y)),
-  bake(Tokenboard[Operator.Percent], ["int", "int"], "int", ([x, y]) => x%y),
-  bake(Tokenboard[Operator.Gt], ["real", "real"], "bool", ([x, y]) => x>y),
-  bake(Tokenboard[Operator.Lt], ["real", "real"], "bool", ([x, y]) => x<y),
-  bake(Tokenboard[Operator.EqEq], ["real", "real"], "bool", ([x, y]) => x===y),
+  bakework(Tokenboard[Operator.Hash], ["int", "int"], "int", ([x, y]) => Math.floor(x/y)),
+  bakework(Tokenboard[Operator.Percent], ["int", "int"], "int", ([x, y]) => x%y),
+  bakework(Tokenboard[Operator.Gt], ["real", "real"], "bool", ([x, y]) => x>y),
+  bakework(Tokenboard[Operator.Lt], ["real", "real"], "bool", ([x, y]) => x<y),
+  bakework(Tokenboard[Operator.EqEq], ["real", "real"], "bool", ([x, y]) => x===y),
 
-  bake(Tokenboard[Operator.Plus], ["real"], "real", ([x]) => x),
-  bake(Tokenboard[Operator.Plus], ["real", "real"], "real", ([x, y]) => x+y),
-  bake(Tokenboard[Operator.Minus], ["real"], "real", ([x]) => -x),
-  bake(Tokenboard[Operator.Minus], ["real", "real"], "real", ([x, y]) => x-y),
-  bake(Tokenboard[Operator.Star], ["real", "real"], "real", ([x, y]) => x*y),
-  bake(Tokenboard[Operator.Slash], ["real", "real"], "real", ([x, y]) => x/y),
-  bake(Tokenboard[Operator.Caret], ["real", "real"], "real", ([x, y]) => x^y),
-  bake(Tokenboard[Operator.StarStar], ["real", "real"], "real", ([x, y]) => x**y),
+  bakework(Tokenboard[Operator.Plus], ["real"], "real", ([x]) => x),
+  bakework(Tokenboard[Operator.Plus], ["real", "real"], "real", ([x, y]) => x+y),
+  bakework(Tokenboard[Operator.Minus], ["real"], "real", ([x]) => -x),
+  bakework(Tokenboard[Operator.Minus], ["real", "real"], "real", ([x, y]) => x-y),
+  bakework(Tokenboard[Operator.Star], ["real", "real"], "real", ([x, y]) => x*y),
+  bakework(Tokenboard[Operator.Slash], ["real", "real"], "real", ([x, y]) => x/y),
+  bakework(Tokenboard[Operator.Caret], ["real", "real"], "real", ([x, y]) => x^y),
+  bakework(Tokenboard[Operator.StarStar], ["real", "real"], "real", ([x, y]) => x**y),
 
 // meditation: assignors are not baked… they are piled outright
-  bake(Tokenboard[Operator.Plus], ["pair"], "pair", ([z]) => z),
-  bake(Tokenboard[Operator.Plus], ["pair", "pair"], "pair", ([z, w]) => pair(z.x+w.x, z.y+w.y)),
-  bake(Tokenboard[Operator.Minus], ["pair"], "pair", ([z]) => pair(-z.x, -z.y)),
-  bake(Tokenboard[Operator.Minus], ["pair", "pair"], "pair", ([z, w]) => pair(z.x-w.x, z.y-w.y)),
-  bake(Tokenboard[Operator.Star], ["pair", "pair"], "pair", ([z, w]) => pair(deet(z, conj(w)), doot(z, conj(w)))),
-  bake(Tokenboard[Operator.Slash], ["pair", "pair"], "pair", ([z, w]) => pair(doot(z, w)/abs(w), deet(z, w)/abs(w))),
+  bakework(Tokenboard[Operator.Plus], ["pair"], "pair", ([z]) => z),
+  bakework(Tokenboard[Operator.Plus], ["pair", "pair"], "pair", ([z, w]) => pair(z.x+w.x, z.y+w.y)),
+  bakework(Tokenboard[Operator.Minus], ["pair"], "pair", ([z]) => pair(-z.x, -z.y)),
+  bakework(Tokenboard[Operator.Minus], ["pair", "pair"], "pair", ([z, w]) => pair(z.x-w.x, z.y-w.y)),
+  bakework(Tokenboard[Operator.Star], ["pair", "pair"], "pair", ([z, w]) => pair(doot(conj(z), w), deet(conj(z), w))),
+  bakework(Tokenboard[Operator.Slash], ["pair", "pair"], "pair", ([z, w]) => pair(doot(z, w)/abs(w), deet(z, w)/abs(w))),
 
-  bake(Tokenboard[Operator.MinusMinus], ["path", "pair"], "path", ([p, z]) => p.add(z)),
-  bake(Tokenboard[Operator.MinusMinus], ["path", "string"], "path", ([p, cycle]) => p.becycle(cycle)),
-  bake("draw", ["string", "path", "pair", "pen"], "void", draw),
-  bake("fill", ["path", "pen"], "void", fill),
-  bake("filldraw", ["path", "pen", "pen"], "void", filldraw),
-  bake("label", ["string", "pair", "pair", "pen"], "void", label),
-  bake("dot", ["string", "pair", "pair", "pen"], "void", dot),
+  bakework(Tokenboard[Operator.MinusMinus], ["path", "pair"], "path", ([p, z]) => p.add(z)),
+  bakework(Tokenboard[Operator.MinusMinus], ["path", "string"], "path", ([p, cycle]) => p.becycle(cycle)),
+  bakework("draw", ["string", "path", "pair", "pen"], "void", draw),
+  bakework("fill", ["path", "pen"], "void", fill),
+  bakework("filldraw", ["path", "pen", "pen"], "void", filldraw),
+  bakework("label", ["string", "pair", "pair", "pen"], "void", label),
+  bakework("dot", ["string", "pair", "pair", "pen"], "void", dot),
 
-  bake("circle", ["pair", "real"], "path", ([c,r]) => new Circle(c, r)),
-  bake("round", ["real"], "int", lift(Math.round)),
+  bakework("circle", ["pair", "real"], "path", ([c,r]) => new Circle(c, r)),
+  bakework("round", ["real"], "int", lift(Math.round)),
 
-  bake("unitrand", ["real"], "real", lift(Math.random)),
-  bake("sqrt", ["real"], "real", lift(Math.sqrt)),
-  bake("cbrt", ["real"], "real", lift(Math.cbrt)),
-  bake("abs", ["real"], "real", lift(Math.abs)),
-  bake("sin", ["real"], "real", lift(Math.sin)),
-  bake("cos", ["real"], "real", lift(Math.cos)),
-  bake("tan", ["real"], "real", lift(Math.tan)),
-  bake("asin", ["real"], "real", lift(Math.asin)),
-  bake("acos", ["real"], "real", lift(Math.acos)),
-  bake("atan", ["real"], "real", lift(Math.atan)),
-  bake("acosh", ["real"], "real", lift(Math.acosh)),
-  bake("atanh", ["real"], "real", lift(Math.atanh)),
-  bake("tanh", ["real"], "real", lift(Math.tanh)),
-  bake("exp", ["real"], "real", lift(Math.exp)),
-  bake("expm1", ["real"], "real", lift(Math.expm1)),
-  bake("log", ["real"], "real", lift(Math.log)),
-  bake("log10", ["real"], "real", lift(Math.log10)),
-  bake("log1p", ["real"], "real", lift(Math.log1p)),
+  bakework("unitrand", ["real"], "real", lift(Math.random)),
+  bakework("sqrt", ["real"], "real", lift(Math.sqrt)),
+  bakework("cbrt", ["real"], "real", lift(Math.cbrt)),
+  bakework("abs", ["real"], "real", lift(Math.abs)),
+  bakework("sin", ["real"], "real", lift(Math.sin)),
+  bakework("cos", ["real"], "real", lift(Math.cos)),
+  bakework("tan", ["real"], "real", lift(Math.tan)),
+  bakework("asin", ["real"], "real", lift(Math.asin)),
+  bakework("acos", ["real"], "real", lift(Math.acos)),
+  bakework("atan", ["real"], "real", lift(Math.atan)),
+  bakework("acosh", ["real"], "real", lift(Math.acosh)),
+  bakework("atanh", ["real"], "real", lift(Math.atanh)),
+  bakework("tanh", ["real"], "real", lift(Math.tanh)),
+  bakework("exp", ["real"], "real", lift(Math.exp)),
+  bakework("expm1", ["real"], "real", lift(Math.expm1)),
+  bakework("log", ["real"], "real", lift(Math.log)),
+  bakework("log10", ["real"], "real", lift(Math.log10)),
+  bakework("log1p", ["real"], "real", lift(Math.log1p)),
 
-  bake("atan2", ["real", "real"], "real", lift(Math.atan2)),
-  bake("hypot", ["real", "real"], "real", lift(Math.hypot)),
+  bakework("atan2", ["real", "real"], "real", lift(Math.atan2)),
+  bakework("hypot", ["real", "real"], "real", lift(Math.hypot)),
 
-  bake("abs", ["pair"], "real", ([z]) => abs(z)),
-  bake("dir", ["real"], "pair", ([th]) => deer(th)),
-  bake("unit", ["pair"], "pair", ([z]) => pair(z.x/abs(z), z.y/abs(z))),
-  bake("degrees", ["pair"], "real", ([z]) => degrees(Math.atan2(z.y, z.x))),
+  bakework("abs", ["pair"], "real", ([z]) => abs(z)),
+  bakework("dir", ["real"], "pair", ([th]) => deer(th)),
+  bakework("unit", ["pair"], "pair", ([z]) => pair(z.x/abs(z), z.y/abs(z))),
+  bakework("degrees", ["pair"], "real", ([z]) => degrees(Math.atan2(z.y, z.x))),
 ];
 
 const bakethings: Bakething[] = [
-  cake("inches", "real", INCHES),
-  cake("cm", "real", CM),
-  cake("mm", "real", MM),
-  cake("pt", "real", PT),
-  cake("pi", "real", Math.PI),
+  bakething("inches", "real", INCHES),
+  bakething("cm", "real", CM),
+  bakething("mm", "real", MM),
+  bakething("pt", "real", PT),
+  bakething("pi", "real", Math.PI),
 
-  cake("origin", "pair", navel),
-  cake("N", "pair", N),
-  cake("S", "pair", S),
-  cake("E", "pair", E),
-  cake("W", "pair", W),
-  cake("NW", "pair", NW),
-  cake("NE", "pair", NE),
-  cake("SW", "pair", SW),
-  cake("SE", "pair", SE),
-  cake("unitcircle", "path", unitcircle),
+  bakething("origin", "pair", navel),
+  bakething("N", "pair", N),
+  bakething("S", "pair", S),
+  bakething("E", "pair", E),
+  bakething("W", "pair", W),
+  bakething("NW", "pair", NW),
+  bakething("NE", "pair", NE),
+  bakething("SW", "pair", SW),
+  bakething("SE", "pair", SE),
+  bakething("unitcircle", "path", unitcircle),
 
-  ...[...Color.names.entries()].map(([k,v]) => cake(k, "pen", Pen.fromColor(v))),
+  // todo: this
+  bakething("cycle", "string", "cycle"),
+
+  ...[...Color.names.entries()].map(([k,v]) => bakething(k, "pen", Pen.fromColor(v))),
 ];
 
 const bakeboard: Bread[] = (bakeworks as Bread[]).concat(bakethings);
+
+type Cakething = Bakething;
+const cakeboard: Cakething[] = [];
 
 function sluice<T extends { name: string }>(board: T[], name: string): T[] {
   return board.filter(x => x.name === name);
@@ -122,9 +129,44 @@ function isBakething(name: string): boolean {
   return sluice(bakethings, name).length > 0;
 }
 
-function getBakething(name: string): unknown {
-  return only(sluice(bakethings, name)).worth;
+function getBakething(name: string): Bakething {
+  return only(sluice(bakethings, name));
 }
 
-export { bakeworks, bakethings, bakeboard };
-export { isBakework, getBakeworks, isBakething, getBakething };
+function isCake(name: string): boolean {
+  return sluice(cakeboard, name).length > 0;
+}
+
+function setCake<T>(name: string, worth: T): Cakething {
+  console.log(worth);
+  return isCake(name)
+    ? ((cake: Cakething) => {
+        cake.worth = worth;
+        console.log(cakeboard, cakeboard.map(c => c.worth));
+        return cake;
+      })(getCake(name))
+    : ((cake: Cakething) => {
+        cakeboard.push(cake);
+        console.log(cakeboard, cakeboard.map(c => c.worth));
+        return cake;
+      })({ name, born: yoke(worth), worth });
+}
+
+function getCake(name: string): Cakething {
+  return only(sluice(cakeboard, name));
+}
+
+function wendCake(name: string, f: Functionlike<unknown>): Cakething {
+  return ((cake: Cakething) => {
+    setCake(cake.name, f(cake.worth));
+    return getCake(cake.name);
+  })(getCake(name));
+}
+
+function emptyCake(): void {
+  cakeboard.length = 0;
+}
+
+export type { Cakething };
+export { bakeworks, bakethings, bakeboard, cakeboard };
+export { isBakework, getBakeworks, isBakething, getBakething, emptyCake, isCake, setCake, getCake, wendCake };

@@ -14,7 +14,7 @@ class Path extends Seen {
   }
 
   length(): number {
-    return this.points.length+(+!!!this.cyclic);
+    return this.points.length+(+!this.cyclic);
   }
 
   becycle(s: string): Path {

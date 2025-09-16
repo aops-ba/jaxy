@@ -81,7 +81,7 @@ const BakedPen: Bake<Pen> = Typebakes["pen"];
 const BakedTransform: Bake<Transform> = Typebakes["transform"];
 
 function yoke(thing: unknown): Yoke {
-  console.log("bakename", thing);
+//  console.log("bakename", thing);
   if (isSeen(thing)) return "path";
   else if (BakedPen.is(thing)) return "pen";
   else if (BakedTransform.is(thing)) return "transform";

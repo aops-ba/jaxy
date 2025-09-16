@@ -17,12 +17,12 @@ type Bakething = {
 
 type Bread = Bakework | Bakething;
 
-export function bake<T>(name: string, corn: Maybe<Yoke[]>, out: Yoke, f: Functionlike<T>): Bakework {
-  console.log("sourdough", name, corn, out, f);
+export function bakework<T>(name: string, corn: Maybe<Yoke[]>, out: Yoke, f: Functionlike<T>): Bakework {
+//  console.log("sourdough", name, corn, out, f);
   return { name, corn, work: (...args: any) => f(underload(args, corn)) };
 }
 
-export function cake(name: string, born: Yoke, worth: unknown): Bakething {
+export function bakething(name: string, born: Yoke, worth: unknown): Bakething {
   return { name, born, worth };
 }
 
@@ -35,14 +35,14 @@ function bless<T>(thing: T, type: Yoke): T {
 // narrow the overloads
 // todo: this calls `underload` twice, once explicitly and once when it calls `work`
 function unload(loaves: Bakework[], args: unknown[]): unknown {
-  console.log("unload", loaves, args);
+//  console.log("unload", loaves, args);
   return loaves.find(loaf => !isNull(underload(args, loaf.corn)))!.work(...args);
 }
 
 // pad with `null` until signature matches
 // a return of `null` means match impossible
 export function underload(maybes: unknown[], goods: Maybe<Yoke[]>): Maybe<Maybe<Yoke>[]> {
-  console.log("underload", maybes, goods);
+//  console.log("underload", maybes, goods);
   return goods === null ? (maybes.length > 0 ? null : [])
   : maybes.length > goods.length ? null
   : maybes.length === 0 ? Array(max(0, goods.length-maybes.length)).fill(null)
