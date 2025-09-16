@@ -1,6 +1,6 @@
 import type { BBox } from "./helper";
-import type { Pair } from "./bake";
-import { origin } from "./bake";
+import type { Pair } from "./rime";
+import { navel } from "./rime";
 
 import { Seen } from "./seen";
 
@@ -36,7 +36,7 @@ class Circle extends Arc {
   }
 }
 
-const unitcircle: Circle = new Circle(origin, 1);
+const unitcircle: Circle = new Circle(navel, 1);
 
 export { Arc, Circle };
 export { unitcircle };

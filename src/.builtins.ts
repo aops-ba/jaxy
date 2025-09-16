@@ -7,7 +7,7 @@ import {
   ldexp,
   logComplex,
   quadraticrootsReal
-} from "./special_functions.ts";
+} from "./.special_functions.ts";
 import { AsyError } from "./helper.ts";
 
 export type AsyType<JSType> = {

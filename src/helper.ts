@@ -25,6 +25,13 @@ function loudly<T>(thing: T, loudness: number=LOUDNESS.Loudly): T {
   return thing;
 }
 
+function asidely<T>(aside: unknown): ($t: T) => T {
+  return (thing: T) => {
+    if (LOUDNESS.Loudly >= UTLOUD) console.log(aside);
+    return thing;
+  }
+}
+
 function assert(condition: boolean, message: unknown =null, loudness: number =LOUDNESS.Assert): asserts condition {
   if (!condition) throw new Error(`I can't assert ${message ? `that ${Array.isArray(message) ? message.join(' ') : message}` : "this"}…`);
   else if (message && loudness >= UTLOUD) console.log(...shell(message));
@@ -64,6 +71,22 @@ const unknowledge: Knowledge = () => "";
 
 /** For working with iterables **/
 
+function first<T>(xs: T[]): T {
+  return xs[0];
+}
+
+function last<T>(xs: T[]): T {
+  return xs.at(-1) as T;
+}
+
+function left<T, U>([left, _]: [T, U]): T {
+  return left;
+}
+
+function right<T, U>([_, right]: [T, U]): U {
+  return right;
+}
+
 function min(...xs: number[]): number {
   return xs.reduce((x, y) => Math.min(x, y));
 }
@@ -96,7 +119,7 @@ function maybeArray<T>(thing: Maybe<T> | undefined): T[] {
 }
 
 function sameArray(left: unknown[], right: unknown[]): boolean {
-  return (!!!left && !!!right) || (!!left && !!right && (left.every((v,i) => v === right[i])) && (right.every((v,i) => v === left[i])));
+  return (!left && !right) || (!!left && !!right && (left.every((v,i) => v === right[i])) && (right.every((v,i) => v === left[i])));
 }
 
 function flight(n: number): number[] {
@@ -160,16 +183,25 @@ function hasTex(s: string): boolean {
       || (s.includes('$') && s.includes('$'))
 }
 
+function isNull(x: unknown): x is null {
+  return x === null;
+}
+
+function unless<T, U>(lif: Functionlike<boolean>): ($nay: T) => ($thing: U) => T | U {
+  return (nay: T) => (thing: U) => lif(thing) ? thing : nay;
+}
+
 // hides linter warnings
 function same(...stuff: unknown[]): void { stuff ? {} : {}; }
 
 export type { Badness };
 export { AsyError, LOUDNESS };
-export { loudly, timedly, same, assert, hurriedly };
+export { asidely, loudly, timedly, same, assert, hurriedly };
 
 export type { BBox, Scaling, Knowledge };
 export { PT, PX, INCH as INCHES, CM, MM, unknowledge };
 export { hasTex };
 
 export type { Maybe, Enumlike, Functionlike, Twain };
-export { product, lift, min, max, only, peel, shed, shell, flight, toEach, withEach, maybeArray, sameArray, enumNames, nextSuchThat, zip };
+export { isNull, unless };
+export { first, last, left, right, product, lift, min, max, only, peel, shed, shell, flight, toEach, withEach, maybeArray, sameArray, enumNames, nextSuchThat, zip };

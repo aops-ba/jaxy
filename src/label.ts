@@ -1,6 +1,6 @@
 import { Seen } from "./seen";
 
-import type { Pair } from "./bake";
+import type { Pair } from "./rime";
 import { peel } from "./helper";
 
 export default class Label extends Seen {

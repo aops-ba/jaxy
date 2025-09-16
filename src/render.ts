@@ -9,13 +9,13 @@ import { defaultpen } from "./pen";
 import Label from "./label";
 import { Maybe, PT, Scaling, BBox, only, max, min, Functionlike, zip, loudly } from "./helper";
 import { Keyword, Operator, Other, Token, Tokenboard } from "./tokens";
-import { BakedPair, cakeboard } from "./bake";
-
-import type { Pair, Rime } from "./bake";
-import { origin, N, S, E, W } from "./bake";
+import { BakedPair } from "./bake";
 
 import { assert } from "./helper";
 import { Seen } from "./seen";
+import { bakeworks, bakethings, getBakething, getBakeworks, isBakething, isBakework } from "./corned";
+import { Pair, E, Rime, navel } from "./rime";
+import { Bakework, Bakething } from "./yeast";
 
 const MathJax = window["MathJax" as keyof typeof window];
 
@@ -47,10 +47,10 @@ class Render {
     //loudly(window.devicePixelRatio);
   }
 
-  size(x: number, y: number =x): Render {
+  size(x: number, y: number): Render {
     this.afterwork.push(() => { this.scaling = ((xs: number[][]) => ((lmost: number) => ({
       x: x/lmost,
-      y: y/lmost*Render.UP,
+      y: (y ?? x)/lmost*Render.UP,
     })) (max(max(...xs[3])-min(...xs[1]), max(...xs[2])-min(...xs[0])))
     ) (zip(...this.wisdom.filter((lw: Knowledge) => !(lw.sight instanceof Label))
         .map((lw: Knowledge) => Object.values(lw.sight.bbox()))) as number[][]);
@@ -59,8 +59,8 @@ class Render {
   }
 
   // todo: if this comes before `size` then the labels are still sensitive thereto lol
-  unitsize(x: number, y: number =x): Render {
-    this.scaling = { x: x, y: y*Render.UP };
+  unitsize(x: number, y: number): Render {
+    this.scaling = { x: x, y: (y ?? x)*Render.UP };
     return this;
   }
 
@@ -162,43 +162,38 @@ class Render {
   }
 }
 
-function HAS(name: string): boolean {
-  return cakeboard.filter(f => f.namey === name).length > 0;
+type Cakething = { name: string, memory: unknown };
+const cakeboard: Map<string, unknown> = new Map();
+
+function remember<T>(name: string, value: T): Cakething {
+  return { name, memory: cakeboard.set(name, value).get(name) as T };
 }
 
-// nb: we want to shed if length === 1 since otherwise over in `piler.ts` the output of lookup won't know whether to wait for args or not
-function GET(name: string): unknown {
-//  console.log("wah", cakeboard.filter(f => f.namey === name).map(x => x.inkinds === "not a function" ? x() : x));
-  return (xs => xs.length === 1 ? only(xs) : xs)
-    (cakeboard.filter(f => f.namey === name).map(x => x.inkinds === "not a function" ? x() : x));
+function recall(name: string): Cakething {
+  return { name, memory: cakeboard.get(name) };
 }
 
-type Memory = { name: string, memory: unknown };
-const variables: Map<string, unknown> = new Map();
-
-function remember<T>(name: string, value: T): Memory {
-  return { name, memory: variables.set(name, value).get(name) as T };
-}
-
-function recall(name: string): Memory {
-  return { name, memory: variables.get(name) };
-}
-
-function lookup(thing: Token<Keyword | Operator | Other.Identifier>): any {
+function lookup(thing: Token<Keyword | Operator | Other.Identifier>): unknown | Bakework[] {
   console.log("lookup", thing);
-  if (thing === null) return null;
-  return loudly((lname => {
-    return HAS(lname) ? GET(lname)
-      : variables.has(lname) ? variables.get(lname)
+  return (lname => {
+    return isBakework(lname) ? getBakeworks(lname)
+    : isBakething(lname) ? getBakething(lname)
+      : cakeboard.has(lname)
+        ? [cakeboard.get(lname)]
         : (() => { throw new Error(`${lname} not found`); })();
-  }) ("value" in thing ? thing.value as string : Tokenboard[thing.kind]));
+  }) ("value" in thing ? thing.value as string : Tokenboard[thing.kind]);
 }
 
-//function draw([L="", g, align=origin, p]: [Maybe<string>, Seen, Maybe<Pair>, Maybe<Pen>]): void {
-//function draw([g, align=origin, p=defaultpen]: [Maybe<string>, Seen, Maybe<Pair>, Maybe<Pen>]): void {
-function draw([g, p=defaultpen]: [Seen, Maybe<Pen>]): void {
-  let L = "hi";
-  console.log("draw", L, g, origin, p);
+function size([x, y]: [number, number]): void {
+  randy.size(x, y);
+}
+
+function unitsize([x, y]: [number, number]): void {
+  randy.unitsize(x, y);
+}
+
+function draw([L="", g, align=navel, p=defaultpen]: [Maybe<string>, Seen, Maybe<Pair>, Maybe<Pen>]): void {
+  console.log("draw", L, g, align, p);
   assert(g !== null);
   randy.learn({ sight: g, pens: { fill: null, stroke: p ?? defaultpen } });
 }
@@ -219,7 +214,7 @@ function filldraw([g, fillpen, strokepen]: [Seen, Maybe<Pen>, Maybe<Pen>]): void
 function label([s, position, align, p]: [string, Maybe<Pair>, Maybe<Pair>, Maybe<Pen>]): void {
   assert(s !== null);
   randy.learn({
-    sight: new Label(s, position ?? origin, align ?? origin),
+    sight: new Label(s, position ?? navel, align ?? navel),
     pens: { fill: p ?? defaultpen, stroke: null },
   });
 }
@@ -227,7 +222,7 @@ function label([s, position, align, p]: [string, Maybe<Pair>, Maybe<Pair>, Maybe
 // todo: calibrate dot size
 // todo: L should be Label instead of string, cf. upcasting
 function dot([L, z, align, p]: [Maybe<string>, Maybe<Pair>, Maybe<Pair>, Maybe<Pen>]): void {
-  randy.learn({ sight: new Circle(z ?? origin, descale(1/2*defaultpen.dotsize())), pens: { fill: p ?? defaultpen, stroke: null } });
+  randy.learn({ sight: new Circle(z ?? navel, descale(1/2*defaultpen.dotsize())), pens: { fill: p ?? defaultpen, stroke: null } });
   label([L ?? "", z, align ?? E, p]);
 }
 
@@ -238,7 +233,7 @@ function descale<T extends Rime>(thing: T): T {
     : thing as number / randy.scaling.x as T;
 }
 
-export type { Memory };
-export { Render, variables };
+export type { Cakething };
+export { Render, cakeboard };
 export { lookup, descale, remember, recall };
-export { draw, fill, filldraw, label, dot };
+export { draw, fill, filldraw, label, dot, size, unitsize };

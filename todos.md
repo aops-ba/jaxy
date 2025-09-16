@@ -1,5 +1,8 @@
 # todos
 
+- reification of `cycle`
+- variables
+- i think `unload` or `underload` is being called twice?
 - calibrations
   * line width, dot size, label margin
   * the four primal commands
@@ -63,8 +66,3 @@ pair(int i=<default>, real x, real y)
 
 > 
 ```
-
-1. fix cakeboard, sourdough, asf. so that it's a map from [name, signature] to the baked function
-2. get rid of this namey nonsense
-3. test underload to make sure it's working because i don't think it is
-4. get everything working again

@@ -1,4 +1,4 @@
-import { assert, hurriedly, LOUDNESS, Twain, } from "./helper";
+import { assert, hurriedly, LOUDNESS, shed, Twain, } from "./helper";
 
 import type { Binor, Unor, Assignor, Modifactor, Literal } from "./tokens";
 import { Keyword, Operator, Separator, Other, DEFSPAN } from "./tokens";
@@ -12,8 +12,10 @@ import { tokenTypeToString } from "./tokens";
 import { Maybe, maybeArray, Knowledge, unknowledge as unknowledge, loudly } from "./helper";
 import { lookup, recall, remember } from "./render";
 import merx from "./merx";
-import { TypedFunction, Bakename, pair } from "./bake";
+import { Yoke } from "./bake";
 import { bless, unload } from "./yeast";
+import { Bakework } from "./yeast";
+import { pair } from "./rime";
 
 export class Phrase {
 
@@ -737,10 +739,10 @@ export class AllP extends Phrase {
             assert(xp.operand instanceof IdentifierP);
             return remember(xp.operand.getName(), (recall(xp.operand.getName()).memory as number) - 1);
           default:
-            return unload(lookup(xp.operator), [this.understand(xp.operand)]);
+            return unload(lookup(xp.operator) as Bakework[], [this.understand(xp.operand)]);
         }
       } else if (xp instanceof BinorP) {
-        return unload(lookup(xp.operator!), [this.understand(xp.left), this.understand(xp.right)]);
+        return unload(lookup(xp.operator!) as Bakework[], [this.understand(xp.left), this.understand(xp.right)]);
       } else {
         throw new Error(`wah im a bad operator ${xp.constructor.name}`);
       }
@@ -774,12 +776,12 @@ export class AllP extends Phrase {
       } else if (xp instanceof CallP) {
         return ((lcalls, largs) => {
           loudly([`Calling ${xp.caller} on`, largs, "."]);
-          return unload(lcalls as TypedFunction<any, any>[], largs);
+          return unload(lcalls as Bakework[], largs);
         }) (this.understand(xp.caller), xp.args.map(x => this.understand(x)));
       } else if (xp instanceof TernorP) {
         return this.understand(this.understand(xp.condition) ? xp.whenTrue : xp.whenFalse);
       } else if (xp instanceof TypeP) {
-        return (thing: unknown) => bless(thing, xp.ident.getName() as Bakename);
+        return (thing: unknown) => bless(thing, xp.ident.getName() as Yoke);
       } else if (xp instanceof RoundP) {
         return this.understand(xp.expr);
       } else if (xp instanceof CallArgsP) {

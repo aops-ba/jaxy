@@ -1,7 +1,6 @@
 import { Parser } from "./parser";
 import { Render } from "./render";
 import { Functionlike, loudly, zip } from "./helper";
-import fandtest from "./fand";
 
 const asyblock = document.getElementById("asy") as HTMLTextAreaElement;
 const svgblock = document.getElementById("svg") as unknown as SVGGraphicsElement;

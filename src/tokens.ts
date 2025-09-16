@@ -1,6 +1,6 @@
 import type { Enumlike } from "./helper";
 import { enumNames, toEach } from "./helper";
-import { max, min, peel} from "./helper";
+import { max, min, peel } from "./helper";
 
 type Span = { start: number; end: number };
 
