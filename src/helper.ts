@@ -177,10 +177,6 @@ function zip(...teeth: unknown[][]): unknown[][] {
   return flight(Math.max(...teeth.map(x => x.length))).map((_, i) => teeth.map(x => x[i]));
 }
 
-function lift<T>(f: Functionlike<T>): Functionlike<T> {
-  return ([...xs]) => f(...xs);
-}
-
 function product(...xss: unknown[][]): any[][] {
   return xss.reduce((xs: unknown[], ys: unknown[]) =>
     xs.flatMap((x: unknown) => ys.map((y: unknown) => [x, y].flat()))) as unknown[][];
@@ -216,7 +212,7 @@ export { isNull, unless };
 export {
   first, last, left, right, only,
   flight, peel, shed, shell, zip, product,
-  lift, toEach, withEach, maybeArray, 
+  toEach, withEach, maybeArray, 
   min, max, sameArray, 
   enumNames, 
   nextSuchThat, 

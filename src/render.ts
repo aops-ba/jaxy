@@ -13,7 +13,7 @@ import { BakedPair } from "./bake";
 
 import { Seen } from "./seen";
 import { getBakething, getBakeworks, isBakething, isBakework, cakeboard, Cakething, getCake, isCake } from "./corn";
-import { Pair, E, Rime, navel } from "./rime";
+import { Pair, E, Rime, navel, pairmap } from "./rime";
 import { Bakework } from "./yeast";
 
 const MathJax = window["MathJax" as keyof typeof window];
@@ -75,22 +75,29 @@ class Render {
     return this;
   }
 
+  descale(r: number): number {
+    return r / this.scaling.x;
+  }
+
   sketch(knowledge: Knowledge | string): string {
     if (typeof knowledge === "string") return knowledge;
 
     if (knowledge.sight instanceof Path) {
-      return ((lx: Path) => (ls: Scaling) => `<path d="${lx.points.map((lpair: Pair, lindex: number): string =>
+      return ((lp: Path) => (ls: Scaling) => `<path d="${lp.points.map((lpair: Pair, lindex: number): string =>
         `${lindex==0 ? 'M' : ' L'} ${ls.x*lpair.x} ${ls.y*lpair.y}`).join('')}`
-      + `${lx.cyclic ? ' Z' : ''}" ` + this.ink(knowledge) + ` />`)(knowledge.sight)(this.scaling);
+      + `${lp.cyclic ? ' Z' : ''}" ` + this.ink(knowledge) + ` />`)(knowledge.sight)(this.scaling);
     } else if (knowledge.sight instanceof Circle) {
-      return ((lx: Circle) => (ls: Scaling) =>
-        `<circle cx="${ls.x*lx.center.x}" cy="${ls.y*lx.center.y}" r="${ls.x*lx.radius}"`
-        + `${this.ink(knowledge)} />`)(knowledge.sight)(this.scaling);
+      return ((lc: Circle) => (ls: Scaling) =>
+        `<circle cx="${ls.x*lc.center.x}" cy="${ls.y*lc.center.y}"`
+        + ` r="${ls.x*lc.radius}"`
+        + `${this.ink(knowledge)} />`
+        ) (knowledge.sight) (this.scaling);
     } else if (knowledge.sight instanceof Label) {
-      return ((lx: Label) => (ls: Scaling) =>
-        `<foreignObject x="${ls.x*(lx.position.x+lx.align.x)}" y="${ls.y*(lx.position.y+lx.align.y)}"`
-        + `style="overflow: visible;">`
-        + this.ink(knowledge) + `</foreignObject>`)(knowledge.sight)(this.scaling);
+      return ((ll: Label) => (ls: Scaling) => ((lalign: Pair) =>
+        `<foreignObject x="${ls.x*ll.position.x+lalign.x}" y="${ls.y*ll.position.y+lalign.y}"`
+        + ` style="overflow: visible;">` + this.ink(knowledge) + `</foreignObject>`
+        ) (pairmap(r => knowledge.pens.fill!.labelmargin()*r)(ll.align))
+        ) (knowledge.sight) (this.scaling);
     } else {
       throw new Error("idk how to draw this");
     }
@@ -113,6 +120,7 @@ class Render {
   // todo: should these promises resolve all at render time or eachwise at read time?
   // todo: afterwork needs to wait for `mete`s to fulfill
   async show(): Promise<void> {
+//    console.log(this.greatbox(), this.smallbox());
     await (async (l): Promise<void> => {
       this.svgblock.innerHTML = `${
         this.doTex.checked
@@ -159,10 +167,13 @@ class Render {
       maxy: l.height/2,
     })) (this.svgblock.getBoundingClientRect());
   }
-}
 
-//type Cakething = { name: string, memory: unknown };
-//const cakeboard: Map<string, unknown> = new Map();
+  private smallbox(): BBox {
+    return (xs => ({ minx: min(...xs[0]), miny: min(...xs[1]), maxx: max(...xs[2]), maxy: max(...xs[3]) }))
+           (zip(...this.wisdom.filter((lw: Knowledge) => !(lw.sight instanceof Label))
+           .map((lw: Knowledge) => Object.values(lw.sight.bbox()))) as number[][]);
+  }
+}
 
 function lookup(thing: Token<Keyword | Operator | Other.Identifier>): unknown | Bakework[] {
 //  console.log("lookup", thing);
@@ -174,30 +185,30 @@ function lookup(thing: Token<Keyword | Operator | Other.Identifier>): unknown | 
   }) ("value" in thing ? thing.value as string : Tokenboard[thing.kind]);
 }
 
-function size([x, y]: [number, number]): void {
+function size(x: number, y: number): void {
   randy.size(x, y);
 }
 
-function unitsize([x, y]: [number, number]): void {
+function unitsize(x: number, y: number): void {
   randy.unitsize(x, y);
 }
 
-function draw([L, g, align, p]: [Maybe<string>, Seen, Maybe<Pair>, Maybe<Pen>]): void {
+function draw(L: Maybe<string>, g: Seen, align: Maybe<Pair>, p: Maybe<Pen>): void {
   randy.learn({ sight: g, pens: { fill: null, stroke: p ?? defaultpen } });
 }
 
-function fill([g, p]: [Seen, Maybe<Pen>]): void {
+function fill(g: Seen, p: Maybe<Pen>): void {
   randy.learn({ sight: g, pens: { fill: p ?? defaultpen, stroke: null } });
 }
 
-function filldraw([g, fillpen, strokepen]: [Seen, Maybe<Pen>, Maybe<Pen>]): void {
+function filldraw(g: Seen, fillpen: Maybe<Pen>, strokepen: Maybe<Pen>): void {
   randy.learn({ sight: g, pens: { fill: fillpen ?? defaultpen, stroke: null } });
   randy.learn({ sight: g, pens: { fill: null, stroke: strokepen ?? defaultpen } });
 }
 
 // todo: calibrate label appearance
 // todo: lots of redundancy with type checking / guarding
-function label([s, position, align, p]: [string, Maybe<Pair>, Maybe<Pair>, Maybe<Pen>]): void {
+function label(s: string, position: Maybe<Pair>, align: Maybe<Pair>, p: Maybe<Pen>): void {
   randy.learn({
     sight: new Label(s, position ?? navel, align ?? navel),
     pens: { fill: p ?? defaultpen, stroke: null },
@@ -206,12 +217,12 @@ function label([s, position, align, p]: [string, Maybe<Pair>, Maybe<Pair>, Maybe
 
 // todo: calibrate dot size
 // todo: L should be Label instead of string, cf. upcasting
-function dot([L, z, align, p]: [Maybe<string>, Maybe<Pair>, Maybe<Pair>, Maybe<Pen>]): void {
+function dot(L: Maybe<string>, z: Maybe<Pair>, align: Maybe<Pair>, p: Maybe<Pen>): void {
   randy.learn({
     sight: new Circle(z ?? navel, descale(1/2*defaultpen.dotsize())),
     pens: { fill: p ?? defaultpen, stroke: null }
   });
-  label([L ?? "", z, align ?? E, p]);
+  label(L ?? "", z, align ?? E, p);
 }
 
 // carafes go here

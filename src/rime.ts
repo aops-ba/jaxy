@@ -4,6 +4,10 @@ function pair(x: Tell, y: Tell): Pair {
   return { x: Number(x), y: Number(y) };
 }
 
+function pairmap(f: ($t: number) => number): ($p: Pair) => Pair {
+  return (p: Pair) => ({ x: f(p.x), y: f(p.y) });
+}
+
 // `origin` but no namespace clash
 const navel: Pair = { x: 0, y: 0 };
 
@@ -52,6 +56,6 @@ function deet(z: Pair, w: Pair): number {
 }
 
 export type { Pair, Rime };
-export { pair, navel, N, S, E, W, NE, NW, SE, SW };
+export { pair, pairmap, navel, N, S, E, W, NE, NW, SE, SW };
 
 export { abs, conj, deer, doot, deet, degrees, radians };

@@ -779,7 +779,6 @@ export class AllP extends Phrase {
         return this.understand(this.understand(xp.condition) ? xp.whenTrue : xp.whenFalse);
       } else if (xp instanceof TypeP) {
         return xp.ident.getName() as Yoke;
-//        return (thing: unknown) => bless(thing, xp.ident.getName() as Yoke);
       } else if (xp instanceof RoundP) {
         return this.understand(xp.expr);
       } else if (xp instanceof CallArgsP) {

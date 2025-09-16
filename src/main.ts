@@ -82,11 +82,9 @@ async function ordeal(): Promise<void> {
 }
 
 const orsong: string = String.raw
-`import goods;
+`unitsize(1*cm);
 
-size(400);
-
-draw(circle(origin, 8*r));
+draw(circle(origin, 3));
 
 filldraw(circle(origin, 3), cyan, black);
 fill(circle(origin, 2), blue);
@@ -111,7 +109,6 @@ dot(s*E, E, green);
 dot("three", s*SE, blue);
 dot("three", s*SW, SW, blue);
 
-label(beowulf, 2*S);
 label("\( \phi, \psi \vDash \int_0^\infty (f')_i^2\langle \vec x_1, x|_2\rangle\ d\mathbf s \)", 2*E);
 label("\( \frac1{1+\frac1{1+\frac1{1+\frac1{1+\frac1{1+\frac1{1+\frac1{1+\frac1\dots}}}}}}} \)", 2*W, magenta);
 

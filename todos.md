@@ -1,5 +1,9 @@
 # todos
 
+- scaling i think is a priority
+- implicit multiplication
+- functions
+- structs
 - reification of `cycle`
 - i think `unload` or `underload` is being called twice?
 - calibrations
@@ -8,8 +12,6 @@
 - consolidate all the scatteredness in `render`
 - reify aligns
 - async first load
-- everything in `understand` is a return, and then `Render.update` filters them out.
-  maybe `understand` should just be more ramified instead.
 - whatever is going on here:
 ```
 Welcome to Asymptote version 3.05 (to view the manual, type help)

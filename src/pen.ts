@@ -1,4 +1,5 @@
 import { Maybe } from "./helper";
+import { Pair } from "./rime";
 
 export class Color {
   r: number;
@@ -38,14 +39,8 @@ export class Color {
 export type Pens = { fill: Maybe<Pen>, stroke: Maybe<Pen> };
 
 export class Pen {
-  readonly selfness: "Pen" = "Pen";
-
   static dotfactor = 6;
   static labelmargin = 0.28;
-
-  labelmargin(): number {
-    return Pen.labelmargin*this.fontsize+0.5*this.linewidth;
-  }
 
   color: Color;
   linewidth: number;
@@ -65,6 +60,10 @@ export class Pen {
 
   dotsize(): number {
     return this.linewidth*Pen.dotfactor;
+  }
+
+  labelmargin(): number {
+    return Pen.labelmargin*this.fontsize+0.5*this.linewidth;
   }
 
   private constructor(options: {name?: string, color?: Color, r?: number, g?: number, b?: number}) {

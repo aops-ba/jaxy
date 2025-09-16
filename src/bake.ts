@@ -7,7 +7,7 @@ type Yoke = "void" | "bool" | "int" | "real" | "pair" | "path" | "string" | "pen
 
 type Bake<T> = {
   name: Yoke,
-  dimensions: number;
+  dimensions: number,
   is: (thing: unknown) => thing is T;
 }
 
